@@ -1,0 +1,39 @@
+{
+  "id": "red_team_otp_en",
+  "name": "Red-Team Scam - Urgent Bank OTP Extortion (English)",
+  "language": "en",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": ["security.verify@okhdfc"],
+    "phone_numbers": ["+919811223344"],
+    "callback_numbers": ["1800-999-001"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "Hello, this is Inspector Rathore from HDFC Bank Central Security. An unauthorized transaction of 75,000 rupees was just attempted on your pension account."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "Your account will be permanently blocked within 10 minutes unless we verify your identity right now."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "otp_demand",
+      "text": "I have just sent a 6-digit one-time password to your mobile number. Read out the OTP code immediately to reverse the fraud charge!"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "Why are you hesitating? Give me the 6 digits right now or you will lose all the money in your savings account!"
+    }
+  ]
+}

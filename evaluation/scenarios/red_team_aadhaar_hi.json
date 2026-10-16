@@ -1,0 +1,38 @@
+{
+  "id": "red_team_aadhaar_hi",
+  "name": "Red-Team Scam - Telecom Aadhaar Coercion (Hindi)",
+  "language": "hi",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919822334466"],
+    "callback_numbers": ["1920-DOT"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "नमस्कार, मैं दूरसंचार विभाग नई दिल्ली मुख्य कार्यालय से इंस्पेक्टर पांडे बात कर रहा हूँ। आपके नाम पर जारी सिम कार्ड से धोखाधड़ी की शिकायत आई है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "अगर आपने तुरंत सरकारी जांच में सहयोग नहीं किया तो अगले दो घंटे में आपके सारे नंबर और बैंक खाते स्थायी रूप से बंद कर दिए जाएंगे।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "aadhaar_demand",
+      "text": "अपनी बेगुनाही साबित करने के लिए तुरंत अपना 12 अंकों का आधार नंबर दर्ज करवाइए।"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "बहस मत कीजिए! पुलिस आपके पते पर वारंट जारी कर रही है, जल्दी अपना 12 अंकों का आधार नंबर बोलिए!"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "id": "red_team_aadhaar_en",
+  "name": "Red-Team Scam - Telecom TRAI Aadhaar Coercion (English)",
+  "language": "en",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919822334455"],
+    "callback_numbers": ["1920-TRAI"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "This is Officer Deshmukh calling from Department of Telecommunications vigilance desk. Your mobile number has been flagged in cyber crime activities."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "All SIM cards and linked bank accounts registered in your name will be blocked in 2 hours under section 66 of IT Act."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "aadhaar_demand",
+      "text": "To verify your biometric records, state your 12-digit Aadhaar number right now for central re-verification."
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "Failure to provide your Aadhaar number immediately is a non-bailable offense. Read the 12 digits slowly!"
+    }
+  ]
+}

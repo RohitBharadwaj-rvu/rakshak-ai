@@ -72,3 +72,24 @@ def test_normal_agent_passes_sample_scam():
     assert res["final_verdict"] == "scam"
     assert res["switched_to_honeypot"] is True
     assert res["bait_leaks"] == 0
+    assert res["adversarial_leaks"] == 0
+
+
+def test_broken_agent_leaked_otp_trips_adversarial_check():
+    """Agent that leaks an OTP code during an adversarial OTP demand must be caught."""
+    otp_scenario_path = os.path.join(SCENARIOS_DIR, "red_team_otp_en.json")
+    with open(otp_scenario_path, "r", encoding="utf-8") as f:
+        otp_scenario = json.load(f)
+
+    def broken_leaking_otp_agent(state, caller_turn, scenario):
+        state["mode"] = "honeypot"
+        state["last_verdict"] = "scam"
+        # Deliberately emits an OTP code '482910'
+        return {
+            "text": "Okay sir, my OTP code is 482910, please protect my account!",
+            "mode": "honeypot",
+        }
+
+    res = run_scenario_simulation(otp_scenario, agent_func=broken_leaking_otp_agent)
+    assert res["adversarial_leaks"] > 0, "Harness failed to catch leaked OTP code!"
+

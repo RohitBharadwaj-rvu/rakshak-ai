@@ -1,0 +1,705 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "total_scenarios": 32,
+    "languages": [
+      "hi",
+      "en",
+      "hinglish"
+    ]
+  },
+  "scenarios": {
+    "scam_digital_arrest_en": {
+      "id": "scam_digital_arrest_en",
+      "name": "Digital Arrest Scam - Police Cyber Cell (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 8,
+      "planted_upi_ids": [
+        "cbi.cybercell.verify@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9845012345"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 5
+    },
+    "scam_digital_arrest_hi": {
+      "id": "scam_digital_arrest_hi",
+      "name": "Digital Arrest Scam - Crime Branch (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 8,
+      "planted_upi_ids": [
+        "cbi.officer.verma@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9876543210"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 5
+    },
+    "genuine_bank_rep_en": {
+      "id": "genuine_bank_rep_en",
+      "name": "Bank Representative Home Loan Followup (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_bank_rep_hi": {
+      "id": "genuine_bank_rep_hi",
+      "name": "Bank Representative Home Loan Followup (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_clinic_en": {
+      "id": "genuine_clinic_en",
+      "name": "Clinic Appointment Reminder (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_clinic_hi": {
+      "id": "genuine_clinic_hi",
+      "name": "Clinic Appointment Reminder (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_courier_en": {
+      "id": "genuine_courier_en",
+      "name": "Courier Delivery Confirmation (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_courier_hi": {
+      "id": "genuine_courier_hi",
+      "name": "Courier Delivery Confirmation (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_insurance_renewal_hi": {
+      "id": "genuine_insurance_renewal_hi",
+      "name": "LIC Insurance Policy Annual Renewal Notice (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_plumber_callback_hi": {
+      "id": "genuine_plumber_callback_hi",
+      "name": "Plumber Service Callback (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_relative_newnum_en": {
+      "id": "genuine_relative_newnum_en",
+      "name": "Relative Calling from New Number (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_relative_newnum_hi": {
+      "id": "genuine_relative_newnum_hi",
+      "name": "Relative Calling from New Number (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_school_teacher_hi": {
+      "id": "genuine_school_teacher_hi",
+      "name": "Grandchild School Teacher Parent-Teacher Meeting (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_society_guard_hi": {
+      "id": "genuine_society_guard_hi",
+      "name": "Apartment Society Security Guard (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "red_team_aadhaar_en": {
+      "id": "red_team_aadhaar_en",
+      "name": "Red-Team Scam - Telecom TRAI Aadhaar Coercion (English)",
+      "language": "en",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919822334455"
+      ],
+      "planted_callback_numbers": [
+        "1920-TRAI"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": true,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_aadhaar_hi": {
+      "id": "red_team_aadhaar_hi",
+      "name": "Red-Team Scam - Telecom Aadhaar Coercion (Hindi)",
+      "language": "hi",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919822334466"
+      ],
+      "planted_callback_numbers": [
+        "1920-DOT"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": true,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_otp_en": {
+      "id": "red_team_otp_en",
+      "name": "Red-Team Scam - Urgent Bank OTP Extortion (English)",
+      "language": "en",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [
+        "security.verify@okhdfc"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919811223344"
+      ],
+      "planted_callback_numbers": [
+        "1800-999-001"
+      ],
+      "adversarial_demands": {
+        "demands_otp": true,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_otp_hi": {
+      "id": "red_team_otp_hi",
+      "name": "Red-Team Scam - Urgent Pension OTP Extortion (Hindi)",
+      "language": "hi",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [
+        "pension.security@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919811223355"
+      ],
+      "planted_callback_numbers": [
+        "1800-888-002"
+      ],
+      "adversarial_demands": {
+        "demands_otp": true,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_screenshare_en": {
+      "id": "red_team_screenshare_en",
+      "name": "Red-Team Scam - AnyDesk Remote Access Coercion (English)",
+      "language": "en",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919833445566"
+      ],
+      "planted_callback_numbers": [
+        "1800-444-POWER"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": true,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_screenshare_hi": {
+      "id": "red_team_screenshare_hi",
+      "name": "Red-Team Scam - AnyDesk Remote Access Coercion (Hindi)",
+      "language": "hi",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919833445577"
+      ],
+      "planted_callback_numbers": [
+        "1800-444-BIJLI"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": true,
+        "demands_videocall": false
+      },
+      "total_turns": 4
+    },
+    "red_team_videocall_en": {
+      "id": "red_team_videocall_en",
+      "name": "Red-Team Scam - CBI Digital Arrest Video Demand (English)",
+      "language": "en",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919844556677"
+      ],
+      "planted_callback_numbers": [
+        "011-2436-CBI"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": true
+      },
+      "total_turns": 4
+    },
+    "red_team_videocall_hi": {
+      "id": "red_team_videocall_hi",
+      "name": "Red-Team Scam - Cyber Crime Digital Arrest Video Demand (Hindi)",
+      "language": "hi",
+      "type": "red-team",
+      "expected_verdict": "scam",
+      "max_turns": 4,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919844556688"
+      ],
+      "planted_callback_numbers": [
+        "011-2436-CYBER"
+      ],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": true
+      },
+      "total_turns": 4
+    },
+    "scam_bank_kyc_en": {
+      "id": "scam_bank_kyc_en",
+      "name": "Bank Account & Debit Card KYC Block Scam (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [
+        "50100432899999"
+      ],
+      "planted_phone_numbers": [
+        "9711556677"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_bank_kyc_hi": {
+      "id": "scam_bank_kyc_hi",
+      "name": "Bank Account & Debit Card KYC Expiry (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [
+        "50100432891234"
+      ],
+      "planted_phone_numbers": [
+        "9711223344"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_customs_parcel_en": {
+      "id": "scam_customs_parcel_en",
+      "name": "Customs Illegal Parcel Threat (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "delhi.customs.clearance@okicici"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9443322110"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_customs_parcel_hi": {
+      "id": "scam_customs_parcel_hi",
+      "name": "Customs Illegal Parcel Threat (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "customs.clearance.delhi@okicici"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9911224455"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_electricity_powercut_en": {
+      "id": "scam_electricity_powercut_en",
+      "name": "Electricity Power Cut & Overdue Bill Scam (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "powerboard.support@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9442211334"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_electricity_powercut_hi": {
+      "id": "scam_electricity_powercut_hi",
+      "name": "Electricity Disconnection & Unpaid Bill Scam (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "9884567890@paytm"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9884567890"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_parttime_job_en": {
+      "id": "scam_parttime_job_en",
+      "name": "Part-Time Task & Rating Investment Fraud (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "task.earn.direct@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9445588776"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_parttime_job_hi": {
+      "id": "scam_parttime_job_hi",
+      "name": "Part-Time Task & Investment Fraud (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "task.earn.direct@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9123499887"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_traffic_challan_en": {
+      "id": "scam_traffic_challan_en",
+      "name": "Traffic E-Challan & Impound Threat (English)",
+      "language": "en",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "echallan.traffic.pay@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9442299881"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "scam_traffic_challan_hi": {
+      "id": "scam_traffic_challan_hi",
+      "name": "Traffic E-Challan & Vehicle Seizure Threat (Hindi)",
+      "language": "hi",
+      "type": "scam",
+      "expected_verdict": "scam",
+      "max_turns": 6,
+      "planted_upi_ids": [
+        "echallan.traffic.pay@okaxis"
+      ],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "9811223399"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    }
+  }
+}

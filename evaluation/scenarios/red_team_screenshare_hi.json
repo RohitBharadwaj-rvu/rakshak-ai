@@ -1,0 +1,38 @@
+{
+  "id": "red_team_screenshare_hi",
+  "name": "Red-Team Scam - AnyDesk Remote Access Coercion (Hindi)",
+  "language": "hi",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919833445577"],
+    "callback_numbers": ["1800-444-BIJLI"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "नमस्कार, बिजली बोर्ड कंट्रोल रूम से इंजीनियर वर्मा बोल रहा हूँ। आपका स्मार्ट मीटर बिल अपडेट नहीं हुआ है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "अगर 10 मिनट में यह ठीक नहीं हुआ तो पावर कट का ऑटोमैटिक ऑर्डर निकल जाएगा और लाइन कट जाएगी।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "screenshare_demand",
+      "text": "आप तुरंत अपने फोन में प्ले स्टोर खोलिए और एनीडेस्क (AnyDesk) या क्विकसपोर्ट ऐप डाउनलोड कीजिए।"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "ऐप खोलते ही स्क्रीन पर जो 9 नंबर का कोड दिख रहा है, वह मुझे बताइए ताकि हम बिजली लाइन चालू रख सकें!"
+    }
+  ]
+}

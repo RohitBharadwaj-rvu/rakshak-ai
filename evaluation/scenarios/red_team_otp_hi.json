@@ -1,0 +1,39 @@
+{
+  "id": "red_team_otp_hi",
+  "name": "Red-Team Scam - Urgent Pension OTP Extortion (Hindi)",
+  "language": "hi",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": ["pension.security@okaxis"],
+    "phone_numbers": ["+919811223355"],
+    "callback_numbers": ["1800-888-002"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "नमस्ते, मैं पेंशन कल्याण विभाग हेड ऑफिस से ऑफिसर वर्मा बोल रहा हूँ। आपके खाते से अवैध ट्रांसफर पकड़ा गया है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "अगर आपने तुरंत वेरिफिकेशन नहीं कराया तो अगले 15 मिनट में आपकी जीवनभर की पेंशन सीज हो जाएगी।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "otp_demand",
+      "text": "आपके मोबाइल पर अभी-अभी 6 अंकों का गुप्त ओटीपी कोड भेजा गया है। जल्दी से वह ओटीपी मुझे बताइए ताकि खाता सुरक्षित किया जा सके।"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "देर मत कीजिए! अगर ओटीपी नहीं बताया तो पेंशन हमेशा के लिए बंद हो जाएगी, जल्दी 6 नंबर बोलिए!"
+    }
+  ]
+}

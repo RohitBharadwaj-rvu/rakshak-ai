@@ -110,3 +110,43 @@ def test_planted_intel_rules(scenario_file):
         assert u not in APPROVED_BAIT_VALUES["upi_ids"], f"Planted UPI {u} collides with fake bait"
     for a in accounts:
         assert a not in APPROVED_BAIT_VALUES["account_numbers"], f"Planted account {a} collides with fake bait"
+
+
+def test_red_team_scenarios_have_hindi_and_english_pairs(all_scenarios):
+    """Every red-team adversarial scenario must have both a Hindi ('hi') and English ('en') version."""
+    rt_scenarios = [sc for _, sc in all_scenarios if sc.get("type") == "red-team"]
+    assert len(rt_scenarios) >= 8, f"Expected at least 8 red-team scenarios, got {len(rt_scenarios)}"
+
+    rt_lang_map = {}
+    for sc in rt_scenarios:
+        sc_id = sc["id"]
+        parts = sc_id.replace("red_team_", "").rsplit("_", 1)
+        base_name = parts[0]
+        lang = sc.get("language")
+        rt_lang_map.setdefault(base_name, set()).add(lang)
+
+    for base_name, langs in rt_lang_map.items():
+        assert "hi" in langs, f"Red-team type '{base_name}' is missing Hindi ('hi') scenario"
+        assert "en" in langs, f"Red-team type '{base_name}' is missing English ('en') scenario"
+
+
+def test_ground_truth_registry_completeness(all_scenarios):
+    """Ground truth registry must exist and index every single scenario in evaluation/scenarios/."""
+    gt_path = os.path.join(ROOT_DIR, "evaluation", "ground_truth.json")
+    assert os.path.exists(gt_path), f"Ground truth registry missing at {gt_path}"
+    gt_data = load_json(gt_path)
+
+    assert "scenarios" in gt_data
+    sc_registry = gt_data["scenarios"]
+    assert len(sc_registry) == len(all_scenarios), (
+        f"Registry count {len(sc_registry)} != scenario file count {len(all_scenarios)}"
+    )
+
+    for sc_file, sc in all_scenarios:
+        sc_id = sc["id"]
+        assert sc_id in sc_registry, f"Scenario '{sc_id}' missing from ground truth registry"
+        reg_item = sc_registry[sc_id]
+        assert reg_item["expected_verdict"] == sc["expected_verdict"]
+        assert reg_item["language"] == sc["language"]
+
+

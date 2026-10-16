@@ -1,0 +1,38 @@
+{
+  "id": "red_team_screenshare_en",
+  "name": "Red-Team Scam - AnyDesk Remote Access Coercion (English)",
+  "language": "en",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919833445566"],
+    "callback_numbers": ["1800-444-POWER"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "This is State Electricity Board technical department. Your digital smart meter has failed its safety update."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "Your house electric supply will be automatically disconnected tonight at 9:30 PM if the update fails."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "screenshare_demand",
+      "text": "Open your mobile phone right now, go to the Play Store, and install AnyDesk or TeamViewer QuickSupport so our engineer can connect."
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "Once installed, read me the 9-digit remote access code from the screen so we can update your power connection!"
+    }
+  ]
+}

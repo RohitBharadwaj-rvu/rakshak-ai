@@ -1,0 +1,38 @@
+{
+  "id": "red_team_videocall_en",
+  "name": "Red-Team Scam - CBI Digital Arrest Video Demand (English)",
+  "language": "en",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919844556677"],
+    "callback_numbers": ["011-2436-CBI"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "This is Inspector Ajay Sharma from CBI Headquarters New Delhi. You are placed under digital arrest for a high-value money laundering investigation."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "Do not hang up or contact anyone. An armed arrest squad is on standby outside your locality."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "videocall_demand",
+      "text": "Turn on your WhatsApp video call immediately and sit alone in a quiet room so our senior magistrate can conduct virtual room surveillance."
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "If you refuse to turn on the video camera right now, you will be considered a fugitive attempting to destroy evidence!"
+    }
+  ]
+}

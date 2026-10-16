@@ -1,0 +1,38 @@
+{
+  "id": "red_team_videocall_hi",
+  "name": "Red-Team Scam - Cyber Crime Digital Arrest Video Demand (Hindi)",
+  "language": "hi",
+  "type": "red-team",
+  "expected_verdict": "scam",
+  "max_turns": 4,
+  "planted_details": {
+    "phone_numbers": ["+919844556688"],
+    "callback_numbers": ["011-2436-CYBER"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "authority_threat",
+      "text": "मैं साइबर क्राइम स्पेशल सेल नई दिल्ली से डीएसपी राजीव बोल रहा हूँ। आपको गैरकानूनी हवाला लेन-देन में डिजिटल अरेस्ट किया जाता है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "artificial_urgency",
+      "text": "कॉल मत काटिए, आपका घर चारों तरफ से सर्विलांस पर है। किसी को बताया तो तुरंत जेल होगी।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "videocall_demand",
+      "text": "तुरंत अपना व्हाट्सएप वीडियो कॉल चालू कीजिए और कमरे का दरवाजा बंद कर के कैमरे के सामने बैठिए।"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "coercion_escalation",
+      "text": "अगर आपने 2 मिनट में कैमरा ऑन नहीं किया तो पुलिस की टीम दरवाजा तोड़कर आपको हथकड़ी लगाएगी!"
+    }
+  ]
+}
