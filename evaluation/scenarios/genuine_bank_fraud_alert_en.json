@@ -1,0 +1,31 @@
+{
+  "id": "genuine_bank_fraud_alert_en",
+  "name": "Genuine Service - HDFC Bank Automated Risk Alert (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["1800-202-6161"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "bank_risk_alert",
+      "text": "This is an automated security advisory from HDFC Bank Risk Prevention Desk regarding your debit card ending in 4102."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "transaction_verification",
+      "text": "A transaction of 4,200 rupees at an online retail merchant was flagged at 1:45 AM. If this was made by you, no action is required."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "safe_advisory",
+      "text": "Please remember, HDFC Bank will never ask for your password, PIN, or CVV. If this was not you, block your card in the official app or visit your home branch."
+    }
+  ]
+}

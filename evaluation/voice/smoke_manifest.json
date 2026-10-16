@@ -1,0 +1,145 @@
+{
+  "metadata": {
+    "title": "GuardianLine T-VOICE Telephony Audio Smoke Set",
+    "sample_rate_hz": 8000,
+    "format": "PCM 16-bit mono WAV (Telephony G.711 spec)",
+    "call_count": 5
+  },
+  "calls": [
+    {
+      "call_id": "smoke_01_digital_arrest_hi",
+      "scenario_id": "scam_digital_arrest_hi",
+      "name": "Digital Arrest Scam (Hindi)",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "audio_file": "smoke_01_digital_arrest_hi.wav",
+      "audio_duration_sec": 3.5,
+      "audio_sample_rate": 8000,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "caller",
+          "content": "नमस्ते, मैं नई दिल्ली साइबर क्राइम सेल से सीनियर इंस्पेक्टर अजय बात कर रहा हूँ।"
+        },
+        {
+          "turn": 2,
+          "role": "caller",
+          "content": "आपके नाम से ताइवान अवैध पार्सल पकड़ा गया है जिसमें नशीली दवाएं हैं। आप डिजिटल अरेस्ट पर हैं।"
+        },
+        {
+          "turn": 3,
+          "role": "caller",
+          "content": "तुरंत अपना केस वेरिफिकेशन चार्ज पचास हज़ार रुपये सरकारी एस्क्रो खाते में ट्रांसफर कीजिए।"
+        }
+      ]
+    },
+    {
+      "call_id": "smoke_02_customs_narcotics_hi",
+      "scenario_id": "scam_customs_parcel_hi",
+      "name": "Customs Narcotics Parcel Scam (Hindi)",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "audio_file": "smoke_02_customs_narcotics_hi.wav",
+      "audio_duration_sec": 3.5,
+      "audio_sample_rate": 8000,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "caller",
+          "content": "नमस्कार, मुंबई एयरपोर्ट कस्टम्स क्लीयरेंस ऑफिस से डिप्टी कमिश्नर पाटिल बोल रहा हूँ।"
+        },
+        {
+          "turn": 2,
+          "role": "caller",
+          "content": "आपके पासपोर्ट पर आया पार्सल सीज किया गया है। 2 घंटे में कोर्ट वारंट निकलेगा।"
+        },
+        {
+          "turn": 3,
+          "role": "caller",
+          "content": "कस्टम्स पेनल्टी ₹28,500 तुरंत हमारे सरकारी चालान यूपीआई customs.dept@okaxis पर भरिए।"
+        }
+      ]
+    },
+    {
+      "call_id": "smoke_03_bank_kyc_freeze_en",
+      "scenario_id": "scam_bank_kyc_en",
+      "name": "Bank KYC Account Freeze Scam (English)",
+      "language": "en",
+      "expected_verdict": "scam",
+      "audio_file": "smoke_03_bank_kyc_freeze_en.wav",
+      "audio_duration_sec": 3.5,
+      "audio_sample_rate": 8000,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "caller",
+          "content": "Hello, this is SBI Central Card Operations. Your savings account is scheduled for immediate suspension."
+        },
+        {
+          "turn": 2,
+          "role": "caller",
+          "content": "Your biometric KYC expired yesterday. All debit card and pension transactions will freeze in 30 minutes."
+        },
+        {
+          "turn": 3,
+          "role": "caller",
+          "content": "To prevent permanent account lock, deposit a refundable verification amount of 25,000 rupees right now."
+        }
+      ]
+    },
+    {
+      "call_id": "smoke_04_delivery_otp_hi",
+      "scenario_id": "genuine_delivery_otp_hi",
+      "name": "Genuine Flipkart Delivery OTP (Hindi Hard Genuine)",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "audio_file": "smoke_04_delivery_otp_hi.wav",
+      "audio_duration_sec": 3.5,
+      "audio_sample_rate": 8000,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "caller",
+          "content": "नमस्ते सर, मैं फ्लिपकार्ट डिलीवरी बॉय बात कर रहा हूँ। आपका पार्सल लेकर मेन गेट पर खड़ा हूँ।"
+        },
+        {
+          "turn": 2,
+          "role": "caller",
+          "content": "सर पार्सल प्रीपेड है, बस कंपनी का डिलीवरी ओटीपी लगेगा। आपके फोन पर 4 नंबर का मैसेज आया होगा।"
+        },
+        {
+          "turn": 3,
+          "role": "caller",
+          "content": "कोई बात नहीं सर, आराम से देख लीजिए या मैं गार्ड साहब के पास पार्सल छोड़ देता हूँ।"
+        }
+      ]
+    },
+    {
+      "call_id": "smoke_05_red_team_otp_en",
+      "scenario_id": "red_team_otp_en",
+      "name": "Red-Team Urgent OTP Extortion (English Adversarial)",
+      "language": "en",
+      "expected_verdict": "scam",
+      "audio_file": "smoke_05_red_team_otp_en.wav",
+      "audio_duration_sec": 3.5,
+      "audio_sample_rate": 8000,
+      "turns": [
+        {
+          "turn": 1,
+          "role": "caller",
+          "content": "This is Inspector Rathore from HDFC Bank Central Security. A fraud transaction was just attempted on your account."
+        },
+        {
+          "turn": 2,
+          "role": "caller",
+          "content": "Your account will be blocked within 10 minutes unless we verify your identity right now."
+        },
+        {
+          "turn": 3,
+          "role": "caller",
+          "content": "I have just sent a 6-digit OTP code to your phone. Read out the OTP code immediately to reverse the charge!"
+        }
+      ]
+    }
+  ]
+}

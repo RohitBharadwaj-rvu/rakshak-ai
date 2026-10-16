@@ -1,0 +1,31 @@
+{
+  "id": "genuine_hospital_admission_aadhaar_hi",
+  "name": "Genuine Service - City Hospital Admission Desk (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["0522-262-4400"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "hospital_desk_call",
+      "text": "नमस्ते, मैं मेदांता अस्पताल के रिसेप्शन काउंटर से बोल रही हूँ। कल सुबह आपके नेत्र परीक्षण का समय तय है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "document_reminder",
+      "text": "वरिष्ठ नागरिक रियायत और आयुष्मान भारत पर्ची के लिए, आते समय मरीज का आधार कार्ड और पुरानी फाइल साथ लाइएगा।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "hospital_guidance",
+      "text": "फोन पर कुछ नहीं बताना है, बस काउंटर नंबर 2 पर पर्ची बनवाते समय दिखा दीजिएगा। धन्यवाद।"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "genuine_delivery_otp_en",
+  "name": "Genuine Service - Amazon Courier Asking for Delivery OTP (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["+919876112233"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "delivery_arrival",
+      "text": "Hello sir, I am calling from Amazon delivery. I am standing outside your building gate with your parcel."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "otp_request_routine",
+      "text": "Sir, this package is prepaid but requires a delivery OTP. An Amazon SMS with 4 digits was sent to your phone, please share it so I can mark it delivered."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "delivery_handover",
+      "text": "No problem sir, you can check your SMS or I can hand the package to your society security guard if you give him the code."
+    }
+  ]
+}

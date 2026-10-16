@@ -1,0 +1,31 @@
+{
+  "id": "genuine_police_tenant_verification_en",
+  "name": "Genuine Service - Local Police Station Tenant Check (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["011-2301-4455"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "police_station_routine",
+      "text": "Namaste Sharma ji, this is Head Constable Yadav calling from your local Indiranagar police station desk."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "tenant_form_request",
+      "text": "We are conducting the annual tenant verification drive in sector 4. The verification form for your first floor tenant is pending."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "in_person_visit",
+      "text": "Whenever you are free this week, please drop by the police station between 10 AM and 5 PM with one passport photo and lease copy. Thank you."
+    }
+  ]
+}

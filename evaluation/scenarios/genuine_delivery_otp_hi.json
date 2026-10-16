@@ -1,0 +1,31 @@
+{
+  "id": "genuine_delivery_otp_hi",
+  "name": "Genuine Service - Courier Asking for Delivery OTP (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["+919876112244"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "delivery_arrival",
+      "text": "नमस्ते सर, मैं फ्लिपकार्ट डिलीवरी बॉय बात कर रहा हूँ। आपका पार्सल लेकर मेन गेट पर खड़ा हूँ।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "otp_request_routine",
+      "text": "सर पार्सल प्रीपेड है, बस कंपनी का डिलीवरी ओटीपी लगेगा। आपके फोन पर 4 नंबर का मैसेज आया होगा, ज़रा बता दीजिए।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "delivery_handover",
+      "text": "कोई बात नहीं सर, आराम से देख लीजिए या मैं गार्ड साहब के पास पार्सल छोड़ देता हूँ।"
+    }
+  ]
+}

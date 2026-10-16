@@ -1,0 +1,31 @@
+{
+  "id": "genuine_bank_fraud_alert_hi",
+  "name": "Genuine Service - SBI Bank Risk Alert Call (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["1800-11-2211"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "bank_risk_alert",
+      "text": "भारतीय स्टेट बैंक सतर्कता शाखा से स्वचालित सुरक्षा सूचना। आपके खाते से देर रात 3,500 रुपये की ऑनलाइन खरीदारी दर्ज हुई है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "transaction_verification",
+      "text": "यदि यह लेन-देन आपने किया है तो 1 दबाएं। यदि नहीं, तो तुरंत 2 दबाएं या अपनी नज़दीकी शाखा में संपर्क करें।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "safe_advisory",
+      "text": "सावधान रहें: बैंक कर्मचारी कभी भी आपका गुप्त पिन, पासवर्ड या ओटीपी फोन पर नहीं मांगते। किसी से गुप्त जानकारी साझा न करें।"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "total_evaluated_cuts": 86,
+  "degraded_scam_recall_pct": 90.48,
+  "degraded_false_positive_rate_pct": 0.0,
+  "pass_robustness_bar": true
+}

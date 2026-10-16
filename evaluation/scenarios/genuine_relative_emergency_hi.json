@@ -1,0 +1,31 @@
+{
+  "id": "genuine_relative_emergency_hi",
+  "name": "Genuine Personal - Nephew Roadside Assistance (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["+919876599888"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "relative_greeting",
+      "text": "प्रणाम चाचाजी! मैं अमित बोल रहा हूँ। रास्ते में फोन की बैटरी खत्म हो गई थी तो ढाबे वाले के फोन से कॉल कर रहा हूँ।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "family_update",
+      "text": "गाड़ी का टायर पंक्चर हो गया था। मैकेनिक ने ठीक कर दिया है, हम सब बिल्कुल ठीक हैं और रात के खाने तक घर पहुँच जाएंगे।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "family_signoff",
+      "text": "चाचीजी को बोल दीजिएगा कि परेशान न हों। बस एक घंटे में पहुँच रहे हैं।"
+    }
+  ]
+}

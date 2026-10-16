@@ -1,8 +1,8 @@
 {
   "summary": {
-    "total_calls_evaluated": 32,
+    "total_calls_evaluated": 42,
     "scam_and_red_team_calls": 20,
-    "genuine_calls": 12,
+    "genuine_calls": 22,
     "overall_pass": true
   },
   "metrics": {

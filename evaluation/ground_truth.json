@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "1.0.0",
-    "total_scenarios": 32,
+    "total_scenarios": 42,
     "languages": [
       "hi",
       "en",
@@ -54,6 +54,48 @@
         "demands_videocall": false
       },
       "total_turns": 5
+    },
+    "genuine_bank_fraud_alert_en": {
+      "id": "genuine_bank_fraud_alert_en",
+      "name": "Genuine Service - HDFC Bank Automated Risk Alert (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "1800-202-6161"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_bank_fraud_alert_hi": {
+      "id": "genuine_bank_fraud_alert_hi",
+      "name": "Genuine Service - SBI Bank Risk Alert Call (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "1800-11-2211"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
     },
     "genuine_bank_rep_en": {
       "id": "genuine_bank_rep_en",
@@ -169,6 +211,90 @@
       },
       "total_turns": 3
     },
+    "genuine_delivery_otp_en": {
+      "id": "genuine_delivery_otp_en",
+      "name": "Genuine Service - Amazon Courier Asking for Delivery OTP (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919876112233"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": true,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_delivery_otp_hi": {
+      "id": "genuine_delivery_otp_hi",
+      "name": "Genuine Service - Courier Asking for Delivery OTP (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919876112244"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": true,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_hospital_admission_aadhaar_en": {
+      "id": "genuine_hospital_admission_aadhaar_en",
+      "name": "Genuine Service - Fortis Hospital Admission Aadhaar Desk (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "011-4713-5000"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_hospital_admission_aadhaar_hi": {
+      "id": "genuine_hospital_admission_aadhaar_hi",
+      "name": "Genuine Service - City Hospital Admission Desk (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "0522-262-4400"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
     "genuine_insurance_renewal_hi": {
       "id": "genuine_insurance_renewal_hi",
       "name": "LIC Insurance Policy Annual Renewal Notice (Hindi)",
@@ -198,6 +324,90 @@
       "planted_upi_ids": [],
       "planted_account_numbers": [],
       "planted_phone_numbers": [],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_police_tenant_verification_en": {
+      "id": "genuine_police_tenant_verification_en",
+      "name": "Genuine Service - Local Police Station Tenant Check (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "011-2301-4455"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_police_tenant_verification_hi": {
+      "id": "genuine_police_tenant_verification_hi",
+      "name": "Genuine Service - Police Station Tenant Verification (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "0522-2200-112"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_relative_emergency_en": {
+      "id": "genuine_relative_emergency_en",
+      "name": "Genuine Personal - Nephew Car Breakdown Call (English)",
+      "language": "en",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919876599887"
+      ],
+      "planted_callback_numbers": [],
+      "adversarial_demands": {
+        "demands_otp": false,
+        "demands_aadhaar": false,
+        "demands_screenshare": false,
+        "demands_videocall": false
+      },
+      "total_turns": 3
+    },
+    "genuine_relative_emergency_hi": {
+      "id": "genuine_relative_emergency_hi",
+      "name": "Genuine Personal - Nephew Roadside Assistance (Hindi)",
+      "language": "hi",
+      "type": "genuine",
+      "expected_verdict": "genuine",
+      "max_turns": 3,
+      "planted_upi_ids": [],
+      "planted_account_numbers": [],
+      "planted_phone_numbers": [
+        "+919876599888"
+      ],
       "planted_callback_numbers": [],
       "adversarial_demands": {
         "demands_otp": false,

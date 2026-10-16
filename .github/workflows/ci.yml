@@ -44,3 +44,11 @@ jobs:
       - name: Compute Official Performance Scorecard (T-MET)
         run: |
           python scripts/compute_metrics.py
+
+      - name: Run Telephony STT Noise Robustness Benchmark
+        run: |
+          python scripts/test_noisy_stt.py
+
+      - name: Run Telephony Audio Smoke Test Suite (T-VOICE)
+        run: |
+          python scripts/run_voice_smoke_test.py

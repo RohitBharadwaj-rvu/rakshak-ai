@@ -1,0 +1,31 @@
+{
+  "id": "genuine_relative_emergency_en",
+  "name": "Genuine Personal - Nephew Car Breakdown Call (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["+919876599887"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "relative_greeting",
+      "text": "Hello Uncle, it's Amit! I'm calling from my friend's phone because my battery died on the highway."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "family_update",
+      "text": "Our car had a flat tyre near Lucknow bypass. We called the mechanic already, so we will reach your house by 8 PM tonight instead of afternoon."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "family_signoff",
+      "text": "Please tell Auntie not to worry and not to cook extra, we had lunch on the way. See you soon Uncle!"
+    }
+  ]
+}

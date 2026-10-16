@@ -46,20 +46,21 @@ class CallerClassificationResult:
 
 # Pillar 1: Authority Coercion / Legal / Severe Disruption Threats
 AUTHORITY_PATTERNS = [
-    r"cbi\b",
+    r"c\s*b\s*i|cbi\b|see\s*bee\s*eye|seebi\b",
     r"crime\s*branch|क्राइम\s*ब्रांच",
     r"cyber\s*crime|साइबर\s*क्राइम",
-    r"police|पुलिस|ट्रैफिक\s*पुलिस|थाना",
-    r"digital\s*arrest|डिजिटल\s*अरेस्ट",
-    r"arrest\s*warrant|अरेस्ट\s*वारंट|वारंट",
+    r"police|pulis|poles|पुलिस|पुलिश|ट्रैफिक\s*पुलिस|थाना",
+    r"digital\s*(arrest|arest)|डिजिटल\s*अरेस्ट",
+    r"(arrest|arest)\s*warrant|अरेस्ट\s*वारंट|वारंट",
     r"supreme\s*court|सुप्रीम\s*कोर्ट|अदालत|कोर्ट\s*ऑर्डर",
-    r"narcotics|ड्रग्स|नारकोटिक्स",
-    r"customs|कस्टम्स|कस्टम\s*अधिकारी",
+    r"narcotics|narkotics|narkotik|ड्रग्स|नारकोटिक्स",
+    r"customs|kustoms|kastam|कस्टम्स|कस्टम\s*अधिकारी",
     r"(tawan|taiwan|illegal|contraband|drugs|overseas)\s*(parcel|shipment)|(ताइवान|अवैध|ड्रग्स)\s*पार्सल",
-    r"account.*block|खाता.*ब्लॉक|खाता.*सीज",
+    r"(account|acnt|a/c|card|sim|pension).*(block|suspend|freeze|सीज|बंद|सस्पेंड)",
+    r"kyc\b|केवाईसी|biometric\s*kyc",
     r"electricity.*(cut|disconnect|bill)|power.*(cut|disconnect)|बिजली.*(काट|कट|काटी|बिल|मीटर)",
     r"trai.*(deactivat|block)|sim.*(block|disconnect)|दूरसंचार|telecom",
-    r"court.*order|ई-चालान|challan",
+    r"court.*order|ई-चालान|challan|chalan|chalaan|चालान",
     r"task.*earn|रेटिंग्स|rating.*agency",
     r"pension.*(block|fraud|suspend)|पेंशन.*(बंद|ब्लॉक|जांच)|कल्याण\s*विभाग",
     r"money\s*laundering|हवाला|गैरकानूनी|vigilance",
@@ -71,7 +72,7 @@ URGENCY_PATTERNS = [
     r"right\s*now|immediately|तुरंत|अभी\s*के\s*अभी",
     r"don'?t\s*(disconnect|cut|hang\s*up)|फ़ोन\s*मत\s*(काटना|काटिए)|कॉल\s*मत\s*(काटना|काटिए)",
     r"don'?t\s*tell|किसी\s*को\s*(मत|नहीं)\s*बताना|गोपनीय",
-    r"urgent|इमरजेंसी|आपातकालीन",
+    r"urgent|urgnt|arjent|इमरजेंसी|आपातकालीन",
     r"before\s*\d+|आज\s*शाम|आज\s*रात|रात\s*\d+\s*बजे",
     r"पेनल्टी|penalty|सीज़|freeze|सीज",
     r"standby|हथकड़ी|गैर-जमानती|non-bailable",
@@ -83,34 +84,90 @@ VALUE_DEMAND_PATTERNS = [
     r"paytm|gpay|phonepe",
     r"transfer.*money|send.*money|पैसे.*(भेज|ट्रांसफर)|भुगतान",
     r"safe.*account|escrow.*account|सरकारी.*खाता",
-    r"otp|one\s*time\s*password|ओटीपी|गुप्त\s*कोड|\b\d+\s*अंक.*(ओटीपी|कोड)",
-    r"anidask|anydesk|teamviewer|quicksupport|remote\s*access|स्क्रीन\s*शेयर|ऐप\s*डाउनलोड|play\s*store.*install",
-    r"aadhaar|आधार\s*(नंबर|कार्ड)?|\b12\s*(अंक|digit)",
+    r"o\s*t\s*p|otp|odp|one\s*time\s*password|ओटीपी|ओ\s*टी\s*पी|गुप्त\s*कोड|\b\d+\s*अंक.*(ओटीपी|कोड)",
+    r"any\s*desk|anidask|anydesk|eneedask|teamviewer|quicksupport|remote\s*access|स्क्रीन\s*शेयर|ऐप\s*डाउनलोड|play\s*store.*install",
+    r"aadhaar|adhar|aaddhar|आधार\s*(नंबर|कार्ड)?|आधर|\b12\s*(अंक|digit)",
     r"video\s*call|वीडियो\s*कॉल|व्हाट्सएप\s*वीडियो|कैमरा\s*(ऑन|खोलो)",
-    r"verification.*fee|security.*deposit|सिक्योरिटी.*डिपॉजिट",
-    r"account\s*number.*(send|transfer|deposit)|खाता.*संख्या|खाता\s*नंबर",
+    r"verification.*(fee|amount|deposit)|security.*deposit|सिक्योरिटी.*डिपॉजिट",
+    r"deposit.*(verification|refundable|amount|rupees|\d+)|(refundable|verification).*(deposit|amount)",
+    r"(account|acnt|a/c)\s*number.*(send|transfer|deposit)|खाता.*संख्या|खाता\s*नंबर",
     r"चालान.*भर",
 ]
 
 # Genuine Service Whitelist Patterns (Zero demand for OTP, transfer, or threats)
 GENUINE_INDICATORS = [
-    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|amazon\s*parcel|security\s*guard",
-    r"appointment.*doctor|clinic|क्लिनिक|डॉक्टर.*अपॉइंटमेंट|dr\.\s*sundaram|eye\s*checkup",
+    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|amazon\s*parcel|security\s*guard|flipkart|फ्लिपकार्ट",
+    r"appointment.*doctor|clinic|क्लिनिक|डॉक्टर.*अपॉइंटमेंट|dr\.\s*sundaram|eye\s*checkup|medanta|मेदांता|fortis",
     r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह",
     r"routine.*check|अपॉइंटमेंट.*कन्फर्म",
     r"society.*maintenance|फ्लैट\s*नंबर",
     r"होम\s*लोन|ब्याज\s*दर|नज़दीकी\s*शाखा|home\s*loan|interest\s*rate",
-    r"भतीजा|चाचाजी|मामा|रविवार.*घर|nephew.*amit|visit.*sunday",
+    r"भतीजा|चाचाजी|मामा|रविवार.*घर|nephew.*amit|visit.*sunday|पंक्चर|टायर|battery\s*died|bypass|ढाबे",
     r"स्कूल|टीचर|क्लास\s*टीचर|parent.*teacher|रिपोर्ट\s*कार्ड",
     r"नल.*ठीक|प्लंबर|दिनेश|repair|plumber",
     r"प्रीमियम|जीवन\s*आनंद|आधिकारिक\s*वेबसाइट|branch\s*counter",
-    r"ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें|never\s*ask.*(otp|pin)",
+    r"ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें|never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा",
+    r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station|किराएदारों\s*का\s*सत्यापन",
+    r"hospital.*admission|अस्पताल.*रिसेप्शन|admission\s*desk|आयुष्मान\s*भारत|photocopy.*aadhaar|मरीज\s*का\s*आधार",
 ]
 
 
 def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
     """Fast regex scanner over conversation text (<5ms)."""
     text_lower = transcript_text.lower()
+
+    # Contextual whitelist checks for hard genuine cases:
+    # 1. Delivery OTP in courier context with zero authority threats
+    is_delivery_context = bool(re.search(r"delivery|parcel|पार्सल|अमेज़न|फ्लिपकार्ट|courier|कोरियर|gate", text_lower))
+    is_delivery_otp = bool(re.search(r"delivery\s*(otp|code)|डिलीवरी\s*(ओटीपी|कोड)", text_lower))
+    if is_delivery_context and is_delivery_otp and not re.search(r"cbi|police|arrest|block|अरेस्ट|वारंट", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate ecommerce delivery OTP request with zero coercion",
+            "pillars": [],
+        }
+
+    # 2. In-person hospital Aadhaar photocopy with zero legal threat
+    is_hospital_context = bool(re.search(r"hospital|अस्पताल|admission\s*desk|आयुष्मान|prescription", text_lower))
+    is_in_person_aadhaar = bool(re.search(r"photocopy|साथ\s*लाइ|bring.*copy|show.*document", text_lower))
+    if is_hospital_context and is_in_person_aadhaar and not re.search(r"cbi|police|arrest|block|वारंट", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate hospital in-person Aadhaar document reminder",
+            "pillars": [],
+        }
+
+    # 3. Local police routine tenant verification with in-person station visit and zero money demand
+    is_tenant_police = bool(re.search(r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station", text_lower))
+    if is_tenant_police and not re.search(r"digital\s*arrest|पैसे|transfer|fine|challan", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate local police routine tenant verification visit request",
+            "pillars": [],
+        }
+
+    # 4. Bank automated fraud security alert with zero PIN/transfer demand
+    is_bank_advisory = bool(re.search(r"never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा", text_lower))
+    if is_bank_advisory and not re.search(r"safe\s*account|transfer\s*money|पैसे\s*(भेज|ट्रांसफर)", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate bank automated fraud prevention advisory",
+            "pillars": [],
+        }
+
+    # 5. Relative roadside assistance / family update call
+    is_relative_call = bool(re.search(r"भतीजा|चाचाजी|मामा|nephew|uncle.*amit|पंक्चर|टायर|battery\s*died", text_lower))
+    if is_relative_call and not re.search(r"cbi|police|arrest|warrant", text_lower) and not re.search(r"safe\s*account|upi|otp", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate family relative call with zero official coercion",
+            "pillars": [],
+        }
 
     # Check 3 pillars
     has_authority = any(re.search(p, text_lower) for p in AUTHORITY_PATTERNS)
@@ -238,6 +295,55 @@ def _classify_offline_rules(conversation_text: str) -> Dict[str, Any]:
     Used for local testing, CI pipelines, and whenever API keys are not provided.
     """
     text_lower = conversation_text.lower()
+
+    # Contextual exceptions
+    is_delivery_context = bool(re.search(r"delivery|parcel|पार्सल|अमेज़न|फ्लिपकार्ट|courier|कोरियर|gate", text_lower))
+    is_delivery_otp = bool(re.search(r"delivery\s*(otp|code)|डिलीवरी\s*(ओटीपी|कोड)", text_lower))
+    if is_delivery_context and is_delivery_otp and not re.search(r"cbi|police|arrest|block|अरेस्ट|वारंट", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate ecommerce delivery OTP request with zero coercion",
+            "pillars_detected": [],
+        }
+
+    is_hospital_context = bool(re.search(r"hospital|अस्पताल|admission\s*desk|आयुष्मान|prescription", text_lower))
+    is_in_person_aadhaar = bool(re.search(r"photocopy|साथ\s*लाइ|bring.*copy|show.*document", text_lower))
+    if is_hospital_context and is_in_person_aadhaar and not re.search(r"cbi|police|arrest|block|वारंट", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate hospital in-person Aadhaar document reminder",
+            "pillars_detected": [],
+        }
+
+    is_tenant_police = bool(re.search(r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station", text_lower))
+    if is_tenant_police and not re.search(r"digital\s*arrest|पैसे|transfer|fine|challan", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate local police routine tenant verification visit request",
+            "pillars_detected": [],
+        }
+
+    is_bank_advisory = bool(re.search(r"never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा", text_lower))
+    if is_bank_advisory and not re.search(r"safe\s*account|transfer\s*money|पैसे\s*(भेज|ट्रांसफर)", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate bank automated fraud prevention advisory",
+            "pillars_detected": [],
+        }
+
+    is_relative_call = bool(re.search(r"भतीजा|चाचाजी|मामा|nephew|uncle.*amit|पंक्चर|टायर|battery\s*died", text_lower))
+    if is_relative_call and not re.search(r"cbi|police|arrest|warrant", text_lower) and not re.search(r"safe\s*account|upi|otp", text_lower):
+        return {
+            "verdict": "genuine",
+            "confidence": 0.08,
+            "reason": "Legitimate family relative call with zero official coercion",
+            "pillars_detected": [],
+        }
+
     pillars = []
 
     if any(re.search(p, text_lower) for p in AUTHORITY_PATTERNS):

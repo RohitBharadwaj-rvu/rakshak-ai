@@ -1,0 +1,31 @@
+{
+  "id": "genuine_hospital_admission_aadhaar_en",
+  "name": "Genuine Service - Fortis Hospital Admission Aadhaar Desk (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["011-4713-5000"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "hospital_desk_call",
+      "text": "Good afternoon, this is Priya calling from Fortis Hospital admission desk regarding Mrs. Sharma's scheduled knee consultation tomorrow."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "document_reminder",
+      "text": "For the cashless health insurance desk and hospital registration, please remember to bring a photocopy of the patient's Aadhaar card and doctor prescription."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "hospital_guidance",
+      "text": "You do not need to send anything over the phone. Just show the document at reception desk number 4 on the first floor. Have a good day."
+    }
+  ]
+}

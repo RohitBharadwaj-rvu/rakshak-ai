@@ -1,0 +1,31 @@
+{
+  "id": "genuine_police_tenant_verification_hi",
+  "name": "Genuine Service - Police Station Tenant Verification (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 3,
+  "planted_details": {
+    "phone_numbers": ["0522-2200-112"]
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "police_station_routine",
+      "text": "नमस्कार शर्मा जी, मैं आपके स्थानीय हज़रतगंज थाने से हेड कांस्टेबल राम सिंह बात कर रहा हूँ।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "tenant_form_request",
+      "text": "मोहल्ले में किराएदारों का सत्यापन अभियान चल रहा है। आपके मकान के ऊपर वाले किराएदार का फॉर्म अभी जमा नहीं हुआ है।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "in_person_visit",
+      "text": "इस हफ्ते जब भी आपको समय मिले, थाने आकर फॉर्म और किराएदार का पहचान पत्र जमा करवा दीजिएगा। कोई जल्दबाज़ी नहीं है।"
+    }
+  ]
+}
