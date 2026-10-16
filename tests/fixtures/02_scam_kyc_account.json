@@ -1,10 +1,10 @@
 {
   "call_id": "call_scam_kyc_account_002",
-  "agent_id": "bolna_agent_rakshak_v0",
+  "agent_id": "bolna_agent_guardianline_v0",
   "caller_number": "+919711223344",
   "call_duration": 142.0,
   "call_status": "completed",
-  "call_recording_url": "https://storage.rakshak.ai/recordings/call_scam_kyc_account_002.mp3",
+  "call_recording_url": "https://storage.guardianline.ai/recordings/call_scam_kyc_account_002.mp3",
   "transcript": [
     {
       "role": "assistant",

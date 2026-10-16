@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mock_bolna.py - Replay test fixtures into the Rakshak AI webhook.
+mock_bolna.py - Replay test fixtures into the GuardianLine webhook.
 
 Enables Lane B (Backend) and Lane C (Family/Phone) to develop and test
 without needing live Bolna telephone credits or active carrier numbers.
@@ -111,7 +111,7 @@ def replay_fixtures(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Replay Bolna webhook fixtures to Rakshak AI backend")
+    parser = argparse.ArgumentParser(description="Replay Bolna webhook fixtures to GuardianLine backend")
     parser.add_argument(
         "--url",
         default="http://localhost:8000/webhook",

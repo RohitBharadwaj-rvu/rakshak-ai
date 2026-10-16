@@ -1,10 +1,10 @@
 {
   "call_id": "call_early_hangup_006",
-  "agent_id": "bolna_agent_rakshak_v0",
+  "agent_id": "bolna_agent_guardianline_v0",
   "caller_number": "",
   "call_duration": 8.5,
   "call_status": "completed",
-  "call_recording_url": "https://storage.rakshak.ai/recordings/call_early_hangup_006.mp3",
+  "call_recording_url": "https://storage.guardianline.ai/recordings/call_early_hangup_006.mp3",
   "transcript": [
     {
       "role": "assistant",

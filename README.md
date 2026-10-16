@@ -1,4 +1,4 @@
-# Rakshak AI (रक्षक AI)
+# GuardianLine
 
 **Autonomous Voice Honeypot & Call Screening to Protect India's Elderly from Telecom Scams**
 
@@ -8,7 +8,7 @@
 
 India faces an unprecedented wave of sophisticated phone fraud—notably **Digital Arrest scams**, **fake KYC verification**, **delivery/courier fraud**, and **unauthorized bank transfers**. Elderly citizens are disproportionately targeted and victimized.
 
-**Rakshak AI** serves as an intelligent shield:
+**GuardianLine** serves as an intelligent shield:
 1. **Screening & Reception**: Unrecognized callers are screened in natural regional languages (**Hindi**, **Tamil**, and Indian English) using an ultra-low-latency voice AI receptionist.
 2. **Real-time Scam Classification**: A fast mid-call language model classifies the caller intent within the first few conversational exchanges.
 3. **Deceptive Honeypot Engagement**: When a scam is identified, the agent transitions seamlessly to an elderly persona (e.g., *Ramesh*, *Sunita*, *Prof. Iyer*) that plays along, acts technologically hesitant (*"Beta, wait let me find my reading glasses..."*), and keeps scammers occupied.
@@ -30,7 +30,7 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
    │                  ▲
    │ (Audio Stream)   │ (Synthesized Audio)
    ▼                  │
-[ Rakshak AI Backend ]
+[ GuardianLine Backend ]
    ├── `classify_caller`     --> Rapid verdict (Scam vs Genuine)
    ├── `switch_to_honeypot`  --> Persona selection & approved fake bait
    ├── `log_intel`           --> Mid-call tokenized intelligence logging
@@ -48,7 +48,7 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
 1. **App Mode (Android + Screening Role)**:
    - Intercepts unknown incoming numbers before ringing.
    - Whitelists contacts and emergency services (112, 100, 1930).
-   - Forwards unknown calls to Rakshak AI via carrier busy forward (`**67*`).
+   - Forwards unknown calls to GuardianLine via carrier busy forward (`**67*`).
    - Genuine callers can be transferred back to the user without call loops.
 
 2. **Basic Mode (Carrier Forwarding Only)**:
@@ -111,4 +111,4 @@ python scripts/mock_bolna.py --fixture tests/fixtures/01_scam_digital_arrest.jso
 - **Sprint 4 (Oct 27–29)**: Measured benchmarks, elderly user pilot, and demo recording.
 - **Submission (Oct 30)**: Final claims audit & release.
 
-For full sprint details and test suite designs, see [rakshak-ai-sprint-plan.md](rakshak-ai-sprint-plan.md).
+For full sprint details and test suite designs, see [guardianline-sprint-plan.md](guardianline-sprint-plan.md).

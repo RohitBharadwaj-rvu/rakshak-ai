@@ -1,4 +1,4 @@
-# Rakshak AI Sprint Plan
+# GuardianLine Sprint Plan
 
 Oct 16, 2026 · @RRSS
 
@@ -471,7 +471,7 @@ Owner A · voice · Bolna call logs and recordings · 10 calls in Sprint 2, 20 c
 
 Owner A · voice · `bolna/scammer_agent.json` and `evaluation/scenarios/` · after every change to the scammer prompt
 
-- Run each scam scenario twice against a dummy receiver that only keeps the scammer talking, and once against Rakshak.
+- Run each scam scenario twice against a dummy receiver that only keeps the scammer talking, and once against GuardianLine.
 - From each transcript, check that the planted UPI ID or account was spoken in full.
 - Check scenario fidelity with an LLM judge and a written rubric, 3 runs per call.
 
@@ -784,7 +784,7 @@ Owner B with C · unit and manual · secrets scan in CI plus a checklist · the 
 
 Owner D · manual · `submission/claims.md` · Sprint 4, and again on submission day
 
-- List every sentence in the submission text and README that states a fact about what Rakshak does or has achieved.
+- List every sentence in the submission text and README that states a fact about what GuardianLine does or has achieved.
 - Map each one to evidence: a suite result row (ID and date), a recording, or a line in the metrics output file.
 - Check the wording rules: no earlier hackathon named, no unmeasured metric, mule-account action only as long-term vision, demo scam calls described as role-played or simulated, and basic-mode-only wording if Gate 1 was no-go.
 

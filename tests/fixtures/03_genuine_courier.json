@@ -1,10 +1,10 @@
 {
   "call_id": "call_genuine_courier_003",
-  "agent_id": "bolna_agent_rakshak_v0",
+  "agent_id": "bolna_agent_guardianline_v0",
   "caller_number": "+919810098100",
   "call_duration": 48.0,
   "call_status": "completed",
-  "call_recording_url": "https://storage.rakshak.ai/recordings/call_genuine_courier_003.mp3",
+  "call_recording_url": "https://storage.guardianline.ai/recordings/call_genuine_courier_003.mp3",
   "transcript": [
     {
       "role": "assistant",

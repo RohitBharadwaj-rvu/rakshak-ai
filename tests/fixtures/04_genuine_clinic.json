@@ -1,14 +1,14 @@
 {
   "call_id": "call_genuine_clinic_004",
-  "agent_id": "bolna_agent_rakshak_v0",
+  "agent_id": "bolna_agent_guardianline_v0",
   "caller_number": "+918023456789",
   "call_duration": 52.0,
   "call_status": "completed",
-  "call_recording_url": "https://storage.rakshak.ai/recordings/call_genuine_clinic_004.mp3",
+  "call_recording_url": "https://storage.guardianline.ai/recordings/call_genuine_clinic_004.mp3",
   "transcript": [
     {
       "role": "assistant",
-      "content": "हेलो, रक्षक एआई असिस्टेंट। आप किसे संपर्क करना चाहते हैं?",
+      "content": "हेलो, GuardianLine असिस्टेंट। आप किसे संपर्क करना चाहते हैं?",
       "timestamp": 1.0
     },
     {

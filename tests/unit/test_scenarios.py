@@ -8,7 +8,7 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SCENARIOS_DIR = os.path.join(ROOT_DIR, "evaluation", "scenarios")
 SCHEMA_PATH = os.path.join(ROOT_DIR, "contracts", "scenario.schema.json")
 
-# Approved fake bait values used by Rakshak personas (must not collide with planted details)
+# Approved fake bait values used by GuardianLine personas (must not collide with planted details)
 APPROVED_BAIT_VALUES = {
     "upi_ids": ["ramesh.elderly@okhdfc", "sunita.pension@okicici", "prof.iyer@sbi"],
     "account_numbers": ["9999000011112222", "8888777766665555"],
