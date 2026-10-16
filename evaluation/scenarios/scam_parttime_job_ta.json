@@ -1,0 +1,39 @@
+{
+  "id": "scam_parttime_job_ta",
+  "name": "Part-Time Task & Investment Fraud (Tamil)",
+  "language": "ta",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "task.tamil.reward@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9445588776"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "lucrative_offer",
+      "text": "வணக்கம், ஆன்லைன் ரேட்டிங் நிறுவனத்திலிருந்து பேசுகிறேன். வீட்டிலிருந்தே வீடியோ பார்த்து தினமும் 3000 ரூபாய் வரை சம்பாதிக்கலாம்."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "advance_fee_trap",
+      "text": "டாஸ்க் பெற முன்பதிவு கட்டணமாக 1000 ரூபாய் செலுத்தினால் அரை மணி நேரத்தில் 2500 ரூபாயாக உங்கள் வங்கிக் கணக்கில் திரும்ப வரும்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "யுபிஐ ஐடிக்கு உடனடியாக பணம் அனுப்பவும்: task dot tamil dot reward at the rate ok axis. task.tamil.reward@okaxis."
+    }
+  ]
+}

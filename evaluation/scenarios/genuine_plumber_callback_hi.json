@@ -1,0 +1,35 @@
+{
+  "id": "genuine_plumber_callback_hi",
+  "name": "Plumber Service Callback (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "service_callback",
+      "text": "नमस्ते बाबूजी, मैं प्लंबर दिनेश बोल रहा हूँ। आपने कल बाथरूम का नल ठीक करने के लिए फ़ोन किया था।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "timing_query",
+      "text": "क्या मैं आज दोपहर 3 बजे आ सकता हूँ काम देखने के लिए?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "confirmation_closure",
+      "text": "ठीक है बाबूजी, मैं नया वाशर लेकर 3 बजे आ जाता हूँ। शुक्रिया।"
+    }
+  ]
+}

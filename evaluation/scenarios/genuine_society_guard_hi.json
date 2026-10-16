@@ -1,0 +1,35 @@
+{
+  "id": "genuine_society_guard_hi",
+  "name": "Apartment Society Security Guard (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "visitor_clearance",
+      "text": "नमस्ते सर, मेन गेट सिक्योरिटी गार्ड राम सिंह बोल रहा हूँ। फ्लैट नंबर 402 में कोई मेहमान आए हैं।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "visitor_identification",
+      "text": "मिस्टर वर्मा नाम बता रहे हैं, क्या इनको ऊपर भेज दें?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "confirmation_closure",
+      "text": "ठीक है सर, मैं एंट्री करके लिफ्ट से ऊपर भेज देता हूँ। धन्यवाद।"
+    }
+  ]
+}

@@ -94,11 +94,11 @@ def replay_fixtures(
         res = send_webhook(url, payload, token=token)
 
         if res["success"]:
-            print(f"       ✅ Status: {res['status_code']} in {res['latency_s']}s")
+            print(f"       [PASS] Status: {res['status_code']} in {res['latency_s']}s")
             if res["response"]:
                 print(f"          Response: {res['response'][:120]}")
         else:
-            print(f"       ❌ Failed ({res.get('status_code', 'ERR')}): {res.get('error')}")
+            print(f"       [FAIL] Status: {res.get('status_code', 'ERR')} - {res.get('error')}")
             if res.get("response"):
                 print(f"          Detail: {res['response'][:120]}")
             all_passed = False

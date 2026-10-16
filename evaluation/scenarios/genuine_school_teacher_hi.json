@@ -1,0 +1,35 @@
+{
+  "id": "genuine_school_teacher_hi",
+  "name": "Grandchild School Teacher Parent-Teacher Meeting (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "school_announcement",
+      "text": "नमस्ते, मैं डीएवी पब्लिक स्कूल से आरव की क्लास टीचर मिसेज़ गुप्ता बात कर रही हूँ।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "ptm_schedule",
+      "text": "इस शनिवार को सुबह 9 बजे से 12 बजे तक पेरेंट्स-टीचर मीटिंग है। आरव की पहली तिमाही की रिपोर्ट कार्ड दी जाएगी।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "courteous_closure",
+      "text": "कृपया समय पर पधारें। धन्यवाद।"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "scam_electricity_powercut_hi",
+  "name": "Electricity Disconnection & Unpaid Bill Scam (Hindi)",
+  "language": "hi",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "9884567890@paytm"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9884567890"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "बिजली विभाग हेड ऑफिस से कॉल है। आपका पिछले महीने का बिजली बिल अपडेट नहीं हुआ है। आज रात 9 बजे बिजली काट दी जाएगी।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_threat",
+      "text": "अगर कनेक्शन नहीं कटवाना चाहते तो तुरंत सिक्योरिटी डिपॉजिट अपडेट कीजिए। देर मत कीजिए।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_demand",
+      "text": "तुरंत इस नंबर पर यूपीआई कीजिए: नौ आठ आठ चार पांच छह सात आठ नौ शून्य @ paytm। 9884567890@paytm।"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "scam_customs_parcel_ta",
+  "name": "Customs Illegal Parcel Threat (Tamil)",
+  "language": "ta",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "chennai.customs.clear@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9443322110"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "சென்னை விமான நிலைய சுங்கத்துறையிலிருந்து பேசுகிறேன். வெளிநாட்டிலிருந்து உங்கள் பெயருக்கு வந்த பார்சலில் சட்டவிரோத பொருட்கள் கைப்பற்றப்பட்டுள்ளன."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "coercion_penalty",
+      "text": "உங்கள் மீது வழக்கு பதியப்படாமல் இருக்க உடனடியாக சுங்க அனுமதி கட்டணம் செலுத்த வேண்டும். இல்லையெனில் காவல்துறை கைது செய்யும்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "சுங்கத்துறை கட்டண யுபிஐ ஐடி: chennai dot customs dot clear at the rate ok axis. chennai.customs.clear@okaxis."
+    }
+  ]
+}

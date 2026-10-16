@@ -1,0 +1,35 @@
+{
+  "id": "genuine_relative_newnum_hi",
+  "name": "Relative Calling from New Number (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "family_greeting",
+      "text": "प्रणाम चाचाजी, मैं आपका भतीजा अमित बोल रहा हूँ। मेरा पुराना सिम खो गया था इसलिए नए नंबर से फ़ोन किया है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "casual_wellbeing",
+      "text": "आपकी तबीयत कैसी है? चाचीजी के घुटनों का दर्द कैसा है? मैं इस रविवार को आपसे मिलने घर आ रहा हूँ।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "casual_closure",
+      "text": "यह मेरा नया नंबर सेव कर लीजिएगा। रविवार को मिलते हैं चाचाजी।"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "genuine_courier_ta",
+  "name": "Courier Delivery Confirmation (Tamil)",
+  "language": "ta",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "வணக்கம், நான் புளூடார்ட் கொரியர் நிறுவனத்திலிருந்து பேசுகிறேன். உங்கள் அமேசான் பார்சல் வந்துள்ளது."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "delivery_query",
+      "text": "வீட்டில் யாராவது இருக்கிறார்களா? அல்லது கீழே காவலாளியிடம் பார்சலை ஒப்படைக்கவா?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "confirmation_closure",
+      "text": "சரி, காவலாளியிடம் கொடுத்துவிடுகிறேன். நன்றி."
+    }
+  ]
+}

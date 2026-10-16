@@ -1,0 +1,35 @@
+{
+  "id": "genuine_clinic_ta",
+  "name": "Clinic Appointment Reminder (Tamil)",
+  "language": "ta",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "வணக்கம், அப்பல்லோ கிளினிக்கிலிருந்து வரவேற்பாளர் பேசுகிறேன். திரு. அய்யர் அவர்களின் குடும்பத்தினரா?"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "appointment_reminder",
+      "text": "நாளை காலை 11:30 மணிக்கு மருத்துவர் சுந்தரத்துடன் கண்சோதனை சந்திப்பு உள்ளது. வருவீர்களா என்பதை உறுதிப்படுத்த அழைக்கிறோம்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "preparation_note",
+      "text": "பழைய மருத்துவச் சீட்டை எடுத்து வரவும். நன்றி."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "genuine_bank_rep_hi",
+  "name": "Bank Representative Home Loan Followup (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "service_inquiry",
+      "text": "नमस्ते सर, मैं स्टेट बैंक से रिलेशनशिप मैनेजर राहुल बोल रहा हूँ। आपने पिछले हफ़्ते होम लोन की ब्याज दरों के बारे में जानकारी माँगी थी।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "offer_information",
+      "text": "सीनियर सिटीजन के लिए विशेष 8.25 प्रतिशत की दर उपलब्ध है। यदि आप चाहें तो मैं विवरण आपकी पंजीकृत ईमेल आईडी पर भेज दूँ?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "courteous_closure",
+      "text": "कोई ओटीपी या पासवर्ड किसी को न दें सर। आप नज़दीकी शाखा में आकर भी मिल सकते हैं। धन्यवाद।"
+    }
+  ]
+}

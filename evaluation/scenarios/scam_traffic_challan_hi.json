@@ -1,0 +1,39 @@
+{
+  "id": "scam_traffic_challan_hi",
+  "name": "Traffic E-Challan & Vehicle Seizure Threat (Hindi)",
+  "language": "hi",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "echallan.traffic.pay@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9811223399"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "ट्रैफिक पुलिस कंट्रोल रूम से बोल रहे हैं। आपके वाहन के खिलाफ अदालत से दस हज़ार रुपये का गैर-ज़मानती ई-चालान पेंडिंग है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "seizure_threat",
+      "text": "अगर आज दोपहर तक चालान नहीं भरा तो आपकी गाड़ी सीज़ कर दी जाएगी और वारंट जारी होगा।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "कोर्ट फीस क्लीयर करने के लिए तुरंत चालान यूपीआई पर पेमेंट करें: echallan dot traffic dot pay at the rate ok axis। echallan.traffic.pay@okaxis।"
+    }
+  ]
+}

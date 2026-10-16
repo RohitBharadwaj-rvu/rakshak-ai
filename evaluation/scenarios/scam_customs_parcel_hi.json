@@ -1,0 +1,39 @@
+{
+  "id": "scam_customs_parcel_hi",
+  "name": "Customs Illegal Parcel Threat (Hindi)",
+  "language": "hi",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "customs.clearance.delhi@okicici"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9911224455"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "दिल्ली एयरपोर्ट कस्टम्स विभाग से सीनियर ऑफिसर शर्मा बात कर रहा हूँ। आपके नाम का पार्सल एयरपोर्ट पर रोका गया है जिसमें गैरकानूनी सामान पाया गया है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "coercion_penalty",
+      "text": "एंटी-मनी लॉन्ड्रिंग एक्ट के तहत आप पर केस बन रहा है। अगर आप तुरंत क्लीयरेंस पेनल्टी नहीं भरते तो अरेस्ट वारंट जारी होगा।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "सरकारी कस्टम्स वेरिफिकेशन यूपीआई पर पचास हज़ार जमा कीजिए: customs dot clearance dot delhi at the rate ok icici।"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "genuine_insurance_renewal_hi",
+  "name": "LIC Insurance Policy Annual Renewal Notice (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "service_reminder",
+      "text": "नमस्ते सर, मैं भारतीय जीवन बीमा निगम शाखा से एजेंट सुरेश बात कर रहा हूँ।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "policy_info",
+      "text": "आपकी जीवन आनंद पॉलिसी का वार्षिक प्रीमियम इस महीने की 25 तारीख को देय है। क्या आपको नोटिस मिल गया है?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "official_portal_guidance",
+      "text": "आप प्रीमियम का भुगतान सीधे एलआईसी की आधिकारिक वेबसाइट या नज़दीकी शाखा काउंटर पर ही करें। किसी अज्ञात व्यक्ति को न दें। धन्यवाद।"
+    }
+  ]
+}

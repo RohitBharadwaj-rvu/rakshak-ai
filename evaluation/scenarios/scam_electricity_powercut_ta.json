@@ -1,0 +1,39 @@
+{
+  "id": "scam_electricity_powercut_ta",
+  "name": "Electricity Power Cut Scam (Tamil)",
+  "language": "ta",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "tnebill.support@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9442211334"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "மின்சார வாரிய தலைமை அலுவலகத்திலிருந்து பேசுகிறோம். உங்கள் மின் கட்டணம் நிலுவையில் உள்ளது. இன்றிரவு 8 மணிக்கு மின் இணைப்பு துண்டிக்கப்படும்."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_threat",
+      "text": "மின்சாரம் துண்டிக்கப்படாமல் இருக்க உடனடியாக அபராதத் தொகையை ஆன்லைனில் செலுத்த வேண்டும்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_demand",
+      "text": "யுபிஐ ஐடி குறித்துக்கொள்ளுங்கள்: tnebill dot support at the rate ok axis. tnebill.support@okaxis."
+    }
+  ]
+}

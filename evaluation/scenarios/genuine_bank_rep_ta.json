@@ -1,0 +1,35 @@
+{
+  "id": "genuine_bank_rep_ta",
+  "name": "Bank Representative Loan Followup (Tamil)",
+  "language": "ta",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "service_inquiry",
+      "text": "வணக்கம் ஐயா, ஸ்டேட் பாங்கிலிருந்து ரமேஷ் பேசுகிறேன். நீங்கள் வீட்டுக் கடன் பற்றி கேட்டிருந்தீர்கள்."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "offer_information",
+      "text": "முதியோர்களுக்கான சிறப்பு வட்டி விகிதம் உள்ளது. விவரங்களை உங்கள் கிளைக்கு அனுப்பி வைக்கவா?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "courteous_closure",
+      "text": "எந்தவொரு கடவுச்சொல் அல்லது ஓடிபி எண்ணையும் யாரிடமும் பகிர வேண்டாம். வங்கி கிளைக்கு நேரில் வரலாம். நன்றி."
+    }
+  ]
+}

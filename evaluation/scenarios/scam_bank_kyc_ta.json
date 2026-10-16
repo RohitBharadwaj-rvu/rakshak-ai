@@ -1,0 +1,41 @@
+{
+  "id": "scam_bank_kyc_ta",
+  "name": "Bank Account & KYC Block Scam (Tamil)",
+  "language": "ta",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "account_numbers": [
+      "50100432899999"
+    ],
+    "ifsc_codes": [
+      "ICIC0001234"
+    ],
+    "upi_ids": [],
+    "phone_numbers": [
+      "9711556677"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_warning",
+      "text": "வணக்கம், ஸ்டேட் பாங்க் தலைமை அலுவலகத்திலிருந்து பேசுகிறோம். உங்கள் வங்கியின் கேஒய்சி சரிபார்ப்பு முடிவடையவில்லை. இன்றைக்குள் புதுப்பிக்காவிட்டால் வங்கி கணக்கு முடக்கப்படும்."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_and_action",
+      "text": "வங்கிக்கு செல்ல தேவையில்லை. உடனடியாக சரிபார்ப்பு செய்ய எங்கள் தற்காலிக பாதுகாப்புக் கணக்கிற்கு தொகை அனுப்ப வேண்டும்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "account_demand",
+      "text": "வங்கிக் கணக்கு எண் குறித்துக்கொள்ளுங்கள்: ஐந்து பூஜ்ஜியம் ஒன்று பூஜ்ஜியம் பூஜ்ஜியம் நான்கு மூன்று இரண்டு எட்டு ஒன்பது ஒன்பது ஒன்பது ஒன்பது. ஐஎஃப்எஸ்சி ICIC0001234."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "scam_traffic_challan_ta",
+  "name": "Traffic E-Challan & Vehicle Seizure Threat (Tamil)",
+  "language": "ta",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "tamil.traffic.fine@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9442299881"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "போக்குவரத்து காவல்துறை கட்டுப்பாட்டு அறையிலிருந்து பேசுகிறோம். உங்கள் வாகனத்திற்கு நீதிமன்ற பிடியாணை பிறப்பிக்கப்பட்டுள்ளது."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "seizure_threat",
+      "text": "இன்றைக்குள் அபராதத் தொகையை செலுத்தாவிட்டால் வாகனம் பறிமுதல் செய்யப்பட்டு சிறை தண்டனை விதிக்கப்படும்."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "உடனடியாக இந்த யுபிஐ முகவரிக்கு அபராதத்தை செலுத்தவும்: tamil dot traffic dot fine at the rate ok axis. tamil.traffic.fine@okaxis."
+    }
+  ]
+}

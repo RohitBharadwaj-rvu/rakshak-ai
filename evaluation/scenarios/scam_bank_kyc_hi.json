@@ -1,0 +1,41 @@
+{
+  "id": "scam_bank_kyc_hi",
+  "name": "Bank Account & Debit Card KYC Expiry (Hindi)",
+  "language": "hi",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "account_numbers": [
+      "50100432891234"
+    ],
+    "ifsc_codes": [
+      "HDFC0001234"
+    ],
+    "upi_ids": [],
+    "phone_numbers": [
+      "9711223344"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_warning",
+      "text": "सर हम स्टेट बैंक हेड ऑफिस से बोल रहे हैं। आपका बैंक अकाउंट और एटीएम कार्ड का केवाईसी एक्सपायर हो गया है। आज शाम 5 बजे आपका खाता ब्लॉक कर दिया जाएगा।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_and_action",
+      "text": "शाखा जाने की जरूरत नहीं है दादाजी, हम ऑनलाइन री-वेरीफाई कर रहे हैं। आप हमारे वेरिफिकेशन अकाउंट में टोकन अमाउंट भेजिए।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "account_demand",
+      "text": "खाता संख्या लिखिए: पांच शून्य एक शून्य शून्य चार तीन दो आठ नौ एक दो तीन चार। आईएफएससी कोड है एच डी एफ सी शून्य शून्य शून्य एक दो तीन चार।"
+    }
+  ]
+}
