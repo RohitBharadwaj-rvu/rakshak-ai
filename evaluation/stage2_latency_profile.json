@@ -2,36 +2,18 @@
   "offline_fallback": {
     "provider": "Local Regex Fallback",
     "model": "offline_rules",
-    "calls": 25,
-    "successes": 25,
-    "min_ms": 0.15,
-    "median_p50_ms": 0.28,
-    "p95_ms": 2.59,
-    "max_ms": 26.21,
-    "mean_ms": 1.39
+    "calls": 10,
+    "successes": 10,
+    "min_ms": 0.06,
+    "median_p50_ms": 0.09,
+    "p95_ms": 9.36,
+    "max_ms": 9.36,
+    "mean_ms": 1.08
   },
   "groq": {
-    "provider": "Groq",
-    "model": "llama-3.3-70b-versatile",
-    "status": "unconfigured_in_env",
-    "note": "When key is unset, classifier silently falls back to offline_rules in 0.5ms.",
-    "empirical_telemetry": {
-      "median_p50_ms": 480.0,
-      "p95_ms": 920.0,
-      "network_region": "India -> Groq US-West/East REST API",
-      "timeout_setting_s": 1.2
-    }
+    "error": "All Groq calls failed or invalid API key"
   },
   "gemini": {
-    "provider": "Google Gemini",
-    "model": "gemini-2.0-flash",
-    "status": "unconfigured_in_env",
-    "note": "When key is unset, classifier silently falls back to offline_rules.",
-    "empirical_telemetry": {
-      "median_p50_ms": 680.0,
-      "p95_ms": 1350.0,
-      "network_region": "India -> Google AI Studio REST API",
-      "timeout_setting_s": 1.2
-    }
+    "error": "All Gemini calls failed or invalid API key"
   }
 }
