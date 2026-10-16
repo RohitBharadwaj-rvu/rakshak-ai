@@ -62,7 +62,7 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
 
 Development is organized into four decoupled parallel tracks:
 
-- **Lane A (`prompts/`, `bolna/`)**: Voice Agent, Prompts, Hindi/Tamil Personas, Scammer Simulation.
+- **Lane A (`prompts/`, `bolna/`)**: Voice Agent, Prompts, Hindi/English Personas, Scammer Simulation.
 - **Lane B (`app/`, `contracts/`)**: Backend Server, Tool Endpoints, Normalizer, Intel Extraction, 1930 Reports.
 - **Lane C (`android/`, `docs/setup/`)**: Android Screening Service, USSD Guides, Family Alerts & Dashboard.
 - **Lane D (`evaluation/`, `tests/`, `scripts/`)**: Detection Classifier, Scenarios, Harness, Metrics & Benchmarks.
@@ -106,7 +106,7 @@ python scripts/mock_bolna.py --fixture tests/fixtures/01_scam_digital_arrest.jso
 
 - **Sprint 0 (Oct 16–17)**: Unblock, API contracts freeze, fixture creation & mock harness.
 - **Sprint 1 (Oct 18–20)**: Walking skeleton end-to-end call test & **Gate 1** (App vs Basic mode).
-- **Sprint 2 (Oct 21–23)**: Hindi & Tamil personas, normalizer v2, post-call cleanup.
+- **Sprint 2 (Oct 21–23)**: Hindi & English personas (with Hinglish), normalizer v2, post-call cleanup.
 - **Sprint 3 (Oct 24–26)**: 1930 complaint generation, edge case hardening, **Feature Freeze**.
 - **Sprint 4 (Oct 27–29)**: Measured benchmarks, elderly user pilot, and demo recording.
 - **Submission (Oct 30)**: Final claims audit & release.

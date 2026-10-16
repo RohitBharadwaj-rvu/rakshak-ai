@@ -25,7 +25,7 @@
     },
     "language": {
       "type": "string",
-      "enum": ["hi", "ta", "en", "mixed"],
+      "enum": ["hi", "en", "hinglish", "mixed", "ta"],
       "description": "Primary language of the scenario"
     },
     "type": {

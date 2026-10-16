@@ -10,7 +10,7 @@ Each dev keeps one lane for all five sprints and owns that lane's folders, so pu
 
 | Lane | Owns | Code it touches | Needs |
 | --- | --- | --- | --- |
-| A · Voice agent | Bolna agent, the two-mode prompt, personas in Hindi and Tamil, tool wiring, inbound number, the scammer agent for voice tests, the demo call | `prompts/`, `bolna/` (exported agent config) | Speaks Hindi or Tamil; good at prompt work |
+| A · Voice agent | Bolna agent, the two-mode prompt, personas in Hindi and English, tool wiring, inbound number, the scammer agent for voice tests, the demo call | `prompts/`, `bolna/` (exported agent config) | Speaks Hindi or English; good at prompt work |
 | B · Backend and intel | Tool endpoints, post-call webhook, CallRecord store, spoken-number normalizer, post-call extraction and LLM cleanup, 1930 report, hosting | `app/voice/`, `app/core/rules.py`, `app/agent/nodes/extractor.py` | Python; knows the honeypot repo best |
 | C · Phone and family | Carrier tests, Kotlin screening app, setup guides, family alerts, family dashboard, genuine-call tests with elderly users | `android/`, `app/notify/`, `app/core/gui.py`, `docs/setup/` | Kotlin; holds the Jio, Airtel and Vi SIMs |
 | D · Detection and eval | `classify_caller`, scam and genuine scenarios, text and voice evaluation, metrics, README, submission text, demo video edit | `evaluation/`, `app/voice/classifier.py`, `README.md`, `submission/` | LLM prompting; clear writing |
@@ -25,7 +25,7 @@ Four lanes run in parallel every sprint; Gate 1 on Oct 20 decides app mode.
 | --- | --- | --- | --- | --- |
 | Sprint 0 · Oct 16–17 | Number requested; agent v0 answers; Bolna docs checked | Repo and public URL; interfaces frozen; stub endpoints live | Carrier Test 1; screening app begun; results table | README fixed; 6 fixture calls; `mock_bolna.py` |
 | Sprint 1 · Oct 18–20 | Two-mode prompt; Hindi, Ramesh; tools wired | Real tools; webhook to SQLite; normalizer v1 | Tests 2, 3 and 4; family alert v1; testers asked | `classify_caller` v1; genuine scenarios; text harness |
-| Sprint 2 · Oct 21–23 | 3 personas; Hindi and Tamil; message, transfer | Normalizer v2; LLM cleanup; CallRecord API | Go: whitelist, APK. No-go: setup guide and dashboard v1 | Classifier tuned; red-team scenarios; ground-truth labels |
+| Sprint 2 · Oct 21–23 | 3 personas; Hindi and English (with Hinglish); message, transfer | Normalizer v2; LLM cleanup; CallRecord API | Go: whitelist, APK. No-go: setup guide and dashboard v1 | Classifier tuned; red-team scenarios; ground-truth labels |
 | Sprint 3 · Oct 24–26 | Edge cases; scammer agent; demo script | 1930 report; reflection tasks; hardening, CSV | Dashboard or APK; consent form; testers booked | Metrics script; eval set frozen; README draft |
 | Sprint 4 · Oct 27–29 | Voice eval runs; prompt fixes; demo recorded | Bug fixes; extraction misses; backend kept up | Elderly-user tests; carrier results; demo phone ready | Metrics computed; submission text; video edited |
 
@@ -84,7 +84,7 @@ By Saturday night, every outside dependency is requested and every interface is 
 **Kickoff today (30 minutes, whole team)**
 
 - [ ] Assign lanes A to D.
-- [ ] Confirm demo languages (default Tamil and Hindi) and name a native-speaker reviewer for each.
+- [ ] Confirm demo languages (default Hindi and English, with Hinglish) and name a reviewer for each.
 - [ ] Decide who writes Kotlin. Nobody means app mode is dropped now.
 - [ ] List SIMs and phones: Jio, Airtel and Vi, and which phones run Android 10 or later.
 - [ ] Choose a branch or a new repo for the voice version.
@@ -93,7 +93,7 @@ By Saturday night, every outside dependency is requested and every interface is 
 
 - [ ] Join the Bolna Slack. Ask about API credits, the fastest Indian inbound number (Exotel or Plivo KYC), and which numbers Jio forwards to.
 - [ ] Start the inbound number request today.
-- [ ] Create agent v0: Indian-language speech-to-text, a fast LLM, Sarvam TTS. Make test calls in Hindi and Tamil.
+- [ ] Create agent v0: Indian-language speech-to-text, a fast LLM, Sarvam TTS. Make test calls in Hindi and English.
 - [ ] Check the Bolna docs on four points: what custom functions receive, how call transfer works, the post-call webhook payload, and the outbound call API (needed for the scammer agent). Add the answers to `docs/interfaces.md`.
 
 **B · Backend and intel**
@@ -121,7 +121,7 @@ By Saturday night, every outside dependency is requested and every interface is 
 - [ ] `docs/interfaces.md` and the schemas in `contracts/` are merged, and T-CONTRACT passes in CI against the stubs and all 6 fixtures.
 - [ ] T-HOST passes: `/health` answers a phone on mobile data, and the URL survives a restart.
 - [ ] CI runs on every pull request, and the T-PRIV secrets scan is green.
-- [ ] Agent v0 holds a 1-minute test call in Hindi and another in Tamil, with both recordings saved.
+- [ ] Agent v0 holds a 1-minute test call in Hindi and another in English, with both recordings saved.
 - [ ] The inbound number request has a reference number from the provider, or the number is live.
 - [ ] T-CARRIER Test 1 is logged for every SIM we have, 3 attempts each.
 
@@ -173,18 +173,18 @@ A teammate dials the Bolna number directly. The agent screens the call, switches
 
 ## Sprint 2 · Wed Oct 21 – Fri Oct 23 · Real languages, real routing
 
-All three personas speak naturally in Hindi and Tamil. The routing mode we ship works on a real SIM. Post-call extraction handles spoken digits.
+All three personas speak naturally in Hindi and English (with natural Hinglish code-switching). The routing mode we ship works on a real SIM. Post-call extraction handles spoken digits.
 
 **A · Voice agent**
 
-- [ ] Rewrite Ramesh, Sunita and Prof. Iyer for speech in Hindi and Tamil. Remove the SMS rules (typo injection, "never say call"). Native speakers review both languages.
+- [ ] Rewrite Ramesh, Sunita and Prof. Iyer for speech in Hindi and English. Remove the SMS rules (typo injection, "never say call"). Reviewers check both languages.
 - [ ] Build the genuine-caller path: take a message in basic mode, or transfer to the parent's number in app mode.
 - [ ] Add a bait rule to the prompt: speak only the bait the backend serves, and stall on OTP or Aadhaar requests instead of inventing details.
 - [ ] Cut latency: in-character filler lines while tools run ("wait, let me find my glasses"), and tune endpointing and interruptions.
 
 **B · Backend and intel**
 
-- [ ] Normalizer v2: Tamil number words, mixed scripts, numbers that switch language mid-string.
+- [ ] Normalizer v2: English, Hindi, and Hinglish spoken numbers, mixed scripts, numbers that switch language mid-string.
 - [ ] Post-call LLM cleanup with Mistral Large: check and fix the extracted intel, and write a call summary. Remove Mistral from every live path.
 - [ ] Add a read API for CallRecords (`/api/calls`, `/api/calls/{id}`) for the dashboard and metrics.
 
@@ -207,10 +207,10 @@ All three personas speak naturally in Hindi and Tamil. The routing mode we ship 
 
 **Exit test (every line passes, live at the sprint demo):**
 
-- [ ] Live, through the shipping routing mode on a real SIM: a Tamil scam call, a Hindi scam call and a genuine call each get the right verdict and a CallRecord. The genuine call ends in a message or a transfer.
+- [ ] Live, through the shipping routing mode on a real SIM: an English scam call, a Hindi scam call and a genuine call each get the right verdict and a CallRecord. The genuine call ends in a message or a transfer.
 - [ ] T-CONV: zero hard-check violations across all scenarios in both languages.
 - [ ] T-CLS meets its Sprint 2 bar: recall of at least 85%, false positives at most 10%.
-- [ ] T-NORM (full corpus of 150+ cases, Tamil included), T-CLEAN and T-API are green.
+- [ ] T-NORM (full corpus of 150+ cases, English and Hindi included), T-CLEAN and T-API are green.
 - [ ] T-VOICE smoke set: the reliability checks pass on all 5 calls.
 - [ ] The first T-LAT measurement, on 10 calls, is logged.
 - [ ] If Gate 1 was go: T-XFER passes 5 of 5, and the T-AND field script passes on the demo phone. If no-go: T-SETUP passes for every carrier we'll name, and the T-DASH automated checks are green.
@@ -247,7 +247,7 @@ Every claim in the application works end to end, and features freeze on the nigh
 
 - [ ] Android screens unknown calls before they ring: the T-AND field script and 24-hour soak pass, and T-CARRIER Tests 2 and 3 pass on at least one carrier. Otherwise the application text is switched to basic mode only.
 - [ ] Unanswered calls roll over to the agent on any phone: T-CARRIER Test 4 passes on every carrier we'll name, and T-SETUP passes for each one.
-- [ ] The agent speaks Tamil and Hindi: the T-CONV language check passes in both, and each language's native-speaker reviewer has signed off.
+- [ ] The agent speaks Hindi and English (with natural Hinglish): the T-CONV language check passes in both, and reviewers have signed off.
 - [ ] Genuine callers get connected or leave a message: the T-CONV message bar is met, and T-XFER passes if app mode is go.
 - [ ] Scammers are kept talking: the T-CONV switch and no-early-hang-up bars are met.
 - [ ] UPI IDs, phone numbers and accounts come out of the transcript: the T-EXT bars are met, and T-CLEAN has zero ungrounded values.
@@ -373,7 +373,7 @@ Cheap layers run on every pull request and block the merge. Expensive layers (re
 | ID | What it tests | Owner | Layer | First needed |
 | --- | --- | --- | --- | --- |
 | T-CONTRACT | Every interface between lanes | B | Contract | Sprint 0 |
-| T-STT | Speech-to-text choice for Hindi and Tamil | A | Field (recorded audio) | Sprint 1 |
+| T-STT | Speech-to-text choice for Hindi and English | A | Field (recorded audio) | Sprint 1 |
 | T-CONV | Agent behaviour: screening, switch, persona, bait, language, speech fit | A | Conversation | Sprint 1 |
 | T-LAT | Response time on real calls | A | Voice | Sprint 2 |
 | T-SCAM | Scammer agent says its planted details and follows the scenario | A | Voice | Sprint 3 |
@@ -437,13 +437,13 @@ Owner A · field (recorded audio) · `evaluation/stt/` · once in Sprint 1, and 
 
 Owner A · conversation · `evaluation/conversation/` · pull requests touching `prompts/`, plus nightly
 
-Every scam, genuine and red-team scenario runs through the harness 3 times, in Hindi and in Tamil.
+Every scam, genuine and red-team scenario runs through the harness 3 times, in Hindi and in English.
 
 | Hard check (zero violations) | How it is checked |
 | --- | --- |
 | Bait only | Every number, UPI ID, account, OTP or Aadhaar-like string the agent says is on the approved bait list (regex scan) |
 | Speech fit | No markdown, emoji, bullet characters or links in agent turns, and no turn over 40 words |
-| Language | A language detector on each agent turn matches the scenario language. Hindi-English mixing counts as Hindi |
+| Language | A language detector on each agent turn matches the scenario language. Hindi-English mixing counts as valid |
 | Tool order | `switch_to_honeypot` is never called before `classify_caller` returns scam |
 | Persona consistency | Persona name, age, city and bait details never change within a call (string match against the persona file) |
 | Screening opener | Within its first 2 turns, the agent asks who is calling and why |
@@ -479,7 +479,7 @@ Owner A · voice · `bolna/scammer_agent.json` and `evaluation/scenarios/` · af
 
 ### T-VOICE · Whole call path on the real number
 
-Owner A with D · voice · `evaluation/voice/` · a 5-call smoke set after each prompt merge from Sprint 2 (2 Hindi scam, 1 Tamil scam, 1 genuine, 1 red-team); the full set once in Sprint 4
+Owner A with D · voice · `evaluation/voice/` · a 5-call smoke set after each prompt merge from Sprint 2 (2 Hindi scam, 1 English scam, 1 genuine, 1 red-team); the full set once in Sprint 4
 
 After each hang-up, a script checks the CallRecord:
 
@@ -498,7 +498,7 @@ After each hang-up, a script checks the CallRecord:
 
 Owner B · unit · `tests/unit/test_normalizer.py` with cases in `tests/data/spoken_numbers.yaml` · every pull request
 
-The corpus holds at least 150 cases: 40 or more each for English, Hindi and Tamil, plus 30 cases that must come out unchanged.
+The corpus holds at least 150 cases: 60 or more each for English and Hindi (including Hinglish), plus 30 cases that must come out unchanged.
 
 | Group | Example input | Expected |
 | --- | --- | --- |
@@ -506,8 +506,8 @@ The corpus holds at least 150 cases: 40 or more each for English, Hindi and Tami
 | Repeats | "double five triple zero" | `55000` |
 | "Oh" for zero | "nine oh one" | `901` |
 | Hindi words, both scripts | "nau aath chaar", "नौ आठ चार" | `984` |
-| Tamil words, both scripts | "onbadhu ettu naalu", "ஒன்பது எட்டு நான்கு" | `984` |
-| Native digits | "९८४", "௯௮௪" | `984` |
+| Hinglish mixed digits | "nine आठ चार five zero", "double नौ five" | `98450`, `995` |
+| Native digits | "९८४" | `984` |
 | Digits mixed with words | "98 four 5" | `9845` |
 | UPI handles | "ramesh at the rate okaxis", "ramesh at rate ok axis" | `ramesh@okaxis` |
 | Separators | "ramesh dot kumar underscore one" | `ramesh.kumar_1` |
@@ -720,7 +720,7 @@ Owner C · field · consent forms and the results sheet · Sprint 4
 
 Owner D · conversation · `evaluation/classifier/` with `classifier_set.jsonl` · pull requests touching the classifier, plus nightly
 
-The set cuts every scam and genuine scenario at caller turns 2, 4 and 6, in Hindi, Tamil, English and mixed speech. It adds hard cases:
+The set cuts every scam and genuine scenario at caller turns 2, 4 and 6, in Hindi, English and Hinglish mixed speech. It adds hard cases:
 
 - Paired openings that differ only in the ask: a relative on a new number, and a bank calling about a transaction. The genuine version never asks for money, an OTP or a PIN; the scam version does.
 - A courier confirming a delivery address.
@@ -739,7 +739,7 @@ Owner D · unit · `tests/unit/test_scenarios.py` · every pull request
 - Every scenario validates against the scenario schema: ID, language, type (scam, genuine or red-team), caller script, planted details, expected verdict, maximum turns.
 - Every scam scenario plants at least one UPI ID or account, and no genuine scenario plants any.
 - No planted value matches a bait value, so extraction scoring is never ambiguous.
-- IDs are unique, and every scam type has a Hindi and a Tamil version.
+- IDs are unique, and every scam type has a Hindi and an English version.
 - The digital-arrest scenario exists.
 
 **Pass bar:** 100% green.
