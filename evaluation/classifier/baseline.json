@@ -3,7 +3,7 @@
   "final_scam_recall": 100.0,
   "overall_scam_recall": 88.46,
   "false_positive_rate": 0.0,
-  "avg_latency_ms": 0.31,
-  "p95_latency_ms": 0.93,
+  "avg_latency_ms": 0.2,
+  "p95_latency_ms": 0.23,
   "pass_sprint_bar": true
 }
