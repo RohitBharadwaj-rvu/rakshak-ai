@@ -23,6 +23,12 @@ from typing import Dict, List, Optional
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT_DIR)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(ROOT_DIR, ".env"))
+except ImportError:
+    pass
+
 from app.voice.classifier import (
     CLASSIFIER_SYSTEM_PROMPT,
     _call_groq,
