@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BolnaWebhookPayload",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "call_id",
+    "agent_id",
+    "call_duration",
+    "call_status",
+    "transcript"
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "description": "Unique identifier of the phone call"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Identifier of the Bolna voice agent"
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "E.164 phone number of the caller, or empty string if withheld"
+    },
+    "call_duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total duration of call in seconds"
+    },
+    "call_status": {
+      "type": "string",
+      "enum": ["completed", "failed", "busy", "no-answer", "in-progress", "canceled"],
+      "description": "Final status of the call session"
+    },
+    "call_recording_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Secure link to audio recording of the conversation"
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Chronological turns between caller and agent",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

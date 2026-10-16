@@ -1,0 +1,35 @@
+{
+  "id": "genuine_courier_hi",
+  "name": "Courier Delivery Confirmation (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "नमस्ते, मैं ब्लू डार्ट डिलीवरी से बात कर रहा हूँ। आपका अमेज़न का पार्सल डिलीवर करना है।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "delivery_query",
+      "text": "क्या घर पर कोई है या मैं नीचे सुरक्षा गार्ड के पास पार्सल छोड़ दूँ?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "confirmation_closure",
+      "text": "ठीक है, मैं गार्ड रूम में पार्सल जमा कर देता हूँ। धन्यवाद।"
+    }
+  ]
+}

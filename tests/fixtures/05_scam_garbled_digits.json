@@ -1,0 +1,54 @@
+{
+  "call_id": "call_scam_garbled_digits_005",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "+919445566778",
+  "call_duration": 120.0,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_scam_garbled_digits_005.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "नमस्ते, आप कौन बोल रहे हैं?",
+      "timestamp": 1.0
+    },
+    {
+      "role": "user",
+      "content": "सर आपका बिजली कनेक्शन कटने वाला है रात नौ बजे तक। तुरंत सिक्योरिटी डिपॉजिट अपडेट कीजिए।",
+      "timestamp": 5.2
+    },
+    {
+      "role": "assistant",
+      "content": "अरे बिजली मत काटो भाई! कहाँ भेजना है पैसा?",
+      "timestamp": 12.0
+    },
+    {
+      "role": "user",
+      "content": "नोट करो यूपीआई... बिजली बिल... अहह wait... bijli dot pay... nine double eight... नहीं sorry, नौ आठ आठ चार पांच... at the rate ओके ऐक्सिस... okaxis",
+      "timestamp": 20.4
+    },
+    {
+      "role": "assistant",
+      "content": "बेटा ठीक से बोलो, नौ आठ आठ चार पांच, फिर क्या?",
+      "timestamp": 32.1
+    },
+    {
+      "role": "user",
+      "content": "हाँ लिखिए... नौ आठ आठ चार पांच छह सात आठ नौ शून्य @ paytm... double check कीजिए nine eight eight four five six seven eight nine zero @ paytm",
+      "timestamp": 40.5
+    },
+    {
+      "role": "assistant",
+      "content": "अच्छा ठीक है, 9884567890@paytm, मैं भेजता हूँ।",
+      "timestamp": 55.0
+    }
+  ],
+  "metadata": {
+    "carrier": "Jio",
+    "persona": "ramesh",
+    "language": "hi",
+    "simulated_scam_type": "electricity_bill_scam",
+    "planted_intel": {
+      "upi_id": "9884567890@paytm"
+    }
+  }
+}

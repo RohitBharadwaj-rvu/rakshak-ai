@@ -1,0 +1,51 @@
+{
+  "id": "scam_digital_arrest_hi",
+  "name": "Digital Arrest Scam - Crime Branch (Hindi)",
+  "language": "hi",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 8,
+  "planted_details": {
+    "upi_ids": [
+      "cbi.officer.verma@okaxis"
+    ],
+    "phone_numbers": [
+      "9876543210"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "intimidation_authority",
+      "text": "मैं CBI क्राइम ब्रांच मुंबई हेडक्वार्टर से सीनियर इंस्पेक्टर विक्रम बोल रहा हूँ। आपके नाम से ताइवान से एक पार्सल आया है जिसमें 15 पासपोर्ट और अवैध नशीले पदार्थ मिले हैं। आप तुरंत डिजिटल अरेस्ट पर हैं।"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "escalation_threat",
+      "text": "अगर आपने फ़ोन काटा या किसी को बताया तो लोकल पुलिस 10 मिनट में आपको अरेस्ट करने घर पहुँच जाएगी। सुप्रीम कोर्ट का गैर-जमानती वारंट जारी हो चुका है।"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "financial_demand",
+      "text": "मामले की निष्पक्ष जाँच के लिए आपको तुरंत अपना बैंक बैलेंस प्रमाणित करने हेतु पचास हज़ार रुपये सरकारी एस्क्रो अकाउंट में भेजने होंगे।"
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "लिखिए सरकारी वैरिफिकेशन यूपीआई आईडी: cbi dot officer dot verma at the rate ok axis। cbi.officer.verma@okaxis पर तुरंत भुगतान कीजिए।"
+    },
+    {
+      "turn": 5,
+      "role": "caller",
+      "intent": "urgency_and_callback",
+      "text": "और अगर ट्रांज़ैक्शन फ़ेल होता है तो इस नंबर पर कॉल बैक कीजिए: नौ आठ सात छह पाँच चार तीन दो एक शून्य। 9876543210।"
+    }
+  ]
+}

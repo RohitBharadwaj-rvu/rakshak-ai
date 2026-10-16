@@ -1,0 +1,42 @@
+{
+  "call_id": "call_genuine_courier_003",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "+919810098100",
+  "call_duration": 48.0,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_genuine_courier_003.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "नमस्ते, मैं शर्मा जी का असिस्टेंट बोल रहा हूँ। आप कौन बात कर रहे हैं?",
+      "timestamp": 1.1
+    },
+    {
+      "role": "user",
+      "content": "भैया मैं ब्लू डार्ट कोरियर से बात कर रहा हूँ। आपका अमेज़न वाला पार्सल लेकर आया हूँ। घर पर कोई है क्या? मेन गेट पर घंटी नहीं बज रही।",
+      "timestamp": 5.4
+    },
+    {
+      "role": "assistant",
+      "content": "हाँ भैया, शर्मा जी घर पर ही हैं। आप सिक्योरिटी गार्ड को पार्सल दे दीजिए, वो ऊपर भिजवा देंगे।",
+      "timestamp": 14.2
+    },
+    {
+      "role": "user",
+      "content": "ठीक है भैया, मैं गार्ड रूम में जमा करा देता हूँ। शुक्रिया।",
+      "timestamp": 22.0
+    },
+    {
+      "role": "assistant",
+      "content": "धन्यवाद भैया।",
+      "timestamp": 25.1
+    }
+  ],
+  "metadata": {
+    "carrier": "Vi",
+    "persona": "screening_receptionist",
+    "language": "hi",
+    "call_type": "genuine",
+    "scenario": "courier_delivery"
+  }
+}

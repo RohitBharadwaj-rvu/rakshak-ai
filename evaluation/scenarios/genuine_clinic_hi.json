@@ -1,0 +1,35 @@
+{
+  "id": "genuine_clinic_hi",
+  "name": "Clinic Appointment Reminder (Hindi)",
+  "language": "hi",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "नमस्ते, मैं अपोलो क्लिनिक से बोल रही हूँ। क्या मेरी बात शर्मा जी के परिवार में हो रही है?"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "appointment_reminder",
+      "text": "कल सुबह 11:30 बजे डॉक्टर सुंदरम के साथ उनका नियमित चेकअप तय है। क्या वे आ रहे हैं?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "preparation_note",
+      "text": "कृपया पुरानी पर्ची साथ लेकर आएं। धन्यवाद।"
+    }
+  ]
+}

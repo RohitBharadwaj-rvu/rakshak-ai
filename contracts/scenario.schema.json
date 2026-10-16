@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RakshakEvaluationScenario",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "language",
+    "type",
+    "expected_verdict",
+    "max_turns",
+    "planted_details",
+    "caller_script"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Unique scenario identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable scenario title"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["hi", "ta", "en", "mixed"],
+      "description": "Primary language of the scenario"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["scam", "genuine", "red-team"],
+      "description": "Category of caller scenario"
+    },
+    "expected_verdict": {
+      "type": "string",
+      "enum": ["scam", "genuine", "unsure"],
+      "description": "Expected classification result"
+    },
+    "max_turns": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Maximum number of conversational turns"
+    },
+    "planted_details": {
+      "type": "object",
+      "properties": {
+        "upi_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "account_numbers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ifsc_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "phone_numbers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "callback_numbers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "caller_script": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["turn", "text"],
+        "properties": {
+          "turn": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": ["caller"],
+            "default": "caller"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

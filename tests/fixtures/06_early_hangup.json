@@ -1,0 +1,27 @@
+{
+  "call_id": "call_early_hangup_006",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "",
+  "call_duration": 8.5,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_early_hangup_006.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "नमस्ते, मैं शर्मा जी का वॉइस असिस्टेंट बोल रहा हूँ। आप कौन बात कर रहे हैं?",
+      "timestamp": 1.0
+    },
+    {
+      "role": "user",
+      "content": "अरे... कौन बोल रहा है... रॉन्ग नंबर...",
+      "timestamp": 4.2
+    }
+  ],
+  "metadata": {
+    "carrier": "Jio",
+    "persona": "screening_receptionist",
+    "language": "hi",
+    "call_type": "early_hangup",
+    "caller_withheld": true
+  }
+}

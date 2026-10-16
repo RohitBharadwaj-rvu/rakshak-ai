@@ -1,0 +1,60 @@
+{
+  "call_id": "call_scam_kyc_account_002",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "+919711223344",
+  "call_duration": 142.0,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_scam_kyc_account_002.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "हेलो, कौन बोल रहे हैं आप?",
+      "timestamp": 1.0
+    },
+    {
+      "role": "user",
+      "content": "सर हम स्टेट बैंक हेड ऑफिस से बोल रहे हैं। आपका बैंक अकाउंट और एटीएम कार्ड का केवाईसी एक्सपायर हो गया है। आज शाम 5 बजे आपका खाता ब्लॉक कर दिया जाएगा।",
+      "timestamp": 4.2
+    },
+    {
+      "role": "assistant",
+      "content": "अरे! पर बेटा मैं तो पिछले हफ़्ते ही ब्रांच गया था। अब क्या करना होगा?",
+      "timestamp": 12.8
+    },
+    {
+      "role": "user",
+      "content": "शाखा जाने की जरूरत नहीं है दादाजी, हम ऑनलाइन री-वेरीफाई कर रहे हैं। आप हमारे वेरिफिकेशन अकाउंट में एक टोकन अमाउंट भेजिए, वो तुरंत रीइंबर्स होगा।",
+      "timestamp": 21.0
+    },
+    {
+      "role": "assistant",
+      "content": "ज़रा धीरे बोलिए बेटा, मैं डायरी में लिख रहा हूँ। खाता संख्या क्या है?",
+      "timestamp": 30.5
+    },
+    {
+      "role": "user",
+      "content": "लिखिए, पांच शून्य एक शून्य शून्य चार तीन दो आठ नौ एक दो तीन चार। बैंक है एचडीएफसी, आईएफएससी कोड है एच डी एफ सी शून्य शून्य शून्य एक दो तीन चार।",
+      "timestamp": 41.0
+    },
+    {
+      "role": "assistant",
+      "content": "अच्छा... पांच शून्य एक शून्य शून्य चार तीन दो आठ नौ एक दो तीन चार, और HDFC0001234। ठीक है बेटा, मैं अपने बेटे से बोलकर भेजता हूँ।",
+      "timestamp": 58.2
+    },
+    {
+      "role": "user",
+      "content": "नहीं दादाजी, बेटे को मत बताइएगा, तुरंत अभी ट्रांसफर कीजिए वरना पेनल्टी लगेगी!",
+      "timestamp": 69.4
+    }
+  ],
+  "metadata": {
+    "carrier": "Airtel",
+    "persona": "ramesh",
+    "language": "hi",
+    "simulated_scam_type": "bank_kyc",
+    "planted_intel": {
+      "account_number": "50100432891234",
+      "ifsc_code": "HDFC0001234"
+    }
+  }
+}

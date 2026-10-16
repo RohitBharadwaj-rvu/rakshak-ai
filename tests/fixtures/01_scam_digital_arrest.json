@@ -1,0 +1,65 @@
+{
+  "call_id": "call_scam_digital_arrest_001",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "+919876543210",
+  "call_duration": 184.5,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_scam_digital_arrest_001.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "नमस्ते, मैं शर्मा जी के यहाँ से बोल रहा हूँ। आप कौन बात कर रहे हैं?",
+      "timestamp": 1.2
+    },
+    {
+      "role": "user",
+      "content": "मैं CBI क्राइम ब्रांच मुंबई हेडक्वार्टर से सीनियर इंस्पेक्टर विक्रम बोल रहा हूँ। आपके नाम से ताइवान से एक पार्सल आया है जिसमें 15 पासपोर्ट और ड्रग्स मिले हैं। आप डिजिटल अरेस्ट पर हैं।",
+      "timestamp": 4.5
+    },
+    {
+      "role": "assistant",
+      "content": "अरे बाप रे! साहिब, मैं तो बुज़ुर्ग आदमी हूँ, मैंने कोई पार्सल नहीं भेजा। यह क्या चक्कर है?",
+      "timestamp": 14.1
+    },
+    {
+      "role": "user",
+      "content": "सुनिए, अगर जेल नहीं जाना चाहते तो तुरंत वेरिफिकेशन के लिए पचास हज़ार रुपये सरकारी सेफ अकाउंट में जमा कीजिए। तुरंत रिफंड हो जाएगा।",
+      "timestamp": 20.3
+    },
+    {
+      "role": "assistant",
+      "content": "अच्छा साहिब, घबराइए मत, मुझे समझ नहीं आ रहा। बेटा, ज़रा धीरे-धीरे बोलो, मैं चश्मा लगाकर लिख रहा हूँ। कहाँ पैसे भेजने हैं?",
+      "timestamp": 31.0
+    },
+    {
+      "role": "user",
+      "content": "नोट करो यूपीआई आईडी। cbi dot officer dot verma at the rate ok axis। लिख लिया?",
+      "timestamp": 42.4
+    },
+    {
+      "role": "assistant",
+      "content": "हाँ बेटा, cbi dot officer dot verma at the rate ok axis... और कोई नंबर भी है क्या?",
+      "timestamp": 53.2
+    },
+    {
+      "role": "user",
+      "content": "हाँ, इमरजेंसी सुपरवाइजर नंबर है नौ आठ सात छह पाँच चार तीन दो एक शून्य। तुरंत ट्रांसफर करो वरना पुलिस घर पहुँच रही है।",
+      "timestamp": 64.0
+    },
+    {
+      "role": "assistant",
+      "content": "अच्छा बेटा, मैं पास वाली दुकान पर जाकर लड़के से करवाता हूँ, फ़ोन मत काटना।",
+      "timestamp": 75.8
+    }
+  ],
+  "metadata": {
+    "carrier": "Jio",
+    "persona": "ramesh",
+    "language": "hi",
+    "simulated_scam_type": "digital_arrest",
+    "planted_intel": {
+      "upi_id": "cbi.officer.verma@okaxis",
+      "phone_number": "9876543210"
+    }
+  }
+}

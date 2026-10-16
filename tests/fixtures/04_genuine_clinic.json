@@ -1,0 +1,42 @@
+{
+  "call_id": "call_genuine_clinic_004",
+  "agent_id": "bolna_agent_rakshak_v0",
+  "caller_number": "+918023456789",
+  "call_duration": 52.0,
+  "call_status": "completed",
+  "call_recording_url": "https://storage.rakshak.ai/recordings/call_genuine_clinic_004.mp3",
+  "transcript": [
+    {
+      "role": "assistant",
+      "content": "हेलो, रक्षक एआई असिस्टेंट। आप किसे संपर्क करना चाहते हैं?",
+      "timestamp": 1.0
+    },
+    {
+      "role": "user",
+      "content": "गुड मॉर्निंग, मैं अपोलो क्लिनिक से रिसेप्शनिस्ट कविता बात कर रही हूँ। मिस्टर अय्यर का कल सुबह 11:30 बजे डॉक्टर सुंदरम के साथ रूटीन आई चेकअप अपॉइंटमेंट है। क्या वे आ रहे हैं?",
+      "timestamp": 4.8
+    },
+    {
+      "role": "assistant",
+      "content": "जी नमस्ते कविता जी। जी हाँ, वे कल समय पर उपस्थित रहेंगे। मैं उनको यह सूचना दे देता हूँ। क्या कोई उपवास या टेस्ट की आवश्यकता है?",
+      "timestamp": 16.5
+    },
+    {
+      "role": "user",
+      "content": "नहीं, बस पुरानी चश्मे की पर्ची और आई ड्रॉप्स साथ लेकर आएं। धन्यवाद।",
+      "timestamp": 25.1
+    },
+    {
+      "role": "assistant",
+      "content": "बहुत बहुत धन्यवाद, मैं मैसेज नोट कर लेता हूँ।",
+      "timestamp": 31.0
+    }
+  ],
+  "metadata": {
+    "carrier": "Airtel",
+    "persona": "screening_receptionist",
+    "language": "hi",
+    "call_type": "genuine",
+    "scenario": "clinic_appointment"
+  }
+}
