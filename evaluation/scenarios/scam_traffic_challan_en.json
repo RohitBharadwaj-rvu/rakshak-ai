@@ -1,0 +1,39 @@
+{
+  "id": "scam_traffic_challan_en",
+  "name": "Traffic E-Challan & Impound Threat (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "echallan.traffic.pay@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9442299881"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "This is Traffic Police Central Control Room calling. There is an overdue high court non-bailable e-challan of ten thousand rupees registered against your vehicle registration."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "seizure_threat",
+      "text": "If the fine is not cleared immediately today, our squad will seize and impound your vehicle within two hours."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "To settle the court fine directly, pay through our instant clearance UPI: echallan dot traffic dot pay at the rate ok axis. echallan.traffic.pay@okaxis."
+    }
+  ]
+}

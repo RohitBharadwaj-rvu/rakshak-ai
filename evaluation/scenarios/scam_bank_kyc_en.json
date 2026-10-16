@@ -1,0 +1,41 @@
+{
+  "id": "scam_bank_kyc_en",
+  "name": "Bank Account & Debit Card KYC Block Scam (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "account_numbers": [
+      "50100432899999"
+    ],
+    "ifsc_codes": [
+      "HDFC0001234"
+    ],
+    "upi_ids": [],
+    "phone_numbers": [
+      "9711556677"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_warning",
+      "text": "Good morning sir, this is State Bank Head Office verification cell. Your savings account and debit card KYC validation has expired. Your account will be permanently blocked today by 5 PM."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_and_action",
+      "text": "You do not need to visit the branch. We are doing instant e-verification. You must transfer a refundable security deposit to our central RBI verification account."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "account_demand",
+      "text": "Please write down the account number: five zero one zero zero four three two eight nine nine nine nine nine. IFSC code is HDFC0001234. Transfer immediately to avoid penalty."
+    }
+  ]
+}

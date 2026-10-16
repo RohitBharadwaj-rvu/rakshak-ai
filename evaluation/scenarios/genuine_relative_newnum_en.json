@@ -1,0 +1,35 @@
+{
+  "id": "genuine_relative_newnum_en",
+  "name": "Relative Calling from New Number (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "family_greeting",
+      "text": "Hello Uncle, this is your nephew Amit. My old phone got damaged, so I am calling you from my new number."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "casual_wellbeing",
+      "text": "How are you and Aunty doing? How is her knee pain now? I am planning to visit you both this Sunday."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "casual_closure",
+      "text": "Please save this new number in your contacts. See you on Sunday, Uncle."
+    }
+  ]
+}

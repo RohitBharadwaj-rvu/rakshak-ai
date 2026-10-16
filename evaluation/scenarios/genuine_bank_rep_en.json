@@ -1,0 +1,35 @@
+{
+  "id": "genuine_bank_rep_en",
+  "name": "Bank Representative Home Loan Followup (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "service_inquiry",
+      "text": "Hello sir, I am Rahul, relationship manager from State Bank. You had enquired regarding senior citizen home loan interest rates last week."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "offer_information",
+      "text": "We have an ongoing special rate of 8.25 percent. Shall I email the official schedule to your registered email address?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "courteous_closure",
+      "text": "Please remember that bank officials will never ask for your PIN or OTP over the phone. You may visit your nearest branch anytime. Thank you."
+    }
+  ]
+}

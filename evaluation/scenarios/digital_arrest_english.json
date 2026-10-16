@@ -1,0 +1,51 @@
+{
+  "id": "scam_digital_arrest_en",
+  "name": "Digital Arrest Scam - Police Cyber Cell (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 8,
+  "planted_details": {
+    "upi_ids": [
+      "cbi.cybercell.verify@okaxis"
+    ],
+    "phone_numbers": [
+      "9845012345"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "intimidation_authority",
+      "text": "Hello, this is Senior Inspector Vikram from the Central Cyber Crime Investigation Bureau. An international parcel containing 15 fake passports and contraband drugs has been intercepted in your name. You are under immediate digital arrest."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "escalation_threat",
+      "text": "Do not disconnect this call. A non-bailable arrest warrant has been issued against you by the high court. Local police teams are on standby to raid your residence."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "financial_demand",
+      "text": "For judicial asset verification, you must immediately transfer fifty thousand rupees into the government escrow security account. This amount will be refunded upon verification."
+    },
+    {
+      "turn": 4,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "Note down the official verification UPI ID: cbi dot cybercell dot verify at the rate ok axis. cbi.cybercell.verify@okaxis."
+    },
+    {
+      "turn": 5,
+      "role": "caller",
+      "intent": "urgency_and_callback",
+      "text": "Our direct supervisory monitoring hotline is 9845012345. Complete the payment within 15 minutes."
+    }
+  ]
+}

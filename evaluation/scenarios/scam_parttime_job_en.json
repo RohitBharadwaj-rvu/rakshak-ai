@@ -1,0 +1,39 @@
+{
+  "id": "scam_parttime_job_en",
+  "name": "Part-Time Task & Rating Investment Fraud (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "task.earn.direct@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9445588776"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "lucrative_offer",
+      "text": "Hello, I am calling from Global Rating Services. You can earn 3,000 to 5,000 rupees daily working from home just by liking YouTube videos and rating hotels."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "advance_fee_trap",
+      "text": "To activate your VIP task batch, you only need to pay a small refundable security fee of 1,000 rupees, which will return as 2,500 rupees in 20 minutes."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "Please transfer 1,000 rupees right now to our merchant UPI ID: task dot earn dot direct at the rate ok axis. task.earn.direct@okaxis."
+    }
+  ]
+}

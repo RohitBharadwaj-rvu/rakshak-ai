@@ -1,0 +1,39 @@
+{
+  "id": "scam_electricity_powercut_en",
+  "name": "Electricity Power Cut & Overdue Bill Scam (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "powerboard.support@okaxis"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9442211334"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "Dear consumer, this is State Electricity Distribution Head Office. Your last month electricity bill has not been updated in our database. Your power connection will be cut tonight at 9 PM."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "urgency_threat",
+      "text": "To prevent disconnection, you must immediately update your security deposit through our online portal. Do not delay."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_demand",
+      "text": "Pay immediately to our emergency bill clearance UPI handle: powerboard dot support at the rate ok axis. powerboard.support@okaxis."
+    }
+  ]
+}

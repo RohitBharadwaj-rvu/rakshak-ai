@@ -60,19 +60,19 @@ def test_classify_caller_early_turn_unsure():
     assert 0.20 < res.confidence < 0.85
 
 
-def test_classify_caller_tamil_scam():
+def test_classify_caller_english_scam():
     dialogue = [
-        {"role": "assistant", "content": "வணக்கம், யார் பேசுகிறீர்கள்?"},
+        {"role": "assistant", "content": "Hello, who is calling please?"},
         {
             "role": "user",
-            "content": "நான் சென்னை சைபர் கிரைம் இன்ஸ்பெக்டர். நீங்கள் டிஜிட்டல் அரெஸ்டில் வைக்கப்பட்டுள்ளீர்கள். உடனடியாக யுபிஐ மூலம் பணம் அனுப்பவும்.",
+            "content": "This is CBI Crime Branch Inspector Vikram. You are under immediate digital arrest. Transfer fifty thousand rupees to the safe verification account right now.",
         },
     ]
     res = classify_caller(
-        call_id="test_ta_scam_001",
+        call_id="test_en_scam_001",
         caller_number="+919845012345",
         conversation=dialogue,
-        language="ta",
+        language="en",
     )
     assert res.verdict == "scam"
     assert res.confidence >= 0.85

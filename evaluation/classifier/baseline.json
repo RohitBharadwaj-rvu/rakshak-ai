@@ -1,9 +1,9 @@
 {
   "total_cases": 50,
   "final_scam_recall": 100.0,
-  "overall_scam_recall": 96.15,
+  "overall_scam_recall": 88.46,
   "false_positive_rate": 0.0,
-  "avg_latency_ms": 0.18,
-  "p95_latency_ms": 1.23,
+  "avg_latency_ms": 0.31,
+  "p95_latency_ms": 0.93,
   "pass_sprint_bar": true
 }

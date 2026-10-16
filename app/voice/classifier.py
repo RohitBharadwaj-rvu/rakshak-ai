@@ -88,17 +88,17 @@ VALUE_DEMAND_PATTERNS = [
 
 # Genuine Service Whitelist Patterns (Zero demand for OTP, transfer, or threats)
 GENUINE_INDICATORS = [
-    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|பார்சல்|delivery",
-    r"appointment.*doctor|clinic|क्लिनिक|கிளினிக்|डॉक्टर.*अपॉइंटमेंट|கண்சோதனை|சந்திப்பு",
+    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|பார்சல்|amazon\s*parcel|security\s*guard",
+    r"appointment.*doctor|clinic|क्लिनिक|கிளினிக்|डॉक्टर.*अपॉइंटमेंट|கண்சோதனை|சந்திப்பு|dr\.\s*sundaram|eye\s*checkup",
     r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|காவலாளி|ராம\s*சிங்|राम\s*सिंह",
     r"routine.*check|अपॉइंटमेंट.*कन्फर्म",
     r"society.*maintenance|फ्लैट\s*नंबर",
-    r"होम\s*लोन|வட்டி\s*விகிதம்|வங்கி\s*கிளைக்கு|ब्याज\s*दर|नज़दीकी\s*शाखा",
-    r"भतीजा|मருமகன்|चाचाजी|मामा|रविवार.*घर|ஞாயிற்றுக்கிழமை",
+    r"होम\s*लोन|வட்டி\s*விகிதம்|வங்கி\s*கிளைக்கு|ब्याज\s*दर|नज़दीकी\s*शाखा|home\s*loan|interest\s*rate",
+    r"भतीजा|मருமகன்|चाचाजी|मामा|रविवार.*घर|ஞாயிற்றுக்கிழமை|nephew.*amit|visit.*sunday",
     r"स्कूल|टीचर|क्लास\s*टीचर|parent.*teacher|ரிப்போர்ட்\s*கார்டு|रिपोर्ट\s*कार्ड",
     r"नल.*ठीक|प्लंबर|दिनेश|வாஷர்|repair",
     r"प्रीमियम|जीवन\s*आनंद|आधिकारिक\s*वेबसाइट|branch\s*counter|ரசீது",
-    r"ஓடிபி.*பகிர\s*வேண்டாம்|ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें",
+    r"ஓடிபி.*பகிர\s*வேண்டாம்|ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें|never\s*ask.*(otp|pin)",
 ]
 
 

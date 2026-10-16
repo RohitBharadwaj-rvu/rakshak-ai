@@ -1,0 +1,35 @@
+{
+  "id": "genuine_courier_en",
+  "name": "Courier Delivery Confirmation (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "Hello, I am calling from BlueDart courier service. I have an Amazon parcel for delivery at your address."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "delivery_query",
+      "text": "Is anyone available at home right now, or should I leave the package with the main gate security guard?"
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "confirmation_closure",
+      "text": "Alright, I will hand it over to the security guard and take his signature. Thank you."
+    }
+  ]
+}

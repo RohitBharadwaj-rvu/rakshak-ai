@@ -1,0 +1,35 @@
+{
+  "id": "genuine_clinic_en",
+  "name": "Clinic Appointment Reminder (English)",
+  "language": "en",
+  "type": "genuine",
+  "expected_verdict": "genuine",
+  "max_turns": 4,
+  "planted_details": {
+    "upi_ids": [],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "greeting_identification",
+      "text": "Good morning, this is the receptionist from Apollo Clinic calling. Am I speaking with Mr. Sharma's residence?"
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "appointment_reminder",
+      "text": "This is a courtesy call to confirm his routine eye checkup appointment with Dr. Sundaram tomorrow at 11:30 AM."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "preparation_note",
+      "text": "Please bring along the previous eye drops and prescription. Have a good day."
+    }
+  ]
+}

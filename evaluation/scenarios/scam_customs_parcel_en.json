@@ -1,0 +1,39 @@
+{
+  "id": "scam_customs_parcel_en",
+  "name": "Customs Illegal Parcel Threat (English)",
+  "language": "en",
+  "type": "scam",
+  "expected_verdict": "scam",
+  "max_turns": 6,
+  "planted_details": {
+    "upi_ids": [
+      "delhi.customs.clearance@okicici"
+    ],
+    "account_numbers": [],
+    "ifsc_codes": [],
+    "phone_numbers": [
+      "9443322110"
+    ],
+    "callback_numbers": []
+  },
+  "caller_script": [
+    {
+      "turn": 1,
+      "role": "caller",
+      "intent": "impersonation_threat",
+      "text": "This is Senior Customs Clearance Officer Sharma from Delhi International Airport. An overseas shipment booked in your name has been confiscated containing illicit contraband."
+    },
+    {
+      "turn": 2,
+      "role": "caller",
+      "intent": "coercion_penalty",
+      "text": "You are facing prosecution under the Anti-Narcotics Act. If you do not settle the clearance verification penalty immediately, police will arrive at your door."
+    },
+    {
+      "turn": 3,
+      "role": "caller",
+      "intent": "payment_instruction",
+      "text": "Transfer the verification deposit to the official airport clearance account: delhi dot customs dot clearance at the rate ok icici. delhi.customs.clearance@okicici."
+    }
+  ]
+}

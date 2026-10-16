@@ -38,9 +38,9 @@ def all_scenarios():
 
 def test_digital_arrest_scenario_exists():
     hindi_exists = os.path.exists(os.path.join(SCENARIOS_DIR, "digital_arrest_hindi.json"))
-    tamil_exists = os.path.exists(os.path.join(SCENARIOS_DIR, "digital_arrest_tamil.json"))
+    english_exists = os.path.exists(os.path.join(SCENARIOS_DIR, "digital_arrest_english.json"))
     assert hindi_exists, "digital_arrest_hindi.json missing in evaluation/scenarios/"
-    assert tamil_exists, "digital_arrest_tamil.json missing in evaluation/scenarios/"
+    assert english_exists, "digital_arrest_english.json missing in evaluation/scenarios/"
 
 
 def test_unique_scenario_ids(all_scenarios):
@@ -48,8 +48,8 @@ def test_unique_scenario_ids(all_scenarios):
     assert len(ids) == len(set(ids)), f"Duplicate scenario IDs found: {ids}"
 
 
-def test_scam_types_have_hindi_and_tamil_versions(all_scenarios):
-    """Every scam type must have both a Hindi ('hi') and Tamil ('ta') version."""
+def test_scam_types_have_hindi_and_english_versions(all_scenarios):
+    """Every scam type must have both a Hindi ('hi') and English ('en') version."""
     scam_scenarios = [sc for _, sc in all_scenarios if sc.get("type") == "scam"]
     
     # Map scam base name -> set of languages
@@ -64,7 +64,7 @@ def test_scam_types_have_hindi_and_tamil_versions(all_scenarios):
 
     for base_name, langs in scam_lang_map.items():
         assert "hi" in langs, f"Scam type '{base_name}' is missing Hindi ('hi') scenario"
-        assert "ta" in langs, f"Scam type '{base_name}' is missing Tamil ('ta') scenario"
+        assert "en" in langs, f"Scam type '{base_name}' is missing English ('en') scenario"
 
 
 @pytest.mark.parametrize(
