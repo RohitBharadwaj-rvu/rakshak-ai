@@ -112,3 +112,13 @@ python scripts/mock_bolna.py --fixture tests/fixtures/01_scam_digital_arrest.jso
 - **Submission (Oct 30)**: Final claims audit & release.
 
 For full sprint details and test suite designs, see [guardianline-sprint-plan.md](guardianline-sprint-plan.md).
+
+---
+
+## Evaluation Benchmark & Integrity Status
+
+> [!IMPORTANT]
+> **Benchmarking Integrity Notice:**
+> - Development metrics currently reporting 100% scam detection and 0% false positives are measured strictly against an internal **synthetic dev set, not held-out**.
+> - An independently authored, blind **held-out evaluation set** (`evaluation/held_out_scenarios.json`) is being authored by collaborators without access to internal classification rules to establish unbiased real-world detection metrics.
+> - Telephony audio checks (`scripts/run_audio_format_check.py`) verify 8kHz mono PCM telephony codec formatting and manifest turn logic; they do not benchmark acoustic speech-to-text (STT) accuracy.

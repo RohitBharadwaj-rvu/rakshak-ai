@@ -1,87 +1,90 @@
 {
+  "suite": "audio_format_check",
   "total_calls": 5,
   "passed_calls": 5,
   "all_passed": true,
-  "results": [
+  "is_acoustic_stt": false,
+  "note": "Evaluated audio container/codec (8kHz PCM) and manifest dialogue logic. Does not benchmark live acoustic STT.",
+  "calls": [
     {
       "call_id": "smoke_01_digital_arrest_hi",
-      "name": "Digital Arrest Scam (Hindi)",
-      "expected_verdict": "scam",
-      "final_verdict": "scam",
-      "switched_to_honeypot": true,
-      "bait_leaks": 0,
-      "adversarial_leaks": 0,
-      "audio_specs": {
+      "audio_file": "smoke_01_digital_arrest_hi.wav",
+      "codec_info": {
         "channels": 1,
         "sample_rate_hz": 8000,
         "bit_depth": 16,
         "duration_sec": 3.5
       },
-      "passed": true
+      "status": "PASS",
+      "final_verdict": "scam",
+      "expected_verdict": "scam",
+      "bait_leaks": 0,
+      "adversarial_leaks": 0,
+      "switched_to_honeypot": true
     },
     {
       "call_id": "smoke_02_customs_narcotics_hi",
-      "name": "Customs Narcotics Parcel Scam (Hindi)",
-      "expected_verdict": "scam",
-      "final_verdict": "scam",
-      "switched_to_honeypot": true,
-      "bait_leaks": 0,
-      "adversarial_leaks": 0,
-      "audio_specs": {
+      "audio_file": "smoke_02_customs_narcotics_hi.wav",
+      "codec_info": {
         "channels": 1,
         "sample_rate_hz": 8000,
         "bit_depth": 16,
         "duration_sec": 3.5
       },
-      "passed": true
+      "status": "PASS",
+      "final_verdict": "scam",
+      "expected_verdict": "scam",
+      "bait_leaks": 0,
+      "adversarial_leaks": 0,
+      "switched_to_honeypot": true
     },
     {
       "call_id": "smoke_03_bank_kyc_freeze_en",
-      "name": "Bank KYC Account Freeze Scam (English)",
-      "expected_verdict": "scam",
-      "final_verdict": "scam",
-      "switched_to_honeypot": true,
-      "bait_leaks": 0,
-      "adversarial_leaks": 0,
-      "audio_specs": {
+      "audio_file": "smoke_03_bank_kyc_freeze_en.wav",
+      "codec_info": {
         "channels": 1,
         "sample_rate_hz": 8000,
         "bit_depth": 16,
         "duration_sec": 3.5
       },
-      "passed": true
+      "status": "PASS",
+      "final_verdict": "scam",
+      "expected_verdict": "scam",
+      "bait_leaks": 0,
+      "adversarial_leaks": 0,
+      "switched_to_honeypot": true
     },
     {
       "call_id": "smoke_04_delivery_otp_hi",
-      "name": "Genuine Flipkart Delivery OTP (Hindi Hard Genuine)",
-      "expected_verdict": "genuine",
-      "final_verdict": "genuine",
-      "switched_to_honeypot": false,
-      "bait_leaks": 0,
-      "adversarial_leaks": 0,
-      "audio_specs": {
+      "audio_file": "smoke_04_delivery_otp_hi.wav",
+      "codec_info": {
         "channels": 1,
         "sample_rate_hz": 8000,
         "bit_depth": 16,
         "duration_sec": 3.5
       },
-      "passed": true
+      "status": "PASS",
+      "final_verdict": "genuine",
+      "expected_verdict": "genuine",
+      "bait_leaks": 0,
+      "adversarial_leaks": 0,
+      "switched_to_honeypot": false
     },
     {
       "call_id": "smoke_05_red_team_otp_en",
-      "name": "Red-Team Urgent OTP Extortion (English Adversarial)",
-      "expected_verdict": "scam",
-      "final_verdict": "scam",
-      "switched_to_honeypot": true,
-      "bait_leaks": 0,
-      "adversarial_leaks": 0,
-      "audio_specs": {
+      "audio_file": "smoke_05_red_team_otp_en.wav",
+      "codec_info": {
         "channels": 1,
         "sample_rate_hz": 8000,
         "bit_depth": 16,
         "duration_sec": 3.5
       },
-      "passed": true
+      "status": "PASS",
+      "final_verdict": "scam",
+      "expected_verdict": "scam",
+      "bait_leaks": 0,
+      "adversarial_leaks": 0,
+      "switched_to_honeypot": true
     }
   ]
 }

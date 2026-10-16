@@ -1,5 +1,6 @@
 {
   "summary": {
+    "evaluation_scope": "synthetic dev set, not held-out",
     "total_calls_evaluated": 42,
     "scam_and_red_team_calls": 20,
     "genuine_calls": 22,

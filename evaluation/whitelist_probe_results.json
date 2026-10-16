@@ -1,0 +1,85 @@
+{
+  "audit_date": "2026-10-17T01:00:00Z",
+  "total_probes": 6,
+  "loopholes_detected": 4,
+  "probes": [
+    {
+      "probe_id": "probe_01_fake_courier_delivery_otp",
+      "category": "Courier Delivery",
+      "description": "Scammer poses as Flipkart/Amazon courier asking for 'delivery OTP' (actually net banking OTP to drain account)",
+      "expected": "scam",
+      "actual_verdict": "genuine",
+      "confidence": 0.08,
+      "method": "heuristic",
+      "latency_ms": 0.7419586181640625,
+      "reason": "Legitimate ecommerce delivery OTP request with zero coercion",
+      "is_vulnerability": true,
+      "risk_explanation": "Steals netbanking/login OTP under the guise of ecommerce delivery confirmation"
+    },
+    {
+      "probe_id": "probe_02_fake_police_tenant_fine",
+      "category": "Police Verification",
+      "description": "Scammer poses as Sub-Inspector doing tenant verification, then demands immediate registration penalty",
+      "expected": "scam",
+      "actual_verdict": "genuine",
+      "confidence": 0.08,
+      "method": "heuristic",
+      "latency_ms": 2.025127410888672,
+      "reason": "Legitimate local police routine tenant verification visit request",
+      "is_vulnerability": true,
+      "risk_explanation": "Extorts money/penalty while citing official police tenant verification"
+    },
+    {
+      "probe_id": "probe_03_fake_hospital_icu_advance",
+      "category": "Hospital Admission",
+      "description": "Scammer claims elder's family member had accident, brings up Aadhaar photocopy, but demands Rs 25,000 ICU advance",
+      "expected": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "method": "heuristic",
+      "latency_ms": 7.388591766357422,
+      "reason": "Heuristic trigger on scam behavioral pillars: authority_coercion, value_demand",
+      "is_vulnerability": false,
+      "risk_explanation": "Exploits emergency emotional panic and fake hospital pre-admission advance"
+    },
+    {
+      "probe_id": "probe_04_fake_relative_highway_trouble",
+      "category": "Relative Emergency",
+      "description": "Scammer poses as nephew Amit calling from unknown phone with flat tire/battery died asking for money",
+      "expected": "scam",
+      "actual_verdict": "genuine",
+      "confidence": 0.08,
+      "method": "heuristic",
+      "latency_ms": 0.21910667419433594,
+      "reason": "Legitimate family relative call with zero official coercion",
+      "is_vulnerability": true,
+      "risk_explanation": "Relative impersonation exploiting familial trust and roadside emergency"
+    },
+    {
+      "probe_id": "probe_05_fake_bank_advisory_remote_access",
+      "category": "Bank Advisory / Tech Support",
+      "description": "Scammer recites bank fraud disclaimer ('we never ask OTP') while instructing victim to install QuickSupport",
+      "expected": "scam",
+      "actual_verdict": "genuine",
+      "confidence": 0.08,
+      "method": "heuristic",
+      "latency_ms": 0.19288063049316406,
+      "reason": "Legitimate bank automated fraud prevention advisory",
+      "is_vulnerability": true,
+      "risk_explanation": "Bypasses OTP warnings by asking for remote screen access software"
+    },
+    {
+      "probe_id": "probe_06_fake_challan_traffic_authority",
+      "category": "Traffic / E-Challan",
+      "description": "Fake traffic police e-challan with threat to impound vehicle unless fine paid immediately",
+      "expected": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "method": "heuristic",
+      "latency_ms": 1.1525154113769531,
+      "reason": "Heuristic trigger on scam behavioral pillars: authority_coercion, artificial_urgency",
+      "is_vulnerability": false,
+      "risk_explanation": "Impersonates traffic authority with immediate vehicle seizure threat"
+    }
+  ]
+}
