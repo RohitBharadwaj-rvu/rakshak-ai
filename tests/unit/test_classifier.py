@@ -87,3 +87,49 @@ def test_classify_caller_never_crashes_on_empty_input():
     )
     assert isinstance(res, CallerClassificationResult)
     assert res.verdict == "unsure"
+
+
+def test_classify_caller_novel_scam_detected_by_llm_stage(monkeypatch):
+    """
+    Scammers invent novel pretexts with zero keywords (no 'CBI', no 'police', no 'UPI').
+    Stage 1 heuristics will return None, falling through to Stage 2 LLM semantic reasoning.
+    """
+    novel_dialogue = [
+        {"role": "assistant", "content": "Hello, who is calling?"},
+        {
+            "role": "user",
+            "content": (
+                "I am senior audit commissioner Trivedi from the State Heritage Estate Registry. "
+                "Your ancestral property allotment was flagged for municipal non-compliance. "
+                "An administrative seizure lien will be enforced on your family house within two hours "
+                "unless you remit the mandatory clearance fee of thirty thousand to our official clearance routing ID."
+            ),
+        },
+    ]
+
+    # Mock Stage 2 LLM call (e.g., Groq / Gemini response)
+    def mock_call_groq(text, api_key, timeout=1.2):
+        return {
+            "verdict": "scam",
+            "confidence": 0.94,
+            "reason": "Novel extortion: Impersonating estate commissioner with immediate deadline and financial demand",
+            "pillars_detected": ["authority_coercion", "artificial_urgency", "value_demand"],
+        }
+
+    monkeypatch.setenv("GROQ_API_KEY", "mock_groq_key_123")
+    monkeypatch.setattr("app.voice.classifier._call_groq", mock_call_groq)
+
+    res = classify_caller(
+        call_id="novel_scam_001",
+        caller_number="+919876500000",
+        conversation=novel_dialogue,
+        language="en",
+    )
+
+    assert isinstance(res, CallerClassificationResult)
+    assert res.verdict == "scam"
+    assert res.confidence >= 0.85
+    assert res.method == "groq"
+    assert "authority_coercion" in res.pillars_detected
+    assert "value_demand" in res.pillars_detected
+
