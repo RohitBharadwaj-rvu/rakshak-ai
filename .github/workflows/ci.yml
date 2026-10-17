@@ -2,9 +2,9 @@ name: GuardianLine CI
 
 on:
   push:
-    branches: [ main, voice, lane-d ]
+    branches: [ main, voice, lane-d, lane-c ]
   pull_request:
-    branches: [ main, voice, lane-d ]
+    branches: [ main, voice, lane-d, lane-c ]
 
 jobs:
   test-and-eval:
@@ -23,11 +23,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest jsonschema requests httpx pydantic fastapi
+          pip install -r requirements.txt
 
-      - name: Run Unit & Contract Tests (T-CONTRACT, T-PRIV, T-SCN)
+      - name: Run Full Test Suite (Unit, Integration, Contract, Schema)
         run: |
-          python -m pytest tests/unit -v
+          python -m pytest tests -v
 
       - name: Run Text-Mode Conversation Simulator (T-HARN)
         run: |
@@ -52,3 +52,25 @@ jobs:
       - name: Run Telephony Audio Format & Codec Verification (8kHz PCM Check)
         run: |
           python scripts/run_audio_format_check.py
+
+  android-unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "gradle"
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Run Android Unit Tests (T-AND)
+        working-directory: android
+        run: |
+          ./gradlew :app:testDebugUnitTest --info

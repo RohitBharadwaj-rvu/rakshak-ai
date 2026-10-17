@@ -1,0 +1,12 @@
+{
+  "pilot_version": "2.0",
+  "status": "NOT_RUN",
+  "scheduled_sprint": "Sprint 4 (Oct 27-29, 2026)",
+  "note": "Field results template for T-PILOT. Must be filled during physical testing with elderly participants (age >= 60). All test calls must link to real CallRecord call_ids.",
+  "cohort_target": {
+    "min_participants": 5,
+    "min_genuine_calls": 15,
+    "consent_required_before_first_call": true
+  },
+  "participants": []
+}

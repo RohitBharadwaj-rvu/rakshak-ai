@@ -106,8 +106,8 @@ By Saturday night, every outside dependency is requested and every interface is 
 **C · Phone and family**
 
 - [ ] Run carrier Test 1 (manual Decline) on Jio, Airtel and Vi. Record whether it forwards and which caller number shows.
-- [ ] Start the bare-bones Kotlin app: a call-screening service that rejects every unknown number.
-- [ ] Start the carrier results table: carrier, test, pass or fail, caller number kept.
+- [x] Start the bare-bones Kotlin app: a call-screening service that rejects every unknown number.
+- [x] Start the carrier results table: carrier, test, pass or fail, caller number kept.
 
 **D · Detection and eval**
 
@@ -147,7 +147,7 @@ A teammate dials the Bolna number directly. The agent screens the call, switches
 
 - [ ] Finish the screening app and run Test 2 on every carrier.
 - [ ] Run Tests 3 and 4 with A once the number is live.
-- [ ] Build family alert v1 on the Twilio WhatsApp sandbox or SMS, fired by `call.finalized`. Test it with `mock_bolna.py`.
+- [x] Build family alert v1 on the Twilio WhatsApp sandbox or SMS, fired by `call.finalized`. Test it with `mock_bolna.py`.
 - [ ] Ask each teammate for 1 or 2 elderly relatives willing to test genuine calls.
 
 **D · Detection and eval**
@@ -191,7 +191,7 @@ All three personas speak naturally in Hindi and English (with natural Hinglish c
 **C · Phone and family, if Gate 1 is go**
 
 - [ ] Whitelist saved contacts and the Bolna number. Test a genuine-caller transfer end to end with no call loop.
-- [ ] Add a one-tap setup screen that dials the forward-on-busy code (`**67*<number>#`).
+- [x] Add a one-tap setup screen that dials the forward-on-busy code (`**67*<number>#`).
 - [ ] Build the first installable APK.
 
 **C · Phone and family, if Gate 1 is no-go**

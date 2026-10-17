@@ -23,3 +23,11 @@ htmlcov/
 # Environment variables
 .env
 .env.local
+
+# Android / Gradle
+.gradle/
+build/
+*/build/
+*.apk
+*.aab
+local.properties
