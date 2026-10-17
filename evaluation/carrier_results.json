@@ -1,127 +1,103 @@
 {
-  "test_matrix_version": "1.0",
-  "gateway_number": "+919988776655",
-  "evaluated_at": "2026-10-17T02:00:00+05:30",
-  "gate_1_verdict": {
-    "status": "GO",
-    "rationale": "Both Test 2 (App Rejection) and Test 3 (Caller ID Retention) passed 3/3 on Jio, Airtel, and Vi.",
-    "supported_modes": ["app_mode", "basic_mode"]
+  "$schema": "./carrier_results.schema.json",
+  "template_version": "2.0",
+  "note": "Field test results template for T-CARRIER. Must be populated only by human testing with physical SIMs and handsets.",
+  "inbound_gateway_number": null,
+  "gate_1_decision": {
+    "status": "PENDING_FIELD_TESTS",
+    "deciding_date": "2026-10-20",
+    "rule": "If Test 2 (App Rejection) and Test 3 (Caller ID Retention) pass 3/3 on at least one carrier, build app mode. Otherwise basic mode only.",
+    "verdict": null,
+    "signed_off_by": null
   },
   "carriers": {
     "jio": {
-      "name": "Reliance Jio",
-      "network": "5G SA / VoLTE",
+      "carrier_name": "Reliance Jio",
+      "network_type": "5G SA / VoLTE",
       "tests": {
         "test_1_manual_decline": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.42,
-          "status": "PASS"
+          "description": "Manual decline forwards to agent (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_2_app_rejection": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.39,
-          "status": "PASS"
+          "description": "CallScreeningService rejection triggers carrier busy forward (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_3_caller_id_retention": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "sample_inbound": "+919876543210",
-          "sample_received": "+919876543210",
-          "status": "PASS"
+          "description": "Original caller ID is preserved in Bolna webhook across forward",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_4_unanswered_rollover": {
-          "code": "**61*...*11*25#",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "ring_duration_s": 25.0,
-          "status": "PASS"
+          "description": "Unanswered call after 25s rolls over to agent (**61*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         }
       }
     },
     "airtel": {
-      "name": "Bharti Airtel",
-      "network": "5G NSA / VoLTE",
+      "carrier_name": "Bharti Airtel",
+      "network_type": "5G NSA / VoLTE",
       "tests": {
         "test_1_manual_decline": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.38,
-          "status": "PASS"
+          "description": "Manual decline forwards to agent (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_2_app_rejection": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.35,
-          "status": "PASS"
+          "description": "CallScreeningService rejection triggers carrier busy forward (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_3_caller_id_retention": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "sample_inbound": "+919876543210",
-          "sample_received": "+919876543210",
-          "status": "PASS"
+          "description": "Original caller ID is preserved in Bolna webhook across forward",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_4_unanswered_rollover": {
-          "code": "**61*...*11*25#",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "ring_duration_s": 25.0,
-          "status": "PASS"
+          "description": "Unanswered call after 25s rolls over to agent (**61*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         }
       }
     },
     "vi": {
-      "name": "Vodafone Idea",
-      "network": "4G VoLTE",
+      "carrier_name": "Vodafone Idea",
+      "network_type": "4G VoLTE",
       "tests": {
         "test_1_manual_decline": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.51,
-          "status": "PASS"
+          "description": "Manual decline forwards to agent (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_2_app_rejection": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "avg_latency_s": 0.48,
-          "status": "PASS"
+          "description": "CallScreeningService rejection triggers carrier busy forward (**67*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_3_caller_id_retention": {
-          "code": "**67*",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "sample_inbound": "+919876543210",
-          "sample_received": "+919876543210",
-          "status": "PASS"
+          "description": "Original caller ID is preserved in Bolna webhook across forward",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         },
         "test_4_unanswered_rollover": {
-          "code": "**61*...*11*25#",
-          "attempts": 3,
-          "successes": 3,
-          "caller_id_retained": true,
-          "ring_duration_s": 25.0,
-          "status": "PASS"
+          "description": "Unanswered call after 25s rolls over to agent (**61*)",
+          "required_attempts": 3,
+          "status": "NOT_RUN",
+          "attempts": []
         }
       }
     }

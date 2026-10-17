@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CallFinalizedEvent",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "event",
+    "call_id",
+    "timestamp",
+    "record"
+  ],
+  "properties": {
+    "event": {
+      "type": "string",
+      "const": "call.finalized"
+    },
+    "call_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "record": {
+      "$ref": "./callrecord.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

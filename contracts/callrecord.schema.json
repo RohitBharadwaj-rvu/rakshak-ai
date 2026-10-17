@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GuardianLineCallRecord",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "call_id",
+    "caller_number",
+    "verdict",
+    "duration",
+    "created_at"
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "description": "Unique call session ID"
+    },
+    "caller_number": {
+      "type": ["string", "null"],
+      "description": "Inbound caller telephone number"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["scam", "genuine", "unsure"],
+      "description": "Classification result"
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Call duration in seconds"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC or IST timestamp of call creation"
+    },
+    "honeypot_switched_at": {
+      "type": ["string", "null"],
+      "description": "Timestamp when agent switched to honeypot persona"
+    },
+    "persona": {
+      "type": ["string", "null"],
+      "description": "Engaged persona (e.g. ramesh, sunita, iyer)"
+    },
+    "extracted_intel": {
+      "type": "object",
+      "properties": {
+        "upi_ids": { "type": "array", "items": { "type": "string" } },
+        "bank_accounts": { "type": "array", "items": { "type": "string" } },
+        "ifsc_codes": { "type": "array", "items": { "type": "string" } },
+        "phone_numbers": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": ["string", "null"],
+      "description": "Concise summary of call dialogue and intent"
+    },
+    "message": {
+      "type": ["string", "null"],
+      "description": "Taken message from genuine caller"
+    },
+    "report_url": {
+      "type": ["string", "null"],
+      "description": "URL to generated 1930 incident report dossier"
+    },
+    "transcript": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "type": "string" },
+          "content": { "type": "string" },
+          "timestamp": { "type": "number" }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

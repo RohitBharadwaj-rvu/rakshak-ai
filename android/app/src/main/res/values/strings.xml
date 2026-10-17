@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">GuardianLine</string>
+    <string name="title_shield">GuardianLine Call Shield</string>
+    <string name="subtitle_shield">Autonomous Voice Call Screening Protection</string>
+    <string name="status_active">Status: ACTIVE &amp; PROTECTED\nUnknown callers are screened automatically.</string>
+    <string name="status_inactive">Status: NOT CONFIGURED\nTap below to enable call screening.</string>
+    <string name="status_warning_revoked">WARNING: Protection is inactive! Handset is not screening unknown calls.</string>
+    <string name="status_unsupported">Android 10+ required for App Mode. Please use Basic Mode carrier forwarding.</string>
+    <string name="btn_enable_screening">1. Enable Screening Protection</string>
+    <string name="btn_setup_forwarding">2. Activate Carrier Forwarding (**67*)</string>
+    <string name="perm_contacts_needed">Contact access permission is required to ensure family calls ring normally.</string>
+    <string name="toast_role_unavailable">Call Screening Role is unavailable on this device.</string>
+</resources>

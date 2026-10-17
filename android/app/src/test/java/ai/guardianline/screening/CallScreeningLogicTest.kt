@@ -40,16 +40,24 @@ class CallScreeningLogicTest {
 
     @Test
     fun testPhoneNumberFormattingVariantsMatchContact() {
-        // Saved as 10-digit
         val contacts = setOf("9876543210")
 
-        // Incoming as leading zero with dashes
         val decisionZero = screeningLogic.evaluateCall("098765-43210", contacts)
         assertEquals(ScreeningAction.ALLOW, decisionZero.action)
 
-        // Incoming with spaces and +91
         val decisionPlus = screeningLogic.evaluateCall("+91 98765 43210", contacts)
         assertEquals(ScreeningAction.ALLOW, decisionPlus.action)
+    }
+
+    @Test
+    fun testInternationalExitCodeDoubleZeroMatchesContact() {
+        // Saved as E.164 USA number
+        val contacts = setOf("+14155552671")
+
+        // Inbound or dialed with 00 exit code
+        val decision = screeningLogic.evaluateCall("0014155552671", contacts)
+        assertEquals(ScreeningAction.ALLOW, decision.action)
+        assertEquals("SAVED_CONTACT", decision.reason)
     }
 
     @Test

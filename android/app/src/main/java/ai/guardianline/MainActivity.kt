@@ -1,9 +1,11 @@
 package ai.guardianline
 
-import ai.guardianline.screening.GuardianCallScreeningService
+import ai.guardianline.BuildConfig
+import android.Manifest
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -12,52 +14,76 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
+    private lateinit var permText: TextView
     private lateinit var btnEnableScreening: Button
     private lateinit var btnSetupForwarding: Button
 
     private val requestRoleLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+    ) { _ ->
         checkScreeningRoleStatus()
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        checkPermissionsStatus()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Simple programmatic UI for elderly accessibility and clean testing
         val layout = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(48, 48, 48, 48)
         }
 
         val title = TextView(this).apply {
-            text = "GuardianLine Call Shield"
+            text = getString(R.string.title_shield)
             textSize = 24f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(0, 0, 0, 32)
+            setPadding(0, 0, 0, 16)
         }
         layout.addView(title)
 
+        val subtitle = TextView(this).apply {
+            text = getString(R.string.subtitle_shield)
+            textSize = 15f
+            setTextColor(android.graphics.Color.GRAY)
+            setPadding(0, 0, 0, 32)
+        }
+        layout.addView(subtitle)
+
         statusText = TextView(this).apply {
-            textSize = 16f
-            setPadding(0, 0, 0, 48)
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, 24)
         }
         layout.addView(statusText)
 
+        permText = TextView(this).apply {
+            textSize = 15f
+            setPadding(0, 0, 0, 36)
+        }
+        layout.addView(permText)
+
         btnEnableScreening = Button(this).apply {
-            text = "1. Enable Screening Protection"
-            textSize = 16f
+            text = getString(R.string.btn_enable_screening)
+            textSize = 17f
+            setPadding(24, 24, 24, 24)
             setOnClickListener { requestCallScreeningRole() }
         }
         layout.addView(btnEnableScreening)
 
         btnSetupForwarding = Button(this).apply {
-            text = "2. Activate Carrier Forwarding (**67*)"
-            textSize = 16f
+            text = getString(R.string.btn_setup_forwarding)
+            textSize = 17f
+            setPadding(24, 24, 24, 24)
             setOnClickListener { triggerCarrierForwardingDialer() }
         }
         layout.addView(btnSetupForwarding)
@@ -68,6 +94,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkScreeningRoleStatus()
+        checkPermissionsStatus()
     }
 
     private fun checkScreeningRoleStatus() {
@@ -75,14 +102,32 @@ class MainActivity : AppCompatActivity() {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
             val isHeld = roleManager?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
             if (isHeld) {
-                statusText.text = "Status: ACTIVE & PROTECTED\nUnknown callers are screened automatically."
+                statusText.text = getString(R.string.status_active)
                 statusText.setTextColor(android.graphics.Color.parseColor("#2E7D32")) // Green
             } else {
-                statusText.text = "Status: NOT CONFIGURED\nTap below to enable call screening."
+                statusText.text = getString(R.string.status_warning_revoked)
                 statusText.setTextColor(android.graphics.Color.parseColor("#C62828")) // Red
             }
         } else {
-            statusText.text = "Android 10+ required for app mode.\nPlease use Basic Mode carrier forwarding."
+            statusText.text = getString(R.string.status_unsupported)
+            statusText.setTextColor(android.graphics.Color.parseColor("#E65100"))
+        }
+    }
+
+    private fun checkPermissionsStatus() {
+        val hasContacts = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.READ_CONTACTS
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasContacts) {
+            permText.text = "✓ Contact access: GRANTED (Family calls ring normally)"
+            permText.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
+        } else {
+            permText.text = "! Contact access: MISSING (Tap here to grant)"
+            permText.setTextColor(android.graphics.Color.parseColor("#C62828"))
+            permText.setOnClickListener {
+                requestPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+            }
         }
     }
 
@@ -93,14 +138,13 @@ class MainActivity : AppCompatActivity() {
                 val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
                 requestRoleLauncher.launch(intent)
             } else {
-                Toast.makeText(this, "Call Screening Role unavailable on this device", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, getString(R.string.toast_role_unavailable), Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun triggerCarrierForwardingDialer() {
-        val gatewayNumber = GuardianCallScreeningService.BOLNA_GATEWAY_NUMBER
-        // USSD code **67*<number># requires URL-encoding for # (%23) in tel URI
+        val gatewayNumber = BuildConfig.BOLNA_GATEWAY_NUMBER.ifBlank { "+919988776655" }
         val ussdCode = "**67*${gatewayNumber}#"
         val encodedUssd = Uri.encode(ussdCode)
         val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$encodedUssd"))

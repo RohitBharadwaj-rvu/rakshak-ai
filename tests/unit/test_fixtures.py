@@ -50,3 +50,30 @@ def test_each_fixture_validates_against_webhook_schema(fixture_file, webhook_sch
         validate(instance=payload, schema=webhook_schema)
     except ValidationError as e:
         pytest.fail(f"Fixture {os.path.basename(fixture_file)} failed schema validation: {e.message}")
+
+
+def test_callrecord_and_finalized_schemas_exist_and_validate():
+    callrecord_path = os.path.join(ROOT_DIR, "contracts", "callrecord.schema.json")
+    finalized_path = os.path.join(ROOT_DIR, "contracts", "call_finalized.schema.json")
+    assert os.path.exists(callrecord_path), "callrecord.schema.json missing"
+    assert os.path.exists(finalized_path), "call_finalized.schema.json missing"
+
+    cr_schema = load_json(callrecord_path)
+    fin_schema = load_json(finalized_path)
+
+    sample_callrecord = {
+        "call_id": "call_sample_001",
+        "caller_number": "+919876543210",
+        "verdict": "scam",
+        "duration": 120.0,
+        "created_at": "2026-10-17T02:00:00Z",
+        "summary": "Suspected scam attempt",
+        "extracted_intel": {
+            "upi_ids": ["attacker@okaxis"],
+            "bank_accounts": [],
+            "ifsc_codes": [],
+            "phone_numbers": []
+        }
+    }
+    validate(instance=sample_callrecord, schema=cr_schema)
+

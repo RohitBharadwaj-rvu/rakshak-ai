@@ -1,40 +1,59 @@
 # Informed Consent Form for GuardianLine Elderly Pilot Study
 
 **Project Name:** GuardianLine (Autonomous Telecom Scam Defense & Call Screening)  
-**Lead Investigator:** Lane C (Phone & Family Protection Lead)  
-**Affiliation:** RV University / GuardianLine Research Group  
-**Regulatory Framework:** Digital Personal Data Protection (DPDP) Act, 2023
+**Lead Investigator:** Rohit Bharadwaj (Lead Researcher, GuardianLine Research Initiative)  
+**Contact for Queries / Data Withdrawal:** `guardianline-research@rvu.edu.in`  
+**Affiliation:** School of Computer Science and Engineering, RV University  
+**Governing Regulation:** Digital Personal Data Protection (DPDP) Act, 2023
 
 ---
 
-## 1. Purpose of the Study
-The purpose of this pilot is to evaluate how well GuardianLine screens unknown telephone calls and protects senior citizens from fraudulent calls (such as fake police digital arrest or bank KYC threats) while ensuring genuine callers (such as delivery couriers, medical clinics, and family relatives) can seamlessly connect or leave messages.
+## 1. Study Purpose & Scope
+This pilot study evaluates an automated voice assistant (GuardianLine) designed to protect senior citizens ($\ge 60$ years) from telecom fraud—such as fake police "digital arrest" threats, fake electricity bill disconnections, and fraudulent bank KYC freezes—while ensuring genuine calls (such as delivery couriers, medical clinics, and family) connect smoothly.
 
 ---
 
-## 2. What Will Happen
-1. **Setup:** With your permission, your phone will be configured to either screen unknown numbers using our Android application or automatically roll over unanswered calls to the GuardianLine voice assistant.
-2. **Test Calls:** Over the course of the evaluation, project teammates will place 3 simulated genuine calls (e.g. appointment confirmation from a medical clinic, package delivery, or a relative calling from a new SIM card).
-3. **Data Captured:** Telephony metadata (caller number, call duration, timestamp) and call audio/transcripts are processed strictly to verify that genuine calls are never misclassified as scams.
-4. **Data Retention & Deletion:** All test call audio recordings will be permanently deleted within 14 days following evaluation analysis, unless explicit written consent is given to retain anonymized samples for safety training.
-5. **Voluntary Participation:** Your participation is completely voluntary. You may stop or withdraw at any time without any consequence. Dialing `##67#` or `##61#` immediately restores standard telephony behavior.
+## 2. Telephony Setup & Operational Details
+
+### A. How Calls are Handled
+- **Unknown Numbers:** Incoming calls from unrecognized numbers will be answered by our AI voice receptionist to screen for fraud.
+- **Saved Contacts & Family:** In App Mode, contacts in your address book ring normally. If you intentionally decline a contact's call, or let it ring out without answering (Basic Mode), carrier forwarding will route the caller to the assistant to take a message.
+- **Third-Party Inbound Calls:** During the evaluation period, **any** unrecognized caller dialing your number (including unsolicited calls or wrong numbers) will be screened and recorded by the assistant.
+
+### B. Third-Party Data Processors
+To provide conversational voice responses and detect scam patterns, call audio and transcripts are processed securely by our vetted technological partners:
+1. **Bolna Inc.** (Telephony Gateway & Inbound Call Session Orchestration)
+2. **Sarvam AI** (Indian Accent Speech-to-Text & Regional Language Voice Synthesis)
+3. **Groq Inc. / Google LLC** (Language Model Inference for Scam Intent Classification)
+4. **Twilio Inc.** (Dispatch of Family WhatsApp/SMS Notifications)
+
+All audio recordings are encrypted in transit and at rest. They are retained strictly for scam-detection model evaluation and will be permanently deleted within 14 days of study completion.
+
+### C. Permissions Required (App Mode)
+If using the Android application, the app requests **Read Contacts** permission solely to build an on-device whitelist so family members ring your handset directly without interception. Your contact list is never uploaded to any external server.
 
 ---
 
-## 3. Participant Consent & Declaration
+## 3. Voluntary Participation & Withdrawal
+Your participation is 100% voluntary. You may withdraw at any time. Simply notify the lead researcher or dial `##67#` (or `##61#`) to immediately cancel carrier forwarding and restore standard phone calling.
 
-Please tick each box to confirm your consent:
+---
 
-- [ ] I confirm that I have read and understood the information provided above, or had it explained to me in a language I speak fluently.
-- [ ] I understand that unknown calls may be answered by an automated voice receptionist.
-- [ ] I consent to test calls being recorded strictly for scam-detection accuracy evaluation.
-- [ ] I understand that I can withdraw from this study at any moment without penalty.
+## 4. Participant Consent & Declaration
 
-**Participant Full Name:** _____________________________________________  
+Please check each box to confirm your informed consent:
+
+- [ ] I have read and understood this document, or had it explained to me in a language I speak fluently.
+- [ ] I consent to unknown callers being answered and screened by an automated AI assistant.
+- [ ] I understand which third-party cloud services process the voice audio for safety analysis.
+- [ ] I consent to test calls being recorded, with the understanding that recordings will be deleted within 14 days.
+- [ ] I understand that I can withdraw at any moment without penalty.
+
+**Participant Name:** _____________________________________________  
 **Participant Phone Number:** _________________________________________  
 **Preferred Language:** [ ] English  [ ] Hindi  [ ] Other: ______________  
-**Signature / Thumb Impression:** ______________________________________  
-**Date:** ________________________ (DD/MM/YYYY)  
+**Signature / Thumbprint:** ___________________________________________  
+**Date & Time:** ________________________  
 
-**Witness / Family Member Name:** _____________________________________  
+**Family Member / Witness Name:** _____________________________________  
 **Witness Signature:** _________________________________________________  

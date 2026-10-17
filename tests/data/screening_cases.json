@@ -1,0 +1,66 @@
+[
+  {
+    "description": "Standard 10-digit saved contact rings",
+    "caller_number": "+91 98765 43210",
+    "contacts": ["9876543210"],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "SAVED_CONTACT"
+  },
+  {
+    "description": "Leading zero in contact matches +91 inbound",
+    "caller_number": "+919876543210",
+    "contacts": ["09876543210"],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "SAVED_CONTACT"
+  },
+  {
+    "description": "International exit code 00 matches E.164 contact",
+    "caller_number": "0014155552671",
+    "contacts": ["+14155552671"],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "SAVED_CONTACT"
+  },
+  {
+    "description": "Bolna proxy number rings to prevent transfer loop",
+    "caller_number": "+919988776655",
+    "contacts": ["9876543210"],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "BOLNA_AGENT_PROXY"
+  },
+  {
+    "description": "Unknown caller is screened to agent",
+    "caller_number": "+91 99999 88888",
+    "contacts": ["9876543210"],
+    "bolna_number": "+919988776655",
+    "expected_action": "SCREEN",
+    "expected_reason": "UNKNOWN_CALLER_SCREEN"
+  },
+  {
+    "description": "Withheld or null caller number is screened",
+    "caller_number": null,
+    "contacts": ["9876543210"],
+    "bolna_number": "+919988776655",
+    "expected_action": "SCREEN",
+    "expected_reason": "WITHHELD_NUMBER_SCREEN"
+  },
+  {
+    "description": "Emergency 112 always rings even with empty contacts",
+    "caller_number": "112",
+    "contacts": [],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "EMERGENCY_WHITELIST"
+  },
+  {
+    "description": "Cybercrime helpline 1930 always rings",
+    "caller_number": "1930",
+    "contacts": [],
+    "bolna_number": "+919988776655",
+    "expected_action": "ALLOW",
+    "expected_reason": "EMERGENCY_WHITELIST"
+  }
+]

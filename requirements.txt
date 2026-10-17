@@ -1,0 +1,12 @@
+# GuardianLine Core Dependencies
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.5.0
+httpx>=0.26.0
+requests>=2.31.0
+jsonschema>=4.20.0
+python-dotenv>=1.0.0
+twilio>=8.12.0
+
+# Testing
+pytest>=8.0.0

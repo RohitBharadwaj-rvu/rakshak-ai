@@ -8,7 +8,9 @@ from app.notify.alerts import (
     AlertChannel,
     AlertStatus,
     FamilyAlertDispatcher,
+    PersistentAlertStore,
     format_alert_message,
+    is_gsm7,
 )
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "fixtures")
@@ -26,11 +28,11 @@ def scam_record():
         "extracted_intel": {
             "upi_ids": [data["metadata"]["planted_intel"]["upi_id"]],
             "phone_numbers": [data["metadata"]["planted_intel"]["phone_number"]],
-            "bank_accounts": [],
-            "ifsc_codes": [],
+            "bank_accounts": ["987654321098"],
+            "ifsc_codes": ["SBIN0001234"],
         },
-        "summary": "Scammer impersonated CBI officer alleging illegal drugs in Taiwan parcel and demanded deposit.",
-        "report_url": f"https://guardianline.rvu.edu/report/{data['call_id']}",
+        "summary": "Scammer impersonated CBI officer alleging illegal drugs in Taiwan parcel.",
+        "report_url": f"http://localhost:8000/dashboard/report/{data['call_id']}?token=sec123",
     }
 
 
@@ -44,7 +46,7 @@ def genuine_record():
         "verdict": "genuine",
         "duration": data["call_duration"],
         "extracted_intel": {},
-        "summary": "Blue Dart delivery courier confirmed parcel drop at society security guard.",
+        "summary": "Blue Dart delivery courier confirmed parcel drop.",
         "message": "Blue Dart courier dropped Amazon parcel with society guard.",
     }
 
@@ -57,33 +59,44 @@ def alert_config():
         from_phone="+14155238886",
         to_phone="+919876500000",
         channel=AlertChannel.WHATSAPP,
-        base_report_url="https://guardianline.rvu.edu/report",
+        base_report_url="http://localhost:8000/dashboard/report",
+        token="sec123",
     )
 
 
-class TestAlertFormatting:
+class TestAlertFormattingAndSegmentation:
     def test_scam_whatsapp_alert_contains_all_details(self, scam_record, alert_config):
         msg = format_alert_message(scam_record, AlertChannel.WHATSAPP, alert_config.base_report_url)
         assert "SCAM ALERT" in msg
         assert scam_record["caller_number"] in msg
         assert "cbi.officer.verma@okaxis" in msg
-        assert "9876543210" in msg
+        assert "987654321098" in msg
+        assert "SBIN0001234" in msg
         assert scam_record["call_id"] in msg
 
-    def test_scam_sms_alert_fits_within_two_segments(self, scam_record, alert_config):
+    def test_scam_sms_gsm7_strictly_within_two_segments(self, scam_record, alert_config):
         msg = format_alert_message(scam_record, AlertChannel.SMS, alert_config.base_report_url)
-        assert "SCAM ALERT" in msg
+        assert "[SUSPECTED SCAM]" in msg
         assert scam_record["caller_number"] in msg
         assert "cbi.officer.verma@okaxis" in msg
-        # Standard SMS 2-segment ceiling: <= 306 chars (153 chars per segment) or <= 320 chars GSM
-        assert len(msg) <= 320, f"SMS length {len(msg)} exceeded 2 segments (320 chars)"
+        assert "987654321098" in msg
+        # Report dossier URL must survive
+        assert scam_record["call_id"] in msg
+        # GSM-7 2-segment ceiling is 306 characters
+        assert is_gsm7(msg)
+        assert len(msg) <= 306, f"GSM-7 SMS length {len(msg)} exceeded 306 characters"
 
-    def test_genuine_note_formats_as_message_taken(self, genuine_record, alert_config):
-        msg = format_alert_message(genuine_record, AlertChannel.WHATSAPP, alert_config.base_report_url)
-        assert "MESSAGE TAKEN" in msg
-        assert "SCAM ALERT" not in msg
-        assert genuine_record["caller_number"] in msg
-        assert "Blue Dart" in msg
+    def test_hindi_unicode_sms_within_ucs2_two_segments(self, alert_config):
+        hindi_record = {
+            "call_id": "call_hi_001",
+            "caller_number": "+919876543210",
+            "verdict": "genuine",
+            "message": "शर्मा जी का पार्सल गार्ड रूम में जमा कर दिया है।",
+        }
+        msg = format_alert_message(hindi_record, AlertChannel.SMS, alert_config.base_report_url)
+        assert not is_gsm7(msg), "Must be detected as Unicode"
+        # UCS-2 2-segment ceiling is 134 characters
+        assert len(msg) <= 134, f"UCS-2 SMS length {len(msg)} exceeded 134 characters"
 
 
 class TestFamilyAlertDispatcher:
@@ -91,48 +104,64 @@ class TestFamilyAlertDispatcher:
         mock_client = MagicMock()
         mock_client.messages.create.return_value.sid = "SM_mock_message_sid_001"
 
-        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client)
+        store = PersistentAlertStore(":memory:")
+        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, store=store)
         result = dispatcher.dispatch(scam_record)
 
         assert result.status == AlertStatus.SENT
         assert result.retry_count == 0
         assert mock_client.messages.create.call_count == 1
 
-    def test_call_finalized_twice_sends_only_one_alert_idempotency(self, scam_record, alert_config):
+    def test_cross_instance_persistent_idempotency(self, scam_record, alert_config, tmp_path):
+        db_file = str(tmp_path / "alerts_idempotency.db")
+        store1 = PersistentAlertStore(db_file)
+        store2 = PersistentAlertStore(db_file)
+
         mock_client = MagicMock()
-        mock_client.messages.create.return_value.sid = "SM_mock_message_sid_002"
+        mock_client.messages.create.return_value.sid = "SM_mock_id_001"
 
-        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client)
-        result1 = dispatcher.dispatch(scam_record)
-        assert result1.status == AlertStatus.SENT
+        dispatcher1 = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, store=store1)
+        res1 = dispatcher1.dispatch(scam_record)
+        assert res1.status == AlertStatus.SENT
 
-        # Second delivery of same call_id
-        result2 = dispatcher.dispatch(scam_record)
-        assert result2.status == AlertStatus.SKIPPED
-        assert result2.reason == "ALREADY_DISPATCHED"
-        assert mock_client.messages.create.call_count == 1  # No duplicate send
+        # Second delivery on different dispatcher / process pointing to same database
+        dispatcher2 = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, store=store2)
+        res2 = dispatcher2.dispatch(scam_record)
+        assert res2.status == AlertStatus.SKIPPED
+        assert res2.reason == "ALREADY_DISPATCHED"
+        assert mock_client.messages.create.call_count == 1
 
-    def test_genuine_fixture_sends_message_taken_note(self, genuine_record, alert_config):
+    def test_non_retryable_client_error_fails_immediately(self, scam_record, alert_config):
         mock_client = MagicMock()
-        mock_client.messages.create.return_value.sid = "SM_mock_message_sid_003"
+        # Mock 400 Bad Request
+        err = Exception("Twilio 400 Invalid phone number")
+        err.status = 400
+        mock_client.messages.create.side_effect = err
 
-        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client)
-        result = dispatcher.dispatch(genuine_record)
+        store = PersistentAlertStore(":memory:")
+        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, store=store)
+        result = dispatcher.dispatch(scam_record)
 
-        assert result.status == AlertStatus.SENT
-        sent_body = mock_client.messages.create.call_args[1]["body"]
-        assert "MESSAGE TAKEN" in sent_body
-        assert "SCAM ALERT" not in sent_body
+        assert result.status == AlertStatus.FAILED
+        assert result.retry_count == 0
+        assert mock_client.messages.create.call_count == 1  # No repeated retries for 400
 
-    def test_retries_three_times_with_backoff_on_twilio_error(self, scam_record, alert_config):
+    def test_retryable_error_retries_three_times(self, scam_record, alert_config):
         mock_client = MagicMock()
-        # Simulate Twilio network errors on all calls
-        mock_client.messages.create.side_effect = Exception("Twilio 503 Service Unavailable")
+        err = Exception("Twilio 503 Service Unavailable")
+        err.status = 503
+        mock_client.messages.create.side_effect = err
 
-        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, backoff_base_s=0.01)
+        store = PersistentAlertStore(":memory:")
+        dispatcher = FamilyAlertDispatcher(
+            config=alert_config,
+            twilio_client=mock_client,
+            store=store,
+            backoff_base_s=0.001,
+        )
         result = dispatcher.dispatch(scam_record)
 
         assert result.status == AlertStatus.FAILED
         assert result.retry_count == 3
-        assert mock_client.messages.create.call_count == 3
-        # Ensure it does NOT throw an unhandled exception (resilient)
+        # 1 initial attempt + 3 retries = 4 total attempts
+        assert mock_client.messages.create.call_count == 4
