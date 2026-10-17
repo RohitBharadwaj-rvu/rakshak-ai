@@ -275,3 +275,30 @@ def test_real_bolna_webhook_payload_exact_json(client):
     assert "cbi.verma@okaxis" in rec["extracted_intel"]["upi_ids"]
     assert "9876543210" in rec["extracted_intel"]["phone_numbers"]
 
+
+def test_webhook_enforces_bolna_webhook_secret_when_set(client, monkeypatch):
+    monkeypatch.setenv("BOLNA_WEBHOOK_SECRET", "test-strong-webhook-secret-999")
+    fpath = os.path.join(FIXTURES_DIR, "01_scam_digital_arrest.json")
+    with open(fpath, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    # 1. Missing header -> 401
+    r_no_hdr = client.post("/webhook", json=payload)
+    assert r_no_hdr.status_code == 401
+
+    # 2. Wrong header -> 401
+    r_bad_hdr = client.post(
+        "/webhook",
+        json=payload,
+        headers={"Authorization": "Bearer wrong-secret"},
+    )
+    assert r_bad_hdr.status_code == 401
+
+    # 3. Valid Authorization: Bearer <secret> -> 200
+    r_ok = client.post(
+        "/webhook",
+        json=payload,
+        headers={"Authorization": "Bearer test-strong-webhook-secret-999"},
+    )
+    assert r_ok.status_code == 200
+

@@ -7,7 +7,9 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - key: BOLNA_WEBHOOK_SECRET
+        sync: false
       - key: GUARDIANLINE_API_TOKEN
-        value: local_api_token_123
+        sync: false
       - key: GUARDIANLINE_DB_PATH
         value: /tmp/guardianline_calls.db

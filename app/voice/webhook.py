@@ -96,8 +96,55 @@ def execute_post_call_tasks(record: Dict[str, Any]) -> None:
             )
 
 
+import secrets
+
+
 def get_expected_api_token() -> str:
     return os.getenv("GUARDIANLINE_API_TOKEN", "local_api_token_123")
+
+
+def get_expected_webhook_secret() -> str:
+    return os.getenv("BOLNA_WEBHOOK_SECRET", "").strip()
+
+
+def verify_webhook_secret(request: Request) -> Optional[JSONResponse]:
+    """
+    Enforce `BOLNA_WEBHOOK_SECRET` on `POST /webhook` when configured (or in Render production).
+    Accepts `Authorization: Bearer <secret>`, `X-Webhook-Secret: <secret>`, or `X-Bolna-Secret: <secret>`.
+    Returns a 401 JSONResponse if unauthorized, or None if authorized.
+    """
+    expected = get_expected_webhook_secret()
+    is_render = os.getenv("RENDER", "").lower() == "true"
+
+    if not expected and not is_render:
+        # Local/test mode with no BOLNA_WEBHOOK_SECRET set
+        return None
+
+    if not expected and is_render:
+        logger.error("BOLNA_WEBHOOK_SECRET is not set in Render environment; rejecting /webhook request")
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Missing or invalid webhook secret"},
+        )
+
+    auth_header = (request.headers.get("authorization") or "").strip()
+    provided: Optional[str] = None
+    if auth_header.lower().startswith("bearer "):
+        provided = auth_header[7:].strip()
+    elif auth_header:
+        provided = auth_header
+    elif request.headers.get("x-webhook-secret"):
+        provided = request.headers.get("x-webhook-secret", "").strip()
+    elif request.headers.get("x-bolna-secret"):
+        provided = request.headers.get("x-bolna-secret", "").strip()
+
+    if not provided or not secrets.compare_digest(provided, expected):
+        logger.warning("Unauthorized /webhook attempt (missing or invalid BOLNA_WEBHOOK_SECRET)")
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Missing or invalid webhook secret"},
+        )
+    return None
 
 
 def require_api_token(
@@ -118,7 +165,7 @@ def require_api_token(
     elif token:
         provided = token.strip()
 
-    if not provided or provided != expected:
+    if not provided or not secrets.compare_digest(provided, expected):
         raise HTTPException(status_code=401, detail="Missing or invalid API token")
     return provided
 
@@ -312,6 +359,10 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
     grounded post-call cleanup, store a finalized `CallRecord` in SQLite, fire
     `call.finalized` once, and schedule post-call reflection and enrichment in the background.
     """
+    auth_err = verify_webhook_secret(request)
+    if auth_err is not None:
+        return auth_err
+
     try:
         raw_body = await request.body()
         raw_payload = json.loads(raw_body.decode("utf-8"))
