@@ -193,14 +193,26 @@ def verify_value_grounded(
     corrected_combined, _ = _apply_turn_text_corrections(combined)
 
     # Also build a stitched version where split digit chunks across cited turns are joined
+    # (never stitch identical repeated chunks like "97235" + "97235")
     chunks = _DIGIT_CHUNK_RE.findall(corrected_combined)
-    stitched_str = "".join(chunks) if len(chunks) >= 2 else ""
+    stitched_str = ""
+    if len(chunks) >= 2 and not (len(chunks) == 2 and chunks[0] == chunks[1]):
+        stitched_str = "".join(chunks)
 
     target = value.lower().strip()
     if target in corrected_combined.lower():
         return True
     if stitched_str and target == stitched_str.lower():
         return True
+
+    # Support split-turn UPI grounding (<user_part> on turn 1, <provider> on turn 2)
+    if entity_type == "upi_ids" and len(norm_pieces) == 2 and "@" in target:
+        u_part, dom_part = target.split("@", 1)
+        p0 = norm_pieces[0].strip().strip(".,!?;:।|").lower()
+        p1 = norm_pieces[1].strip().strip(".,!?;:।|").lower().lstrip("@")
+        if p0.endswith(u_part) and p1 == dom_part:
+            return True
+
     return False
 
 
@@ -354,12 +366,25 @@ def cleanup_call_intel(
                 if v.lower() not in retracted_values:
                     _add_candidate(k, v, [turn_idx])
 
-    # Pass 2: Cross-turn split digit stitching across adjacent caller turns
+    # Pass 2: Cross-turn split digit & split UPI stitching across adjacent caller turns
+    known_full_numbers = set(candidates["phone_numbers"]) | set(candidates["bank_accounts"])
+    known_upi_providers = {"ybl", "okaxis", "oksbi", "okhdfcbank", "okicici", "paytm", "ibl", "axl", "upi", "apl"}
+    upi_user_re = re.compile(r"([a-z0-9]+(?:[._-][a-z0-9]+)+|[a-z]{3,20}\d{1,6})$", re.IGNORECASE)
+
     for pos in range(len(caller_turns) - 1):
         idx1, _raw1, norm1 = caller_turns[pos]
         idx2, _raw2, norm2 = caller_turns[pos + 1]
 
-        # Skip if either turn already yielded a full phone/account or has retraction cues
+        # 2a. Check split UPI (<user_part> on turn 1, <provider> on turn 2)
+        t1_clean = norm1.strip().strip(".,!?;:।|").lower()
+        t2_clean = norm2.strip().strip(".,!?;:।|").lower().lstrip("@")
+        if t2_clean in known_upi_providers and "@" not in t1_clean:
+            m_user = upi_user_re.search(t1_clean)
+            if m_user:
+                stitched_upi = f"{m_user.group(1).lower()}@{t2_clean}"
+                _add_candidate("upi_ids", stitched_upi, [idx1, idx2])
+
+        # 2b. Check split digits (never stitch identical repeats or prefixes of full numbers)
         if _RETRACTION_CUE_RE.search(norm1) or _RETRACTION_CUE_RE.search(norm2):
             continue
         if _NON_ACCOUNT_CONTEXT_RE.search(norm1) or _NON_ACCOUNT_CONTEXT_RE.search(norm2):
@@ -373,7 +398,15 @@ def cleanup_call_intel(
         c1 = _DIGIT_CHUNK_RE.findall(norm1)
         c2 = _DIGIT_CHUNK_RE.findall(norm2)
         if len(c1) == 1 and len(c2) == 1:
-            stitched = c1[0] + c2[0]
+            chunk1, chunk2 = c1[0], c2[0]
+            # Never stitch identical repeated chunks (e.g., caller repeating "97235" twice)
+            if chunk1 == chunk2:
+                continue
+            # Never stitch if either chunk is already a prefix/suffix of a full number in the call
+            if any(fn.startswith(chunk1) or fn.startswith(chunk2) for fn in known_full_numbers):
+                continue
+
+            stitched = chunk1 + chunk2
             if len(stitched) == 10 and stitched[0] in "6789":
                 _add_candidate("phone_numbers", stitched, [idx1, idx2])
             elif 9 <= len(stitched) <= 18 and not (len(stitched) == 10 and stitched[0] in "6789"):

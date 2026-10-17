@@ -447,3 +447,53 @@ def test_three_step_mid_call_tool_join_priority(client, caplog):
     assert rec_c2["extracted_intel"]["mid_call_logs"] == []
     assert any("Fallback single-active-call join skipped" in r.message for r in caplog.records)
 
+
+def test_live_call_2_no_glued_phone_and_split_devanagari_upi_extracted(client):
+    """
+    Regression test for Live Call #2 (1d36d742-c44d-4ce5-930f-0d081bb8284b):
+      1. Caller says "नाइन सेवन टू थ्री फाइव" twice on separate turns before saying "9723512345" ->
+         must extract ONLY "9723512345" and NEVER invent "9723597235".
+      2. Caller says "राहुल.एसबीआई" and then "वाई बी एल।" on separate turns ->
+         must extract "rahul.sbi@ybl".
+    """
+    payload = {
+        "id": "1d36d742-c44d-4ce5-930f-0d081bb8284b",
+        "agent_id": "6e4ddb72-f380-475c-8b65-08cc1ac52ec0",
+        "status": "completed",
+        "conversation_duration": 137.0,
+        "user_number": "+917019941295",
+        "created_at": "2026-10-17T13:40:20.500298+00:00",
+        "telephony_data": {
+            "provider_call_id": "a719105f-e552-4fa5-a56c-fcd1deaded17",
+            "recording_url": "https://api.bolna.ai/recordings/call/1d36d742-c44d-4ce5-930f-0d081bb8284b",
+        },
+        "transcript": [
+            {"role": "assistant", "content": "हैलो जी?"},
+            {"role": "user", "content": "SBI Head Office"},
+            {"role": "assistant", "content": "Aap kaun"},
+            {"role": "user", "content": "सर राहुल बोल रहा हूँ"},
+            {"role": "assistant", "content": "Rahul ji, aap kis kaam se call kar rahe hain?"},
+            {"role": "user", "content": "आपका KYC"},
+            {"role": "user", "content": "मेरा नंबर है।"},
+            {"role": "assistant", "content": "Sorry, phir se bataiye? Aapka number kya hai?"},
+            {"role": "user", "content": "नाइन सेवन टू थ्री फाइव"},
+            {"role": "assistant", "content": "Thoda aur clearly bataiye beta, poora number chahiye."},
+            {"role": "user", "content": "नाइन सेवन टू थ्री फाइव।"},
+            {"role": "assistant", "content": "Rahul ji, poora number 10 digit ka chahiye beta."},
+            {"role": "user", "content": "9723512345"},
+            {"role": "assistant", "content": "9723512345, sahi hai na Rahul ji?"},
+            {"role": "user", "content": "अभी तुरंत ₹5000 भेजिए।"},
+            {"role": "user", "content": "राहुल.एसबीआई"},
+            {"role": "assistant", "content": "Rahul ji, UPI ID mein @ ke baad kya likhna hai beta?"},
+            {"role": "user", "content": "वाई बी एल।"},
+            {"role": "assistant", "content": "Rahul dot SBI at WBL, sahi hai?"},
+            {"role": "user", "content": "हाँ, सही है।"},
+        ],
+    }
+    res = client.post("/webhook", json=payload)
+    assert res.status_code == 200
+    rec = res.json()
+    assert rec["extracted_intel"]["phone_numbers"] == ["9723512345"]
+    assert "9723597235" not in rec["extracted_intel"]["phone_numbers"]
+    assert rec["extracted_intel"]["upi_ids"] == ["rahul.sbi@ybl"]
+

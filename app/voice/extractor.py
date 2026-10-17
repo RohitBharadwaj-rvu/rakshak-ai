@@ -154,6 +154,7 @@ def extract_from_transcript(
             target_list.append(val)
         entity_counts[val] = entity_counts.get(val, 0) + count_inc
 
+    caller_norm_turns: List[str] = []
     for turn in transcript or []:
         role = str(turn.get("role") or turn.get("sender") or "").lower().strip()
         if role not in CALLER_ROLES:
@@ -162,6 +163,7 @@ def extract_from_transcript(
         if not text:
             continue
 
+        caller_norm_turns.append(normalize_spoken_text(text))
         turn_entities = extract_entities_from_text(text, extra_bait=bait_set)
         for u in turn_entities["upi_ids"]:
             _record(upi_list, u, 1)
@@ -175,6 +177,19 @@ def extract_from_transcript(
             _record(pan_list, pan, 1)
         for lnk in turn_entities["links"]:
             _record(link_list, lnk, 1)
+
+    # Check adjacent caller turns for split UPI (<user_part> on turn k, <provider> on turn k+1)
+    known_providers = {"ybl", "okaxis", "oksbi", "okhdfcbank", "okicici", "paytm", "ibl", "axl", "upi", "apl"}
+    upi_user_re = re.compile(r"([a-z0-9]+(?:[._-][a-z0-9]+)+|[a-z]{3,20}\d{1,6})$", re.IGNORECASE)
+    for idx in range(len(caller_norm_turns) - 1):
+        t1 = _clean_trailing_punct(caller_norm_turns[idx].strip()).lower()
+        t2 = _clean_trailing_punct(caller_norm_turns[idx + 1].strip()).lower().lstrip("@")
+        if t2 in known_providers and "@" not in t1:
+            m_user = upi_user_re.search(t1)
+            if m_user:
+                stitched_upi = f"{m_user.group(1).lower()}@{t2}"
+                if UPI_PATTERN.fullmatch(stitched_upi):
+                    _record(upi_list, stitched_upi, 1)
 
     # Merge mid-call log_intel captures if present and parseable
     cleaned_mid_logs: List[Dict[str, Any]] = []

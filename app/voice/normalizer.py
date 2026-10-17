@@ -563,12 +563,154 @@ def _normalize_digit_sequences(text: str) -> str:
     return "".join(raw_parts)
 
 
+_DEVANAGARI_KNOWN_UPI_TOKENS: Dict[str, str] = {
+    "एसबीआई": "sbi",
+    "सीबीआई": "cbi",
+    "आरबीआई": "rbi",
+    "एचडीएफसी": "hdfc",
+    "आईसीआईसीआई": "icici",
+    "एक्सिस": "axis",
+    "ऐक्सिस": "axis",
+    "पेटीएम": "paytm",
+    "वाईबीएल": "ybl",
+    "आईबीएल": "ibl",
+    "एएक्सएल": "axl",
+    "यूपीआई": "upi",
+    "ओके": "ok",
+    "बैंक": "bank",
+    "राहुल": "rahul",
+    "रमेश": "ramesh",
+    "सुनीता": "sunita",
+    "वर्मा": "verma",
+    "शर्मा": "sharma",
+    "कुमार": "kumar",
+    "सिंह": "singh",
+    "गुप्ता": "gupta",
+    "पटेल": "patel",
+    "अग्रवाल": "agrawal",
+    "ऑफिसर": "officer",
+    "अधिकारी": "adhikari",
+}
+
+_DEV_CONSONANTS: Dict[str, str] = {
+    "क": "k", "ख": "kh", "ग": "g", "घ": "gh", "ङ": "n",
+    "च": "ch", "छ": "chh", "ज": "j", "झ": "jh", "ञ": "n",
+    "ट": "t", "ठ": "th", "ड": "d", "ढ": "dh", "ण": "n",
+    "त": "t", "थ": "th", "द": "d", "ध": "dh", "न": "n",
+    "प": "p", "फ": "ph", "ब": "b", "भ": "bh", "म": "m",
+    "य": "y", "र": "r", "ल": "l", "व": "v",
+    "श": "sh", "ष": "sh", "स": "s", "ह": "h",
+}
+
+_DEV_VOWELS: Dict[str, str] = {
+    "अ": "a", "आ": "a", "इ": "i", "ई": "i", "उ": "u", "ऊ": "u",
+    "ए": "e", "ऐ": "ai", "ओ": "o", "औ": "au", "ऋ": "ri", "ऑ": "o", "ऍ": "e",
+}
+
+_DEV_MATRAS: Dict[str, str] = {
+    "ा": "a", "ि": "i", "ी": "i", "ु": "u", "ू": "u",
+    "े": "e", "ै": "ai", "ो": "o", "ौ": "au", "ृ": "ri",
+    "ॉ": "o", "ॅ": "e", "ं": "n", "ँ": "n", "ः": "h",
+}
+
+
+def _transliterate_devanagari_word(word: str) -> str:
+    """Transliterate a Devanagari token (like 'राहुल' or 'एसबीआई') into lowercase ASCII for UPI handles."""
+    w = word.strip()
+    if not w:
+        return w
+    if w in _DEVANAGARI_KNOWN_UPI_TOKENS:
+        return _DEVANAGARI_KNOWN_UPI_TOKENS[w]
+    if w in DEVANAGARI_LETTER_MAP:
+        return DEVANAGARI_LETTER_MAP[w].lower()
+
+    # Handle nukta combinations first
+    w = (
+        w.replace("क़", "q")
+        .replace("ख़", "kh")
+        .replace("ग़", "gh")
+        .replace("ज़", "z")
+        .replace("ड़", "r")
+        .replace("ढ़", "rh")
+        .replace("फ़", "f")
+    )
+
+    out: List[str] = []
+    n = len(w)
+    i = 0
+    while i < n:
+        ch = w[i]
+        if ch in _DEV_VOWELS:
+            out.append(_DEV_VOWELS[ch])
+            i += 1
+        elif ch in _DEV_CONSONANTS:
+            base = _DEV_CONSONANTS[ch]
+            nxt = w[i + 1] if (i + 1) < n else ""
+            if nxt == "्":
+                out.append(base)
+                i += 2
+            elif nxt in _DEV_MATRAS:
+                out.append(base + _DEV_MATRAS[nxt])
+                i += 2
+            else:
+                # Word-final schwa deletion in Hindi (e.g., राहुल -> rahul, not rahula)
+                is_word_final = (i + 1) == n
+                out.append(base if is_word_final else base + "a")
+                i += 1
+        elif ch in _DEV_MATRAS:
+            out.append(_DEV_MATRAS[ch])
+            i += 1
+        elif ch == "्" or ch == "़":
+            i += 1
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out).lower()
+
+
+def _transliterate_compound_devanagari_handle(match: re.Match) -> str:
+    raw = match.group(0)
+    parts = re.split(r"([._@-])", raw)
+    converted = []
+    for p in parts:
+        if p in (".", "_", "@", "-"):
+            converted.append(p)
+        elif re.search(r"[\u0900-\u097F]", p):
+            converted.append(_transliterate_devanagari_word(p))
+        else:
+            converted.append(p)
+    return "".join(converted)
+
+
 def _normalize_separators_and_upi(text: str) -> str:
     """
     Normalize spoken separators ("dot", "underscore", "hyphen") and UPI handles ("at the rate").
     """
     # 1. Replace "at the rate (of)" / "एट द रेट" with "@"
     text = _AT_RATE_PATTERN.sub("@", text)
+
+    # 1b. Replace Devanagari tokens joined by '.', '_', or '@' (e.g. "राहुल.एसबीआई" -> "rahul.sbi")
+    text = re.sub(
+        r"[\u0900-\u097FA-Za-z0-9]+(?:[._@][\u0900-\u097FA-Za-z0-9]+)+",
+        lambda m: _transliterate_compound_devanagari_handle(m) if re.search(r"[\u0900-\u097F]", m.group(0)) else m.group(0),
+        text,
+    )
+
+    # 1c. Replace Devanagari tokens separated by spoken "dot"/"डॉट"/"underscore"/"अंडरस्कोर"/"@"
+    def _repl_dev_sep(m: re.Match) -> str:
+        lhs, sep_word, rhs = m.group(1), m.group(2).lower(), m.group(3)
+        lhs_a = _transliterate_devanagari_word(lhs) if re.search(r"[\u0900-\u097F]", lhs) else lhs
+        rhs_a = _transliterate_devanagari_word(rhs) if re.search(r"[\u0900-\u097F]", rhs) else rhs
+        sep = "." if sep_word in ("dot", "डॉट") else ("_" if sep_word in ("underscore", "अंडरस्कोर") else "-")
+        return f"{lhs_a}{sep}{rhs_a}"
+
+    for _ in range(3):
+        text = re.sub(
+            r"([\u0900-\u097FA-Za-z0-9]+)\s+(dot|डॉट|underscore|अंडरस्कोर|dash|hyphen|हाइफ़न)\s+([\u0900-\u097FA-Za-z0-9]+)",
+            _repl_dev_sep,
+            text,
+            flags=re.IGNORECASE,
+        )
 
     # 2. Normalize known spoken UPI provider names when preceded by @
     for provider_re, canonical_provider in UPI_PROVIDER_MAP:
@@ -578,6 +720,21 @@ def _normalize_separators_and_upi(text: str) -> str:
             text,
             flags=re.IGNORECASE,
         )
+
+    # 2b. Transliterate any remaining Devanagari token immediately before '@'
+    text = re.sub(
+        r"([\u0900-\u097F][\u0900-\u097FA-Za-z0-9._-]*)\s*@",
+        lambda m: f"{_transliterate_compound_devanagari_handle(m)[:-1]}@",
+        text,
+    )
+
+    # 2c. If the entire turn (modulo punctuation) is a spoken UPI provider suffix (e.g. "वाई बी एल।"),
+    # normalize it so cross-turn UPI stitching can pair `<handle>` + `<provider>`.
+    stripped_core = text.strip().strip(".,!?;:।|")
+    for provider_re, canonical_provider in UPI_PROVIDER_MAP:
+        if provider_re.fullmatch(stripped_core):
+            text = canonical_provider
+            break
 
     # 3. Replace spoken "dot" / "डॉट" / "underscore" / "अंडरस्कोर" between handle tokens
     # Repeat in a small loop to handle chains like "cbi dot officer dot verma"
