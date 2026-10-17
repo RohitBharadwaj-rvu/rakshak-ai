@@ -302,3 +302,148 @@ def test_webhook_enforces_bolna_webhook_secret_when_set(client, monkeypatch):
     )
     assert r_ok.status_code == 200
 
+
+def test_three_step_mid_call_tool_join_priority(client, caplog):
+    import logging
+    caplog.set_level(logging.WARNING)
+
+    # Case (a): execution_id is filled with real webhook id -> joins directly on execution_id
+    r_sw_a = client.post(
+        "/tools/switch_to_honeypot",
+        json={
+            "call_id": "plivo-sid-aaa",
+            "execution_id": "bolna-exec-aaa",
+            "language": "hi",
+            "persona_id": "ramesh",
+        },
+    )
+    assert r_sw_a.status_code == 200
+    assert r_sw_a.json()["call_id"] == "bolna-exec-aaa"
+
+    r_log_a = client.post(
+        "/tools/log_intel",
+        json={
+            "call_id": "plivo-sid-aaa",
+            "execution_id": "bolna-exec-aaa",
+            "type": "upi",
+            "value": "exec.join@okaxis",
+        },
+    )
+    assert r_log_a.status_code == 200
+
+    w_a = client.post(
+        "/webhook",
+        json={
+            "id": "bolna-exec-aaa",
+            "agent_id": "agent-1",
+            "status": "completed",
+            "conversation_duration": 42.0,
+            "user_number": "+919820112233",
+            "created_at": "2026-10-17T09:00:00Z",
+            "transcript": "assistant: हैलो?\nuser: पैसे भेजो।",
+            "telephony_data": {"provider_call_id": "plivo-sid-aaa"},
+        },
+    )
+    assert w_a.status_code == 200
+    rec_a = w_a.json()
+    assert "exec.join@okaxis" in rec_a["extracted_intel"]["upi_ids"]
+    assert len(rec_a["extracted_intel"]["mid_call_logs"]) == 1
+    assert rec_a["honeypot_switch_time"] != rec_a["start_time"]
+
+    # Case (b): execution_id is literal "%(execution_id)s" (ignored), call_id has provider_call_id -> joins via telephony_data.provider_call_id
+    client.post(
+        "/tools/switch_to_honeypot",
+        json={
+            "call_id": "plivo-sid-bbb",
+            "execution_id": "%(execution_id)s",
+            "language": "hi",
+            "persona_id": "sunita",
+        },
+    )
+    client.post(
+        "/tools/log_intel",
+        json={
+            "call_id": "plivo-sid-bbb",
+            "execution_id": "%(execution_id)s",
+            "type": "upi",
+            "value": "provider.sid@ybl",
+        },
+    )
+    w_b = client.post(
+        "/webhook",
+        json={
+            "id": "bolna-exec-bbb",
+            "agent_id": "agent-1",
+            "status": "completed",
+            "conversation_duration": 55.0,
+            "user_number": "+919820112233",
+            "created_at": "2026-10-17T09:10:00Z",
+            "transcript": "assistant: हैलो?\nuser: तुरंत भेजो।",
+            "telephony_data": {"provider_call_id": "plivo-sid-bbb"},
+        },
+    )
+    assert w_b.status_code == 200
+    rec_b = w_b.json()
+    assert rec_b["persona"] == "sunita"
+    assert "provider.sid@ybl" in rec_b["extracted_intel"]["upi_ids"]
+    assert len(rec_b["extracted_intel"]["mid_call_logs"]) == 1
+    assert rec_b["honeypot_switch_time"] != rec_b["start_time"]
+    assert get_call_record("plivo-sid-bbb") is None
+
+    # Case (c1): Single active pending call with literal "%(call_sid)s" -> joins via fallback and logs a WARNING
+    caplog.clear()
+    client.post(
+        "/tools/log_intel",
+        json={
+            "call_id": "%(call_sid)s",
+            "execution_id": "%(execution_id)s",
+            "type": "upi",
+            "value": "fallback.single@paytm",
+        },
+    )
+    w_c1 = client.post(
+        "/webhook",
+        json={
+            "id": "bolna-exec-ccc1",
+            "agent_id": "agent-1",
+            "status": "completed",
+            "conversation_duration": 30.0,
+            "user_number": "+919820112233",
+            "created_at": "2026-10-17T09:20:00Z",
+            "transcript": "assistant: जी?\nuser: पेमेंट करो।",
+            "telephony_data": {"provider_call_id": "plivo-sid-ccc1"},
+        },
+    )
+    assert w_c1.status_code == 200
+    rec_c1 = w_c1.json()
+    assert "fallback.single@paytm" in rec_c1["extracted_intel"]["upi_ids"]
+    assert any("Fallback single-active-call join fired" in r.message for r in caplog.records)
+
+    # Case (c2): Two overlapping pending calls in window -> fallback refuses to guess so calls never mix up intel
+    caplog.clear()
+    client.post(
+        "/tools/log_intel",
+        json={"call_id": "overlap-call-1", "type": "upi", "value": "family1@okaxis"},
+    )
+    client.post(
+        "/tools/log_intel",
+        json={"call_id": "overlap-call-2", "type": "upi", "value": "family2@okaxis"},
+    )
+    w_c2 = client.post(
+        "/webhook",
+        json={
+            "id": "bolna-exec-ccc2",
+            "agent_id": "agent-1",
+            "status": "completed",
+            "conversation_duration": 30.0,
+            "user_number": "+919820112233",
+            "created_at": "2026-10-17T09:30:00Z",
+            "transcript": "assistant: जी?\nuser: हैलो।",
+            "telephony_data": {"provider_call_id": "plivo-sid-ccc2"},
+        },
+    )
+    assert w_c2.status_code == 200
+    rec_c2 = w_c2.json()
+    assert rec_c2["extracted_intel"]["mid_call_logs"] == []
+    assert any("Fallback single-active-call join skipped" in r.message for r in caplog.records)
+

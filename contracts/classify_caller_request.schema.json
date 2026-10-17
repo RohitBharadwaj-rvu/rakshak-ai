@@ -12,7 +12,11 @@
     "call_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Unique identifier for the active call"
+      "description": "Unique identifier for the active call (e.g., %(call_sid)s)"
+    },
+    "execution_id": {
+      "type": ["string", "null"],
+      "description": "Optional Bolna execution ID (e.g., %(execution_id)s)"
     },
     "caller_number": {
       "type": "string",

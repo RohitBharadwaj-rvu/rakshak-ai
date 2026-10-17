@@ -248,6 +248,231 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
     }
 
 
+_PLACEHOLDER_ID_VALUES = {
+    "",
+    "null",
+    "none",
+    "undefined",
+    "%(execution_id)s",
+    "%(call_sid)s",
+    "%(call_id)s",
+}
+
+
+def is_placeholder_id(value: Optional[str]) -> bool:
+    """Return True if `value` is empty or an un-interpolated template/placeholder like `%(execution_id)s`."""
+    if value is None:
+        return True
+    cleaned = str(value).strip()
+    if not cleaned:
+        return True
+    lower = cleaned.lower()
+    if lower in _PLACEHOLDER_ID_VALUES:
+        return True
+    if cleaned.startswith("%(") or cleaned.startswith("{{") or cleaned.startswith("${"):
+        return True
+    return False
+
+
+def resolve_effective_tool_call_id(
+    call_id: str,
+    execution_id: Optional[str] = None,
+) -> str:
+    """
+    Resolve the primary CallRecord key for a mid-call tool request:
+      1. If `execution_id` is provided and not a literal placeholder (`%(execution_id)s`),
+         use `execution_id` first so it joins directly with the webhook's `id`.
+      2. Otherwise fall back to `call_id` (e.g., `%(call_sid)s` -> `telephony_data.provider_call_id`).
+    """
+    if not is_placeholder_id(execution_id):
+        return str(execution_id).strip()
+    return str(call_id).strip()
+
+
+def _merge_intel_dicts(base_intel: Dict[str, Any], extra_intel: Dict[str, Any]) -> Dict[str, Any]:
+    merged = _empty_intel()
+    for src in (base_intel, extra_intel):
+        if not isinstance(src, dict):
+            continue
+        for bucket in ("upi_ids", "phone_numbers", "bank_accounts", "ifsc_codes", "pan_numbers", "links"):
+            for item in src.get(bucket, []):
+                if item not in merged[bucket]:
+                    merged[bucket].append(item)
+        for log_entry in src.get("mid_call_logs", []):
+            if log_entry not in merged["mid_call_logs"]:
+                merged["mid_call_logs"].append(log_entry)
+        for k, v in (src.get("entity_counts") or {}).items():
+            merged["entity_counts"][k] = merged["entity_counts"].get(k, 0) + int(v)
+        if src.get("enrichment"):
+            merged["enrichment"].update(src["enrichment"])
+        if src.get("reflection"):
+            merged["reflection"].update(src["reflection"])
+    return merged
+
+
+def _adopt_or_merge_pending_row(conn: sqlite3.Connection, target_call_id: str, source_call_id: str) -> None:
+    """
+    Rename pending record `source_call_id` -> `target_call_id` (or merge into existing `target_call_id`
+    if both exist) and remove `source_call_id`.
+    """
+    if source_call_id == target_call_id:
+        return
+    src_row = conn.execute(
+        "SELECT * FROM call_records WHERE call_id = ?", (source_call_id,)
+    ).fetchone()
+    if not src_row:
+        return
+
+    tgt_row = conn.execute(
+        "SELECT * FROM call_records WHERE call_id = ?", (target_call_id,)
+    ).fetchone()
+
+    if not tgt_row:
+        bundle_json = src_row["persona_bundle_json"]
+        if bundle_json:
+            try:
+                b = json.loads(bundle_json)
+                if isinstance(b, dict):
+                    b["call_id"] = target_call_id
+                    bundle_json = json.dumps(b, ensure_ascii=False)
+            except Exception:
+                pass
+        conn.execute(
+            """
+            UPDATE call_records
+            SET call_id = ?,
+                persona_bundle_json = ?,
+                report_link = ?
+            WHERE call_id = ?
+            """,
+            (target_call_id, bundle_json, f"/api/calls/{target_call_id}/report", source_call_id),
+        )
+    else:
+        tgt_intel = json.loads(tgt_row["extracted_intel_json"] or "{}")
+        src_intel = json.loads(src_row["extracted_intel_json"] or "{}")
+        merged_intel = _merge_intel_dicts(tgt_intel, src_intel)
+
+        persona = (
+            tgt_row["persona"]
+            if tgt_row["persona"] and tgt_row["persona"] != "screening_receptionist"
+            else src_row["persona"]
+        )
+        bundle_json = tgt_row["persona_bundle_json"] or src_row["persona_bundle_json"]
+        switch_time = tgt_row["honeypot_switch_time"] or src_row["honeypot_switch_time"]
+        verdict = "scam" if (tgt_row["verdict"] == "scam" or src_row["verdict"] == "scam") else tgt_row["verdict"]
+
+        conn.execute(
+            """
+            UPDATE call_records
+            SET persona = ?,
+                persona_bundle_json = ?,
+                honeypot_switch_time = ?,
+                verdict = ?,
+                extracted_intel_json = ?
+            WHERE call_id = ?
+            """,
+            (
+                persona,
+                bundle_json,
+                switch_time,
+                verdict,
+                json.dumps(merged_intel, ensure_ascii=False),
+                target_call_id,
+            ),
+        )
+        conn.execute("DELETE FROM call_records WHERE call_id = ?", (source_call_id,))
+    conn.commit()
+    _sync_sqlite_row_to_pg(conn, target_call_id)
+
+
+def resolve_and_merge_pending_mid_call_record(
+    call_id: str,
+    provider_call_id: Optional[str] = None,
+    active_window_seconds: int = 900,
+) -> Optional[Dict[str, Any]]:
+    """
+    Locate and join any pending mid-call record (`switch_to_honeypot` / `log_intel`)
+    for an incoming post-call webhook using the strict 3-step join priority:
+      (a) Primary: `call_id` (matches `execution_id` when tool sent a real `execution_id`)
+      (b) Secondary: `provider_call_id` (`telephony_data.provider_call_id` matching tool `%(call_sid)s`)
+      (c) Fallback: ONLY when neither (a) nor (b) matched AND there is **exactly one**
+          unfinalized `status='pending'` record active within `active_window_seconds`,
+          merge it and log a WARNING. If 0 or >1 pending records exist, do not guess.
+    """
+    init_db()
+    prov_id = str(provider_call_id or "").strip()
+    now_utc = datetime.now(timezone.utc)
+
+    with _DB_LOCK:
+        conn = _get_conn()
+        try:
+            # Rule (a): Direct match on webhook `id` / `execution_id`
+            row_a = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?", (call_id,)
+            ).fetchone()
+            if row_a and row_a["status"] == "finalized":
+                return _row_to_record(row_a)
+
+            # Rule (b): Match on `telephony_data.provider_call_id` (from `%(call_sid)s`)
+            matched_b = False
+            if prov_id and prov_id != call_id:
+                row_b = conn.execute(
+                    "SELECT * FROM call_records WHERE call_id = ? AND status = 'pending'",
+                    (prov_id,),
+                ).fetchone()
+                if row_b:
+                    matched_b = True
+                    logger.info(
+                        "Joined pending mid-call record via provider_call_id=%s -> call_id=%s",
+                        prov_id,
+                        call_id,
+                    )
+                    _adopt_or_merge_pending_row(conn, call_id, prov_id)
+
+            # Rule (c): Fallback single-active-call window join (ONLY if neither a nor b matched)
+            if not row_a and not matched_b:
+                pending_rows = conn.execute(
+                    "SELECT * FROM call_records WHERE status = 'pending'"
+                ).fetchall()
+                active_pending = []
+                for p_row in pending_rows:
+                    ts_str = p_row["updated_at"] or p_row["created_at"] or ""
+                    try:
+                        ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                        if ts.tzinfo is None:
+                            ts = ts.replace(tzinfo=timezone.utc)
+                        age_s = (now_utc - ts).total_seconds()
+                        if 0 <= age_s <= active_window_seconds:
+                            active_pending.append(p_row)
+                    except Exception:
+                        active_pending.append(p_row)
+
+                if len(active_pending) == 1:
+                    only_row = active_pending[0]
+                    old_cid = only_row["call_id"]
+                    logger.warning(
+                        "Fallback single-active-call join fired: merging pending call_id=%s into webhook call_id=%s (provider_call_id=%s)",
+                        old_cid,
+                        call_id,
+                        prov_id or "<none>",
+                    )
+                    _adopt_or_merge_pending_row(conn, call_id, old_cid)
+                elif len(active_pending) > 1:
+                    logger.warning(
+                        "Fallback single-active-call join skipped for webhook call_id=%s: %d overlapping pending calls active (%s)",
+                        call_id,
+                        len(active_pending),
+                        [r["call_id"] for r in active_pending],
+                    )
+
+            final_lookup = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?", (call_id,)
+            ).fetchone()
+            return _row_to_record(final_lookup) if final_lookup else None
+        finally:
+            conn.close()
+
+
 def get_call_record(call_id: str) -> Optional[Dict[str, Any]]:
     init_db()
     with _DB_LOCK:

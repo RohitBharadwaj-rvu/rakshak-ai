@@ -23,6 +23,7 @@ from app.voice.store import (
     get_call_record,
     list_call_records,
     mask_phone,
+    resolve_and_merge_pending_mid_call_record,
     restore_raw_rows,
     save_post_call_enrichment_and_reflection,
 )
@@ -393,14 +394,18 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
     language = str(metadata.get("language") or "hi")
 
     logger.info(
-        "Webhook received call_id=%s caller=%s turns=%d duration=%ss",
+        "Webhook received call_id=%s provider_call_id=%s caller=%s turns=%d duration=%ss",
         call_id,
+        payload.get("provider_call_id") or "<none>",
         mask_phone(caller_number),
         len(transcript),
         payload.get("call_duration", 0),
     )
 
-    existing = get_call_record(call_id)
+    existing = resolve_and_merge_pending_mid_call_record(
+        call_id=call_id,
+        provider_call_id=payload.get("provider_call_id"),
+    )
     if existing and existing.get("status") == "finalized":
         record = finalize_call_record_from_webhook(
             payload=payload,

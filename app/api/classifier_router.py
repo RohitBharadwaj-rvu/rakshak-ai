@@ -7,12 +7,16 @@ Exposes the hybrid classify_caller engine as an HTTP service for:
 """
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import logging
 from typing import List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 import app.voice.classifier as _classifier_mod
 from app.voice.classifier import CallerClassificationResult
+from app.voice.store import resolve_effective_tool_call_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tools", tags=["Classifier Tools"])
 
@@ -30,7 +34,8 @@ class ConversationTurn(BaseModel):
 
 
 class ClassifyCallerRequest(BaseModel):
-    call_id: str = Field(..., min_length=1, description="Unique identifier for the active call")
+    call_id: str = Field(..., min_length=1, description="Unique identifier for the active call (e.g., %(call_sid)s)")
+    execution_id: Optional[str] = Field(default=None, description="Optional Bolna execution ID (e.g., %(execution_id)s)")
     caller_number: Optional[str] = Field(default="", description="Inbound caller phone number")
     caller_summary: Optional[str] = Field(
         default=None,
@@ -62,6 +67,7 @@ async def api_classify_caller(req: ClassifyCallerRequest):
     Guarantees response within 1.5s. Returns 'unsure' on any exception or timeout
     so the live conversation never hangs.
     """
+    effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
     try:
         conv_dicts = [
             {"role": t.role, "content": t.get_text()}
@@ -73,7 +79,7 @@ async def api_classify_caller(req: ClassifyCallerRequest):
 
         future = _EXECUTOR.submit(
             _classifier_mod.classify_caller,
-            call_id=req.call_id,
+            call_id=effective_id,
             caller_number=req.caller_number or "",
             conversation=conv_dicts,
             language=req.language,
@@ -81,6 +87,14 @@ async def api_classify_caller(req: ClassifyCallerRequest):
         )
         result: CallerClassificationResult = future.result(timeout=HARD_TIMEOUT_SECONDS)
 
+        logger.info(
+            "classify_caller effective_id=%s raw_call_id=%s raw_execution_id=%s verdict=%s confidence=%.2f",
+            effective_id,
+            req.call_id,
+            req.execution_id,
+            result.verdict,
+            result.confidence,
+        )
         return ClassifyCallerResponse(
             call_id=result.call_id,
             verdict=result.verdict,
