@@ -1,0 +1,172 @@
+{
+  "agent_config": {
+    "agent_name": "rakshak-v0",
+    "agent_welcome_message": "हैलो जी?",
+    "agent_type": "other",
+    "webhook_url": null,
+    "tasks": [
+      {
+        "task_type": "conversation",
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "voicemail": true,
+          "use_fillers": false,
+          "dtmf_enabled": false,
+          "ambient_noise": false,
+          "inbound_limit": -1,
+          "backchanneling": false,
+          "call_terminate": 400,
+          "auto_reschedule": true,
+          "optimize_latency": true,
+          "incremental_delay": 600,
+          "ambient_noise_track": "coffee-shop",
+          "call_hangup_message": null,
+          "max_silence_repeats": null,
+          "check_if_user_online": true,
+          "hangup_after_LLMCall": true,
+          "hangup_after_silence": 20,
+          "welcome_message_delay": 1000,
+          "whitelist_phone_numbers": null,
+          "call_cancellation_prompt": "You are an AI assistant that decides whether a phone call is complete, based on the transcript.\n\nThe call is complete only if one of these is true:\n1) The caller has said goodbye or clearly ended the conversation AFTER the assistant took a message. The assistant thanking the caller is NOT enough on its own.\n2) The caller clearly says they want to end the call, for example \"bye\", \"theek hai, rakhta hoon\", \"बस इतना ही\", \"ok thank you, bye\".\n3) The caller has been silent or saying nothing meaningful for several turns after the assistant's thank you.\n\nThe call is NOT complete if:\n- The caller is still explaining who they are or why they are calling.\n- The caller is asking for something (money, OTP, details, verification), even if the assistant refused.\n- The assistant has not yet asked who is calling and why.\n- The caller pushed for money, OTP or personal details at any point in the last few turns.\n\nWhen in doubt, the call is NOT complete.",
+          "disallow_unknown_numbers": false,
+          "language_detection_turns": null,
+          "noise_cancellation_level": 70,
+          "voicemail_check_interval": 7.0,
+          "voicemail_detection_time": null,
+          "check_user_online_message": {
+            "en": "Hello, are you still there",
+            "hi": "Hello, क्या आप अभी भी लाइन पर हैं?"
+          },
+          "backchanneling_message_gap": 5,
+          "backchanneling_start_delay": 5,
+          "interruption_backoff_period": 0,
+          "interruptible_hangup_message": false,
+          "voicemail_detection_duration": 30.0,
+          "discard_pre_welcome_utterance": false,
+          "voicemail_min_transcript_length": 7,
+          "number_of_words_for_interruption": 3,
+          "trigger_user_online_message_after": 8
+        },
+        "tools_config": {
+          "s2s": null,
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "api_tools": null,
+          "llm_agent": {
+            "agent_type": "simple_llm_agent",
+            "llm_config": {
+              "stop": null,
+              "min_p": 0.1,
+              "model": "azure/gpt-4.1-mini",
+              "top_k": 0,
+              "top_p": 0.9,
+              "family": "openai",
+              "base_url": null,
+              "provider": "azure",
+              "verbosity": null,
+              "extra_body": null,
+              "max_tokens": 370,
+              "temperature": 0.45,
+              "request_json": false,
+              "agent_flow_type": "streaming",
+              "presence_penalty": 0.0,
+              "reasoning_effort": null,
+              "compact_threshold": null,
+              "frequency_penalty": 0.0,
+              "use_responses_api": false,
+              "extraction_details": null,
+              "summarization_details": null
+            },
+            "agent_flow_type": "streaming"
+          },
+          "web_search": null,
+          "agent_names": null,
+          "synthesizer": {
+            "stream": true,
+            "caching": true,
+            "provider": "sarvam",
+            "buffer_size": 230,
+            "audio_format": "wav",
+            "provider_config": {
+              "model": "bulbul:v3",
+              "speed": 1.0,
+              "voice": "Simran",
+              "language": "hi",
+              "loudness": 1.0,
+              "voice_id": "simran"
+            }
+          },
+          "transcriber": {
+            "task": "transcribe",
+            "delay": "medium",
+            "model": "saaras:v3",
+            "active": null,
+            "stream": true,
+            "context": "Phone line answering calls for an elderly person in India. Callers speak Hindi, English or Hinglish. Calls may include phone numbers, UPI IDs, bank account numbers and OTP requests.",
+            "encoding": "linear16",
+            "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest, Paytm, PhonePe, Google Pay",
+            "language": "hi",
+            "provider": "sarvam",
+            "endpointing": 150,
+            "mip_opt_out": null,
+            "multilingual": null,
+            "deepgram_host": null,
+            "eot_threshold": null,
+            "sampling_rate": 16000,
+            "vad_threshold": 0.5,
+            "eot_timeout_ms": null,
+            "language_hints": null,
+            "noise_reduction": false,
+            "assemblyai_config": null,
+            "deepgram_flux_host": null,
+            "eager_eot_threshold": null,
+            "vad_prefix_padding_ms": 300,
+            "deepgram_host_protocol": null
+          },
+          "multilingual_config": null,
+          "switch_handoff_messages": null,
+          "switch_tool_description": null
+        }
+      }
+    ],
+    "gpt_assistants": null,
+    "custom_analytics": null,
+    "calling_guardrails": {
+      "call_end_hour": 21,
+      "call_start_hour": 9
+    },
+    "webhook_headers": null,
+    "sip_header_variables": null,
+    "ingest_lookup_key": null,
+    "webhook_config": null,
+    "call_summary_enabled": true,
+    "agent_category": "simple_llm_agent",
+    "sip_headers": null,
+    "dispositions": [
+      "7f51e5e6-e76c-57a1-a20e-38a8aa9d57b0",
+      "d4be9320-95df-5d75-9b63-3b1e840eba75"
+    ],
+    "single_prompt_ui": true,
+    "ingest_source_config": null
+  },
+  "agent_prompts": {
+    "task_1": {
+      "system_prompt": "You are Rakshak, a polite phone assistant who answers calls for an elderly person in India.\n\nRules:\n- Match the caller's language. If they speak Hindi, reply in Hindi. If they speak English, reply in English. If they mix Hindi and English (Hinglish), reply in natural Hinglish the same way.\n- Keep each reply short: one or two sentences.\n- Never use lists, symbols, emoji or links. You are speaking on a phone call.\n- First, greet the caller and ask who is calling and why.\n- Listen, ask one follow-up question, then say you will pass the message on, and thank them.\n- Never share any personal details, numbers or OTPs.\n- When the caller speaks Hinglish, use the same mix: keep common words in English, like bank, account, OTP, KYC, call, problem, number, parcel, sir, okay. Do not translate them into pure Hindi.\n- If you did not understand the caller, do not repeat your last question. Say a short \"Sorry, phir se bataiye?\" once, or ask a different simple question.\n- If the caller keeps asking for money, OTP, Aadhaar, bank details or a payment, do not end the call. Politely refuse, stay calm and keep talking. Ask them simple questions, like their name, which office they are calling from, and a number to call back. Never be the one who ends the call.\n"
+    }
+  }
+}
