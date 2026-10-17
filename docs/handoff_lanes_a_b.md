@@ -22,13 +22,20 @@ app.include_router(classifier_router)
 
 ## 2. Exact HTTP Contract (`POST /tools/classify_caller`)
 
-### Request JSON Payload
+### Request JSON Payload (Bolna Mid-Call Mode via `caller_summary`)
+```json
+{
+  "call_id": "%(call_sid)s",
+  "caller_number": "%(from_number)s",
+  "caller_summary": "Caller claims to be Sub-Inspector Verma from Hauz Khas police station, states an arrest warrant was issued, and demands immediate ₹25,000 transfer."
+}
+```
+
+*Note: For regression benchmarking and offline simulation, the endpoint also accepts the full conversation history:*
 ```json
 {
   "call_id": "call_live_9872",
   "caller_number": "+919876543210",
-  "language": "hi",
-  "max_latency_budget_s": 1.4,
   "conversation": [
     {"role": "caller", "content": "Namaste sir, Hauz Khas police station se Sub-Inspector Verma bol raha hoon."},
     {"role": "assistant", "content": "Ji kahiye, kis baare mein call kiya hai?"},
@@ -81,40 +88,28 @@ Paste this tool definition directly into your Bolna agent configuration YAML/JSO
   "type": "function",
   "function": {
     "name": "classify_caller",
-    "description": "Evaluates inbound caller intent and dialogue turns against scam behavioral pillars. Returns verdict ('scam', 'genuine', or 'unsure').",
+    "description": "Evaluates inbound caller intent against scam behavioral pillars. Returns verdict ('scam', 'genuine', or 'unsure').",
     "parameters": {
       "type": "object",
       "properties": {
         "call_id": {
           "type": "string",
-          "description": "Unique telephony call session ID"
+          "description": "Unique telephony call session ID (pass %(call_sid)s)"
         },
         "caller_number": {
           "type": "string",
-          "description": "Caller phone number with country code"
+          "description": "Caller phone number with country code (pass %(from_number)s)"
         },
-        "language": {
+        "caller_summary": {
           "type": "string",
-          "enum": ["hi", "en", "hinglish"],
-          "default": "hi"
-        },
-        "conversation": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "role": {"type": "string", "enum": ["caller", "assistant", "user"]},
-              "content": {"type": "string"}
-            },
-            "required": ["role", "content"]
-          },
-          "description": "Chronological history of conversation utterances"
+          "description": "1 to 3 sentence agent summary of who the caller claims to be, what they want, and any payment/OTP/credential demands"
         }
       },
-      "required": ["call_id", "conversation"]
+      "required": ["call_id", "caller_summary"]
     }
   },
   "url": "http://localhost:8000/tools/classify_caller",
   "method": "POST"
 }
 ```
+

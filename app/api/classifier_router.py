@@ -27,7 +27,10 @@ class ConversationTurn(BaseModel):
 class ClassifyCallerRequest(BaseModel):
     call_id: str = Field(default="live_call", description="Unique identifier for the active call")
     caller_number: Optional[str] = Field(default="", description="Inbound caller phone number")
-    conversation: List[ConversationTurn] = Field(
+    caller_summary: Optional[str] = Field(
+        default=None, description="Agent-written summary of caller statements (Bolna mid-call parameter)"
+    )
+    conversation: Optional[List[ConversationTurn]] = Field(
         default_factory=list, description="Ordered transcript turns of the conversation so far"
     )
     language: str = Field(default="hi", description="Primary conversation language (hi, en, hinglish)")
@@ -54,16 +57,18 @@ async def api_classify_caller(req: ClassifyCallerRequest):
     so the live conversation never hangs.
     """
     try:
-        # Convert Pydantic turns to dicts expected by classify_caller
-        conv_dicts = [
-            {"role": t.role, "content": t.get_text()}
-            for t in req.conversation
-        ]
+        # Convert Pydantic turns to dicts expected by classify_caller if provided
+        conv_dicts = (
+            [{"role": t.role, "content": t.get_text()} for t in req.conversation]
+            if req.conversation
+            else []
+        )
 
         result: CallerClassificationResult = classify_caller(
             call_id=req.call_id,
             caller_number=req.caller_number or "",
             conversation=conv_dicts,
+            caller_summary=req.caller_summary,
             language=req.language,
             max_latency_budget_s=req.max_latency_budget_s,
         )

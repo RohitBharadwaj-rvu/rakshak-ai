@@ -72,3 +72,19 @@ def test_api_classify_caller_empty_conversation():
     assert response.status_code == 200
     data = response.json()
     assert data["verdict"] == "unsure"
+
+
+def test_api_classify_caller_with_caller_summary():
+    payload = {
+        "call_id": "call_bolna_summary_scam",
+        "caller_number": "+919876543210",
+        "caller_summary": "Caller claims to be from CBI Cyber Cell, states an illegal narcotics package was found and demands immediate payment of 50000 rupees to avoid digital arrest warrant.",
+    }
+    response = client.post("/tools/classify_caller", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["call_id"] == "call_bolna_summary_scam"
+    assert data["verdict"] == "scam"
+    assert data["confidence"] >= 0.85
+    assert "authority_coercion" in data["pillars_detected"]
+
