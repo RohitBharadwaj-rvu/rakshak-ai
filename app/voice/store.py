@@ -666,3 +666,24 @@ def export_call_records_csv(csv_path: str) -> str:
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         f.write(content)
     return csv_path
+
+
+def backup_call_records_db(backup_path: str) -> str:
+    """
+    Create a safe, consistent online SQLite backup of the active CallRecord database
+    using `sqlite3.Connection.backup()` (Sprint 4 backup requirement).
+    """
+    init_db()
+    abs_target = os.path.abspath(backup_path)
+    os.makedirs(os.path.dirname(abs_target), exist_ok=True)
+    with _DB_LOCK:
+        src_conn = _get_conn()
+        dst_conn = sqlite3.connect(abs_target)
+        try:
+            src_conn.backup(dst_conn)
+        finally:
+            dst_conn.close()
+            src_conn.close()
+    logger.info("SQLite database backed up safely to %s", abs_target)
+    return abs_target
+

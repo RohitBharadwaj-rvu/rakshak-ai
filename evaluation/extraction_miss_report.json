@@ -1,0 +1,111 @@
+{
+  "summary": {
+    "total_calls_analyzed": 6,
+    "calls_with_planted_intel": 3,
+    "calls_capturing_planted_intel": 3,
+    "call_level_extraction_accuracy_pct": 100.0,
+    "total_expected_entities": 5,
+    "total_captured_entities": 5,
+    "entity_level_recall_pct": 100.0,
+    "total_misses": 0,
+    "total_unparseable_mid_call_logs": 0
+  },
+  "misses": [],
+  "unparseable_mid_call_logs": [],
+  "per_call": [
+    {
+      "call_id": "call_scam_digital_arrest_001",
+      "expected_count": 2,
+      "hit_count": 2,
+      "miss_count": 0,
+      "hits": [
+        {
+          "bucket": "upi_ids",
+          "expected": "cbi.officer.verma@okaxis"
+        },
+        {
+          "bucket": "phone_numbers",
+          "expected": "9876543210"
+        }
+      ],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": [
+        "spaced_handle",
+        "spoken_at_or_dot",
+        "hindi_number_words"
+      ]
+    },
+    {
+      "call_id": "call_scam_kyc_account_002",
+      "expected_count": 2,
+      "hit_count": 2,
+      "miss_count": 0,
+      "hits": [
+        {
+          "bucket": "bank_accounts",
+          "expected": "50100432891234"
+        },
+        {
+          "bucket": "ifsc_codes",
+          "expected": "HDFC0001234"
+        }
+      ],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": [
+        "hindi_number_words"
+      ]
+    },
+    {
+      "call_id": "call_genuine_courier_003",
+      "expected_count": 0,
+      "hit_count": 0,
+      "miss_count": 0,
+      "hits": [],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": []
+    },
+    {
+      "call_id": "call_genuine_clinic_004",
+      "expected_count": 0,
+      "hit_count": 0,
+      "miss_count": 0,
+      "hits": [],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": []
+    },
+    {
+      "call_id": "call_scam_garbled_digits_005",
+      "expected_count": 1,
+      "hit_count": 1,
+      "miss_count": 0,
+      "hits": [
+        {
+          "bucket": "upi_ids",
+          "expected": "9884567890@paytm"
+        }
+      ],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": [
+        "spoken_at_or_dot",
+        "repetitions_double_triple",
+        "hindi_number_words",
+        "mid_call_self_correction"
+      ]
+    },
+    {
+      "call_id": "call_early_hangup_006",
+      "expected_count": 0,
+      "hit_count": 0,
+      "miss_count": 0,
+      "hits": [],
+      "misses": [],
+      "unparseable_mid_call_logs": [],
+      "stt_phenomena_present": []
+    }
+  ]
+}
