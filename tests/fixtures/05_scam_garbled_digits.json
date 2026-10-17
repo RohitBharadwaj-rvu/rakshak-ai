@@ -1,9 +1,25 @@
 {
+  "id": "call_scam_garbled_digits_005",
   "call_id": "call_scam_garbled_digits_005",
   "agent_id": "bolna_agent_guardianline_v0",
+  "user_number": "+919445566778",
   "caller_number": "+919445566778",
+  "conversation_duration": 120.0,
   "call_duration": 120.0,
+  "status": "completed",
   "call_status": "completed",
+  "telephony_data": {
+    "duration": "120.0",
+    "to_number": "+918035737000",
+    "from_number": "+919445566778",
+    "recording_url": "https://storage.guardianline.ai/recordings/call_scam_garbled_digits_005.mp3",
+    "hosted_telephony": true,
+    "provider_call_id": "plivo-uuid-0005",
+    "call_type": "inbound",
+    "provider": "plivo",
+    "hangup_by": "Callee",
+    "hangup_reason": "Call recipient hungup"
+  },
   "call_recording_url": "https://storage.guardianline.ai/recordings/call_scam_garbled_digits_005.mp3",
   "transcript": [
     {

@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SwitchToHoneypotResponse",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "call_id",
+    "language",
+    "persona_id",
+    "persona_name",
+    "persona_age",
+    "persona_city",
+    "persona_lines",
+    "fake_bait"
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "language": {
+      "type": "string",
+      "enum": ["hi", "en", "hinglish"]
+    },
+    "persona_id": {
+      "type": "string",
+      "enum": ["ramesh", "sunita", "iyer"]
+    },
+    "persona_name": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "persona_age": {
+      "type": "integer"
+    },
+    "age": {
+      "type": "integer"
+    },
+    "persona_city": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "short_backstory": {
+      "type": "string"
+    },
+    "persona_lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "In-character opener and stalling lines for the voice agent"
+    },
+    "fake_bait": {
+      "type": "object",
+      "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
+      "properties": {
+        "upi_id": {"type": "string"},
+        "account_number": {"type": "string"},
+        "ifsc_code": {"type": "string"},
+        "phone_number": {"type": "string"},
+        "otp": {"type": "string"},
+        "aadhaar": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "bait_values": {
+      "type": "object",
+      "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
+      "properties": {
+        "upi_id": {"type": "string"},
+        "account_number": {"type": "string"},
+        "ifsc_code": {"type": "string"},
+        "phone_number": {"type": "string"},
+        "otp": {"type": "string"},
+        "aadhaar": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogIntelRequest",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["call_id", "type"],
+  "anyOf": [
+    {"required": ["value"]},
+    {"required": ["value_as_heard"]}
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the active call (e.g., %(call_sid)s)"
+    },
+    "execution_id": {
+      "type": ["string", "null"],
+      "description": "Optional Bolna execution ID (e.g., %(execution_id)s)"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["upi", "phone", "account", "ifsc", "link", "pan", "other"],
+      "description": "Category of intelligence heard mid-call"
+    },
+    "value": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Raw utterance or string heard by the agent (Bolna v1 tool parameter)"
+    },
+    "value_as_heard": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Raw utterance or string heard by the agent"
+    }
+  },
+  "additionalProperties": false
+}

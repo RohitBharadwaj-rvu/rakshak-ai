@@ -6,13 +6,22 @@ Exposes the hybrid classify_caller engine as an HTTP service for:
   - Lane B: FastAPI backend router integration
 """
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import logging
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from app.voice.classifier import classify_caller, CallerClassificationResult
+import app.voice.classifier as _classifier_mod
+from app.voice.classifier import CallerClassificationResult
+from app.voice.store import resolve_effective_tool_call_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tools", tags=["Classifier Tools"])
+
+_EXECUTOR = ThreadPoolExecutor(max_workers=8)
+HARD_TIMEOUT_SECONDS = 1.5
 
 
 class ConversationTurn(BaseModel):
@@ -25,10 +34,12 @@ class ConversationTurn(BaseModel):
 
 
 class ClassifyCallerRequest(BaseModel):
-    call_id: str = Field(default="live_call", description="Unique identifier for the active call")
+    call_id: str = Field(..., min_length=1, description="Unique identifier for the active call (e.g., %(call_sid)s)")
+    execution_id: Optional[str] = Field(default=None, description="Optional Bolna execution ID (e.g., %(execution_id)s)")
     caller_number: Optional[str] = Field(default="", description="Inbound caller phone number")
     caller_summary: Optional[str] = Field(
-        default=None, description="Agent-written summary of caller statements (Bolna mid-call parameter)"
+        default=None,
+        description="Agent-written summary of caller statements (Bolna mid-call parameter)",
     )
     conversation: Optional[List[ConversationTurn]] = Field(
         default_factory=list, description="Ordered transcript turns of the conversation so far"
@@ -53,26 +64,39 @@ class ClassifyCallerResponse(BaseModel):
 async def api_classify_caller(req: ClassifyCallerRequest):
     """
     Real-time caller classification endpoint for Bolna agent function tool.
-    Guarantees sub-second response. Returns 'unsure' on any exception or timeout
+    Guarantees response within 1.5s. Returns 'unsure' on any exception or timeout
     so the live conversation never hangs.
     """
+    effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
     try:
-        # Convert Pydantic turns to dicts expected by classify_caller if provided
         conv_dicts = (
             [{"role": t.role, "content": t.get_text()} for t in req.conversation]
             if req.conversation
             else []
         )
+        if req.caller_summary and req.caller_summary.strip():
+            conv_dicts.append({"role": "caller", "content": req.caller_summary.strip()})
+        budget = min(float(req.max_latency_budget_s or 1.4), HARD_TIMEOUT_SECONDS)
 
-        result: CallerClassificationResult = classify_caller(
-            call_id=req.call_id,
+        future = _EXECUTOR.submit(
+            _classifier_mod.classify_caller,
+            call_id=effective_id,
             caller_number=req.caller_number or "",
             conversation=conv_dicts,
             caller_summary=req.caller_summary,
             language=req.language,
-            max_latency_budget_s=req.max_latency_budget_s,
+            max_latency_budget_s=budget,
         )
+        result: CallerClassificationResult = future.result(timeout=HARD_TIMEOUT_SECONDS)
 
+        logger.info(
+            "classify_caller effective_id=%s raw_call_id=%s raw_execution_id=%s verdict=%s confidence=%.2f",
+            effective_id,
+            req.call_id,
+            req.execution_id,
+            result.verdict,
+            result.confidence,
+        )
         return ClassifyCallerResponse(
             call_id=result.call_id,
             verdict=result.verdict,
@@ -82,13 +106,22 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             method=result.method,
             pillars_detected=result.pillars_detected,
         )
-    except Exception as e:
-        # Fail safe to unsure so receptionist keeps screening
+    except FuturesTimeoutError:
         return ClassifyCallerResponse(
             call_id=req.call_id,
             verdict="unsure",
             confidence=0.50,
-            reason=f"Classifier fallback on error: {str(e)}",
+            reason="Classifier exceeded 1.5s latency budget; defaulting to unsure so screening continues",
+            latency_ms=1500.0,
+            method="timeout_fallback",
+            pillars_detected=[],
+        )
+    except Exception as e:
+        return ClassifyCallerResponse(
+            call_id=req.call_id,
+            verdict="unsure",
+            confidence=0.50,
+            reason=f"Classifier fallback on error: {type(e).__name__}",
             latency_ms=0.0,
             method="error_fallback",
             pillars_detected=[],

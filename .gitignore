@@ -34,3 +34,6 @@ local.properties
 
 # Local alert idempotency database
 data/
+# SQLite databases
+*.db
+*.sqlite3

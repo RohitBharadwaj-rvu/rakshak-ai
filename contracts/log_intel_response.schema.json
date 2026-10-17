@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LogIntelResponse",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "status",
+    "call_id",
+    "type",
+    "value_as_heard",
+    "normalized_value",
+    "unparseable"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["logged"]
+    },
+    "call_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": ["upi", "phone", "account", "ifsc", "link", "pan", "other"]
+    },
+    "value": {
+      "type": "string"
+    },
+    "value_as_heard": {
+      "type": "string"
+    },
+    "normalized_value": {
+      "type": "string"
+    },
+    "unparseable": {
+      "type": "boolean",
+      "description": "True if value could not be validated into canonical form, stored with flag so no evidence is lost"
+    }
+  },
+  "additionalProperties": false
+}

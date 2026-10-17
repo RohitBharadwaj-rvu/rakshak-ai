@@ -1,0 +1,37 @@
+========================================================================
+         GUARDIANLINE — 1930 CYBERCRIME INCIDENT REPORT DRAFT
+     (National Cybercrime Reporting Portal / Helpline 1930 Reference)
+========================================================================
+Report Generated At (IST) : <GENERATED_AT_IST>
+Call Reference ID         : call_early_hangup_006
+Incident Classification   : unsure
+------------------------------------------------------------------------
+1. INCIDENT TIMELINE & CALL METADATA
+------------------------------------------------------------------------
+Call Date & Time (IST)    : 2026-10-24 16:00:00 IST
+Call Duration             : 8.5 seconds (00m 08s)
+Suspect / Scammer Number  : Not captured
+Incident Category         : Online Financial Fraud / Impersonation Scam Call
+Money Lost by Victim      : INR 0 (Intercepted by GuardianLine Honeypot)
+------------------------------------------------------------------------
+2. SUSPECT FINANCIAL & CONTACT IDENTIFIERS (FOR 1930 / NCRP FORM)
+------------------------------------------------------------------------
+UPI IDs                   : Not captured
+Bank Account Numbers      : Not captured
+IFSC Codes                : Not captured
+Suspect Phone Numbers     : Not captured
+PAN Numbers               : Not captured
+Suspicious Links / URLs   : Not captured
+------------------------------------------------------------------------
+3. INCIDENT SUMMARY
+------------------------------------------------------------------------
+Call verdict is unsure with scam_type general_telephony. No financial or contact intelligence entities were captured during the call.
+------------------------------------------------------------------------
+4. FAMILY VERIFICATION NOTICE (READ BEFORE REPORTING)
+------------------------------------------------------------------------
+IMPORTANT: Please review and verify every field in this pre-filled report
+with your family before calling 1930 or submitting a complaint on the
+National Cybercrime Reporting Portal (https://cybercrime.gov.in).
+Fields marked 'Not captured' were not spoken during the call — do not
+guess or fill in unverified values.
+========================================================================

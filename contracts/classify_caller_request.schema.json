@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassifyCallerRequest",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["call_id"],
+  "anyOf": [
+    {"required": ["caller_summary"]},
+    {"required": ["conversation"]}
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the active call (e.g., %(call_sid)s)"
+    },
+    "execution_id": {
+      "type": ["string", "null"],
+      "description": "Optional Bolna execution ID (e.g., %(execution_id)s)"
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "Inbound caller phone number"
+    },
+    "caller_summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "1-3 sentence English summary from Bolna screening mode describing who the caller claims to be and what they want"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["hi", "en", "hinglish"],
+      "default": "hi",
+      "description": "Primary conversation language"
+    },
+    "max_latency_budget_s": {
+      "type": "number",
+      "minimum": 0.1,
+      "default": 1.4,
+      "description": "Maximum latency budget in seconds before returning unsure"
+    },
+    "conversation": {
+      "type": "array",
+      "description": "Ordered transcript turns of the conversation so far",
+      "items": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["caller", "user", "assistant", "system"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
