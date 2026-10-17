@@ -88,7 +88,7 @@ def benchmark_live_groq(api_key: str, iterations: int = 25) -> Dict[str, any]:
 
 
 def benchmark_live_gemini(api_key: str, iterations: int = 25) -> Dict[str, any]:
-    print(f"\n[BENCHMARK] Timing {iterations} live calls to Gemini (gemini-2.0-flash)...")
+    print(f"\n[BENCHMARK] Timing {iterations} live calls to Gemini (gemini-flash-latest)...")
     latencies = []
     successes = 0
 
@@ -116,7 +116,7 @@ def benchmark_live_gemini(api_key: str, iterations: int = 25) -> Dict[str, any]:
 
     return {
         "provider": "Google Gemini",
-        "model": "gemini-2.0-flash",
+        "model": "gemini-flash-latest",
         "calls": iterations,
         "successes": successes,
         "min_ms": round(min(latencies), 1),

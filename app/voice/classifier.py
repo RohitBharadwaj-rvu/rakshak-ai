@@ -244,11 +244,12 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
 
 
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Groq Llama 3.3 70B via standard HTTP API with strict timeout."""
+    """Calls Groq API with strict timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
+        "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
     }
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -271,9 +272,12 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
 
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Google Gemini 2.0 Flash / 1.5 Flash via AI Studio REST API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json"}
+    """Calls Google Gemini Flash via AI Studio REST API."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
+    }
     payload = {
         "system_instruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},
         "contents": [{"parts": [{"text": f"Analyze this call transcript:\n\n{conversation_text}"}]}],

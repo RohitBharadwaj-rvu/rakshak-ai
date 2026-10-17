@@ -5,10 +5,10 @@
     "calls": 10,
     "successes": 10,
     "min_ms": 0.06,
-    "median_p50_ms": 0.09,
-    "p95_ms": 9.36,
-    "max_ms": 9.36,
-    "mean_ms": 1.08
+    "median_p50_ms": 0.1,
+    "p95_ms": 12.22,
+    "max_ms": 12.22,
+    "mean_ms": 1.38
   },
   "groq": {
     "error": "All Groq calls failed or invalid API key"
