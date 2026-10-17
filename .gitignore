@@ -31,3 +31,6 @@ build/
 *.apk
 *.aab
 local.properties
+
+# Local alert idempotency database
+data/

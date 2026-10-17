@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.gui import router, get_dashboard_store, InMemoryCallStore
+from app.core.gui import router, get_dashboard_store, InMemoryCallStore, set_report_renderer
 
 TEST_TOKEN = "test_family_secret_token_123"
 
@@ -33,6 +33,8 @@ def isolated_store():
 
 @pytest.fixture
 def test_app(isolated_store):
+    # Another test may have installed lane B's report renderer; these tests cover the local fallback
+    set_report_renderer(None)
     app = FastAPI(title="GuardianLine Dashboard Test")
     app.dependency_overrides[get_dashboard_store] = lambda: isolated_store
     app.include_router(router)
@@ -146,7 +148,7 @@ class TestDashboardApiAndEmptyState:
 
         ui_resp = client.get(f"/dashboard?token={TEST_TOKEN}")
         assert ui_resp.status_code == 200
-        assert "No suspicious calls intercepted yet" in ui_resp.text
+        assert "No calls handled yet" in ui_resp.text
 
     def test_per_call_signed_url_authorization(self, client, monkeypatch):
         import time

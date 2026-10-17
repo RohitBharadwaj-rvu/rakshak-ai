@@ -1,50 +1,40 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "CallFinalizedEventProposal",
-  "description": "PROPOSAL FROM LANE C TO LANE B: Proposed call.finalized event schema pending Lane B ownership.",
-  "version": "1.1.0",
+  "title": "CallFinalizedEvent",
+  "version": "1.0.0",
   "type": "object",
   "required": [
     "event",
     "call_id",
+    "verdict",
+    "caller_number",
     "timestamp",
-    "record"
+    "report_link"
   ],
   "properties": {
     "event": {
       "type": "string",
-      "const": "call.finalized"
+      "enum": ["call.finalized"]
     },
     "call_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["scam", "genuine", "unsure"]
+    },
+    "caller_number": {
       "type": "string"
     },
     "timestamp": {
       "type": "string"
     },
-    "record": {
-      "type": "object",
-      "required": ["call_id", "verdict"],
-      "properties": {
-        "call_id": { "type": "string" },
-        "caller_number": { "type": ["string", "null"] },
-        "verdict": { "type": "string", "enum": ["scam", "genuine", "unsure"] },
-        "duration": { "type": "number" },
-        "start_time": { "type": ["string", "null"] },
-        "created_at": { "type": ["string", "null"] },
-        "summary": { "type": ["string", "null"] },
-        "extracted_intel": {
-          "type": "object",
-          "properties": {
-            "upi_ids": { "type": "array", "items": { "type": "string" } },
-            "bank_accounts": { "type": "array", "items": { "type": "string" } },
-            "ifsc_codes": { "type": "array", "items": { "type": "string" } },
-            "phone_numbers": { "type": "array", "items": { "type": "string" } },
-            "links": { "type": "array", "items": { "type": "string" } }
-          },
-          "additionalProperties": true
-        }
-      },
-      "additionalProperties": true
+    "report_link": {
+      "type": "string"
+    },
+    "extracted_intel": {
+      "type": "object"
     }
   },
   "additionalProperties": false

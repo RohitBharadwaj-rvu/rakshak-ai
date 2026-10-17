@@ -6,9 +6,11 @@ Features:
 - Complete XSS prevention via html.escape on all dynamic outputs
 - Escapes role after title capitalization to prevent entity mutation
 - Dual authentication:
-    1) Master token (GUARDIAN_DASHBOARD_TOKEN) via query param or Bearer header for full dashboard
-    2) Per-call expiring signed HMAC (exp + sig) for single-call report inspection
-- Pluggable CallStore adapter interface (BaseCallStore) for seamless transition to Lane B backend
+    1) Master token (GUARDIAN_DASHBOARD_TOKEN) by Bearer header, or a one-time ?token= login
+       that is swapped for an HttpOnly session cookie so the token never sits in links
+    2) Per-call expiring signed HMAC (exp + sig, REPORT_SIGNING_SECRET) for family alert links
+- Pluggable CallStore adapter (BaseCallStore); app.core.lane_c.install() points it at Lane B's store
+- 1930 report rendered by Lane B's generator when installed (local fallback only when standalone)
 - Sorting by parsed ISO-8601 timestamps rather than raw string comparison
 - Real pagination controls (Next/Previous, total counts, no silent truncation)
 - Shows verdict badges, call duration, and extracted payment/link intel on detail view
@@ -20,11 +22,13 @@ import os
 import secrets
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
-from fastapi.responses import HTMLResponse
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from urllib.parse import quote, urlencode
 
-from app.notify.alerts import verify_report_signature
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+
+from app.notify.alerts import get_report_signing_secret, verify_report_signature
 
 logger = logging.getLogger("guardianline.gui")
 
@@ -115,6 +119,15 @@ class InMemoryCallStore(BaseCallStore):
 _GLOBAL_STORE: BaseCallStore = InMemoryCallStore()
 
 
+# Renders the 1930 report text for a CallRecord. Set to Lane B's generator by app.core.lane_c.install().
+_REPORT_RENDERER: Optional[Callable[[Dict[str, Any]], str]] = None
+
+
+def set_report_renderer(renderer: Optional[Callable[[Dict[str, Any]], str]]) -> None:
+    global _REPORT_RENDERER
+    _REPORT_RENDERER = renderer
+
+
 def get_dashboard_store() -> BaseCallStore:
     return _GLOBAL_STORE
 
@@ -126,35 +139,62 @@ def set_dashboard_store(store: BaseCallStore) -> None:
 
 router = APIRouter(tags=["dashboard"])
 
+SESSION_COOKIE = "gl_dash"
 
-def verify_overview_auth(
-    token: Optional[str] = Query(None, description="Dashboard auth token query parameter"),
-    authorization: Optional[str] = Header(None, description="Bearer token authentication header"),
-) -> str:
-    """Verifies master GUARDIAN_DASHBOARD_TOKEN for viewing full call lists."""
-    expected_token = os.environ.get("GUARDIAN_DASHBOARD_TOKEN")
-    if not expected_token:
+
+def _master_token() -> str:
+    expected = os.environ.get("GUARDIAN_DASHBOARD_TOKEN")
+    if not expected:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Dashboard authentication is not configured in server environment",
         )
+    return expected
 
-    candidate_token = None
+
+def _candidate_token(request: Request, token: Optional[str], authorization: Optional[str]) -> Optional[str]:
     if authorization and authorization.lower().startswith("bearer "):
-        candidate_token = authorization[7:].strip()
-    elif token:
-        candidate_token = token.strip()
+        return authorization[7:].strip()
+    if token:
+        return token.strip()
+    return request.cookies.get(SESSION_COOKIE)
 
-    if not candidate_token or not secrets.compare_digest(candidate_token, expected_token):
+
+def _session_redirect(request: Request, token: str) -> RedirectResponse:
+    """Swap a ?token= login for an HttpOnly cookie so the token leaves the URL bar and history."""
+    params = [(k, v) for k, v in request.query_params.multi_items() if k != "token"]
+    target = request.url.path + (f"?{urlencode(params)}" if params else "")
+    resp = RedirectResponse(target, status_code=status.HTTP_303_SEE_OTHER)
+    resp.set_cookie(
+        SESSION_COOKIE,
+        token,
+        httponly=True,
+        samesite="strict",
+        secure=request.url.scheme == "https",
+        max_age=7 * 86400,
+    )
+    return resp
+
+
+def verify_overview_auth(
+    request: Request,
+    token: Optional[str] = Query(None, description="One-time login: exchanged for a session cookie"),
+    authorization: Optional[str] = Header(None, description="Bearer token authentication header"),
+) -> str:
+    """Verifies the master GUARDIAN_DASHBOARD_TOKEN (header, ?token= or session cookie)."""
+    expected = _master_token()
+    candidate = _candidate_token(request, token, authorization)
+    if not candidate or not secrets.compare_digest(candidate, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized: invalid or missing dashboard token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return candidate_token
+    return candidate
 
 
 def verify_call_access(
+    request: Request,
     call_id: str,
     token: Optional[str] = Query(None),
     exp: Optional[int] = Query(None),
@@ -162,34 +202,18 @@ def verify_call_access(
     authorization: Optional[str] = Header(None),
 ) -> str:
     """
-    Authorizes access to a specific call report or detail view.
-    Accepts either:
-    1) Master GUARDIAN_DASHBOARD_TOKEN
-    OR
-    2) Per-call expiring HMAC signature (?exp=...&sig=...) generated for family alerts.
+    Authorizes access to one call. Returns the query string that later links on the page
+    must carry: the signed exp/sig for a family alert link, or "" for a logged-in session.
     """
-    master_token = os.environ.get("GUARDIAN_DASHBOARD_TOKEN")
+    signing_secret = get_report_signing_secret()
+    if exp is not None and sig and signing_secret:
+        if verify_report_signature(call_id, exp, sig, signing_secret):
+            return f"?{urlencode({'exp': exp, 'sig': sig})}"
 
-    # 1. Check per-call signature first
-    if exp is not None and sig and master_token:
-        if verify_report_signature(call_id, exp, sig, master_token):
-            return f"signed_link_{sig[:8]}"
-
-    # 2. Check master token
-    if not master_token:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Dashboard authentication is not configured in server environment",
-        )
-
-    candidate_token = None
-    if authorization and authorization.lower().startswith("bearer "):
-        candidate_token = authorization[7:].strip()
-    elif token:
-        candidate_token = token.strip()
-
-    if candidate_token and secrets.compare_digest(candidate_token, master_token):
-        return candidate_token
+    expected = _master_token()
+    candidate = _candidate_token(request, token, authorization)
+    if candidate and secrets.compare_digest(candidate, expected):
+        return ""
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -210,12 +234,17 @@ def _safe_duration(val: Any) -> float:
 @router.get("/gui", response_class=HTMLResponse)
 @router.get("/gui/", response_class=HTMLResponse)
 def render_dashboard(
+    request: Request,
     auth_token: str = Depends(verify_overview_auth),
-    verdict: Optional[str] = Query(None),
+    token: Optional[str] = Query(None),
+    verdict: Optional[str] = Query(None, pattern="^(scam|genuine|unsure)$"),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     store: BaseCallStore = Depends(get_dashboard_store),
 ):
+    if token:
+        return _session_redirect(request, auth_token)
+
     calls, total_calls = store.get_calls(verdict=verdict, page=page, limit=limit)
 
     total_pages = max(1, (total_calls + limit - 1) // limit) if total_calls > 0 else 1
@@ -226,7 +255,7 @@ def render_dashboard(
         cards_html = """
         <div class="empty-state">
             <div class="empty-icon">🛡️</div>
-            <h3>No suspicious calls intercepted yet</h3>
+            <h3>No calls handled yet</h3>
             <p>Elder protection is active. New screened calls will appear here in real-time.</p>
         </div>
         """
@@ -234,6 +263,7 @@ def render_dashboard(
         cards_list = []
         for c in calls:
             c_id = html.escape(str(c.get("call_id", "")))
+            c_path = html.escape(quote(str(c.get("call_id", "")), safe=""))
             caller = html.escape(str(c.get("caller_number") or "Unknown / Withheld"))
             v = str(c.get("verdict", "unsure")).lower()
             if v not in ("scam", "genuine", "unsure"):
@@ -272,8 +302,8 @@ def render_dashboard(
                 <div class="card-footer">
                     <span class="call-id">ID: {c_id}</span>
                     <div class="actions">
-                        <a href="/dashboard/calls/{c_id}?token={html.escape(auth_token)}" class="btn-detail">Inspect</a>
-                        <a href="/dashboard/report/{c_id}?token={html.escape(auth_token)}" class="btn-dossier" target="_blank">1930 Dossier</a>
+                        <a href="/dashboard/calls/{c_path}" class="btn-detail">Inspect</a>
+                        <a href="/dashboard/report/{c_path}" class="btn-dossier" target="_blank">Draft 1930 report</a>
                     </div>
                 </div>
             </div>
@@ -282,8 +312,8 @@ def render_dashboard(
         cards_html = "\n".join(cards_list)
 
     # Build pagination controls
-    token_q = f"&token={html.escape(auth_token)}"
-    verdict_q = f"&verdict={html.escape(verdict)}" if verdict else ""
+    token_q = ""
+    verdict_q = f"&verdict={verdict}" if verdict else ""
 
     prev_link = f'<a href="/dashboard?page={page-1}&limit={limit}{verdict_q}{token_q}" class="btn-page">← Previous</a>' if page > 1 else '<span class="btn-page disabled">← Previous</span>'
     next_link = f'<a href="/dashboard?page={page+1}&limit={limit}{verdict_q}{token_q}" class="btn-page">Next →</a>' if page < total_pages else '<span class="btn-page disabled">Next →</span>'
@@ -425,7 +455,7 @@ def render_dashboard(
     <div class="container">
         <header>
             <h1>🛡️ GuardianLine Shield</h1>
-            <div class="subtitle">Autonomous Voice Screening &amp; Honeypot Protection</div>
+            <div class="subtitle">Calls handled by GuardianLine for your family</div>
         </header>
         <main>
             {cards_html}
@@ -444,6 +474,8 @@ def render_call_detail(
     auth: str = Depends(verify_call_access),
     store: BaseCallStore = Depends(get_dashboard_store),
 ):
+    # Signed family links open one call only, so they get no link back to the full list
+    back_link = "" if auth else '<a href="/dashboard" class="back-link">← Back to Overview</a>'
     record = store.get_call(call_id)
     if not record:
         raise HTTPException(
@@ -535,13 +567,13 @@ def render_call_detail(
 </head>
 <body>
     <div class="container">
-        <a href="/dashboard" class="back-link">← Back to Overview</a>
+        {back_link}
         <div class="card">
             <div><span class="badge {badge_class}">{badge_text}</span></div>
             <div class="caller">{caller}</div>
             <div class="summary">{summary}</div>
             <div class="intel-box">{intel_html}</div>
-            <a href="/dashboard/report/{html.escape(call_id)}" class="btn-dossier" target="_blank">Download Pre-Filled 1930 Dossier</a>
+            <a href="/dashboard/report/{html.escape(quote(call_id, safe=''))}{html.escape(auth)}" class="btn-dossier" target="_blank">Download draft 1930 report</a>
         </div>
         <div class="card">
             <h2>Call Transcript ({duration:.0f}s)</h2>
@@ -557,7 +589,7 @@ def render_call_detail(
 @router.get("/dashboard/api/calls", response_model=List[Dict[str, Any]])
 def list_calls_api(
     auth_token: str = Depends(verify_overview_auth),
-    verdict: Optional[str] = Query(None, description="Filter: scam, genuine, unsure"),
+    verdict: Optional[str] = Query(None, pattern="^(scam|genuine|unsure)$", description="Filter: scam, genuine, unsure"),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     store: BaseCallStore = Depends(get_dashboard_store),
@@ -594,6 +626,17 @@ def download_1930_report(
             detail=f"Call record '{call_id}' not found",
         )
 
+    safe_name = "".join(ch for ch in call_id if ch.isalnum() or ch in "-_")[:64] or "call"
+    headers = {
+        "Content-Disposition": f"inline; filename=1930_report_{safe_name}.txt",
+        "X-Content-Type-Options": "nosniff",
+    }
+
+    # Lane B owns the 1930 report (T-RPT, golden-file tested). Use it whenever it is installed.
+    if _REPORT_RENDERER is not None:
+        return Response(content=_REPORT_RENDERER(record), media_type="text/plain; charset=utf-8", headers=headers)
+
+    # Standalone fallback only (lane C running without lane B's backend)
     caller = record.get("caller_number") or "Not captured"
     intel = record.get("extracted_intel", {}) or {}
     upi_str = ", ".join(intel.get("upi_ids", [])) or "Not captured"
@@ -640,8 +683,4 @@ formal submission to the National Cybercrime Reporting Portal (1930).
 ================================================================================
 Generated by GuardianLine Autonomous Protection System
 """
-    return Response(
-        content=report_text,
-        media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": f"inline; filename=1930_report_{call_id}.txt"},
-    )
+    return Response(content=report_text, media_type="text/plain; charset=utf-8", headers=headers)

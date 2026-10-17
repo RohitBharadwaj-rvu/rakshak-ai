@@ -32,6 +32,7 @@ import time
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+from urllib.parse import quote
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("guardianline.notify")
@@ -131,6 +132,52 @@ def verify_report_signature(call_id: str, expiry: int, signature: str, secret_ke
     return secrets.compare_digest(signature, expected)
 
 
+def get_report_signing_secret() -> Optional[str]:
+    """Secret for per-call report links. Prefer a dedicated secret; fall back to the dashboard token."""
+    return os.environ.get("REPORT_SIGNING_SECRET") or os.environ.get("GUARDIAN_DASHBOARD_TOKEN")
+
+
+def _sms_budget(text: str) -> int:
+    """Two-segment budget in encoding units: septets for GSM-7, characters for UCS-2."""
+    return 306 if is_gsm7(text) else 134
+
+
+def _sms_units(text: str) -> int:
+    return count_septets(text) if is_gsm7(text) else len(text)
+
+
+def _fit_sms(heads: List[str], body: str, tail: str) -> str:
+    """
+    Build an SMS of head + body + tail that fits two segments.
+    The tail (report link) is never cut. For each head option (longest first) the body is
+    trimmed until the message fits; the option that keeps the most body wins. If even the
+    shortest head plus tail is too long, the full link is kept and the message is allowed
+    to run into a third segment.
+    """
+    def fits(text: str) -> bool:
+        return _sms_units(text) <= _sms_budget(text)
+
+    best: Optional[Tuple[int, str]] = None
+    for head in heads:
+        kept = body
+        while kept and not fits(f"{head}{kept}{tail}"):
+            kept = kept[:-1]
+        if not kept and not fits(f"{head}{tail}"):
+            continue
+        if kept and len(kept) < min(10, len(body)):
+            kept = ""  # a few stray characters are noise, not information
+        candidate = f"{head}{kept}{tail}".strip()
+        if best is None or len(kept) > best[0]:
+            best = (len(kept), candidate)
+        if kept == body:
+            break
+    if best is not None:
+        return best[1]
+    shortest = f"{heads[-1]}{tail}".strip()
+    logger.warning("SMS exceeds 2 segments (%d units); keeping full report link", _sms_units(shortest))
+    return shortest
+
+
 def format_alert_message(
     call_record: Dict[str, Any],
     channel: AlertChannel,
@@ -140,9 +187,9 @@ def format_alert_message(
 ) -> str:
     """
     Formats notification for WhatsApp or SMS.
-    Guarantees SMS fits within 2 segments:
-      - GSM-7: <= 306 septets
-      - UCS-2: <= 134 characters
+    SMS targets 2 segments (306 GSM-7 septets or 134 UCS-2 characters). The summary and
+    intel are trimmed first; the report link is never cut, so a very long base URL can
+    push the message into a third segment rather than lose the link.
     Uses per-call signed links (expiring HMAC) so the master dashboard token is never leaked.
     """
     call_id = str(call_record.get("call_id") or "unknown_call")
@@ -152,12 +199,13 @@ def format_alert_message(
 
     # Build report link using expiring HMAC signature rather than raw master token
     secret = signing_secret or dashboard_token
+    safe_id = quote(call_id, safe="")
     if secret:
         exp = int(time.time()) + 7 * 86400  # 7-day validity for family inspection
         sig = generate_report_signature(call_id, exp, secret)
-        report_link = f"{base_report_url.rstrip('/')}/{call_id}?exp={exp}&sig={sig}"
+        report_link = f"{base_report_url.rstrip('/')}/{safe_id}?exp={exp}&sig={sig}"
     else:
-        report_link = call_record.get("report_url") or f"{base_report_url.rstrip('/')}/{call_id}"
+        report_link = f"{base_report_url.rstrip('/')}/{safe_id}"
 
     upi_list: List[str] = intel.get("upi_ids", [])
     acc_list: List[str] = intel.get("bank_accounts", [])
@@ -182,42 +230,8 @@ def format_alert_message(
 
             intel_str = " | ".join(intel_parts) if intel_parts else "Intel logged"
 
-            prefix = f"[SUSPECTED SCAM] Call from {caller_num}. "
-            suffix = f" Dossier: {report_link}"
-
-            candidate = f"{prefix}{intel_str}{suffix}"
-            if is_gsm7(candidate):
-                # Target max 306 septets
-                max_septets = 306
-                # If candidate fits immediately
-                if count_septets(candidate) <= max_septets:
-                    return candidate
-
-                # Trim intel string progressively until it fits
-                trimmed_intel = intel_str
-                while trimmed_intel and count_septets(f"{prefix}{trimmed_intel}{suffix}") > max_septets:
-                    trimmed_intel = trimmed_intel[:-1]
-
-                if trimmed_intel:
-                    return f"{prefix}{trimmed_intel}{suffix}"
-                
-                # If prefix + suffix alone exceeds budget, trim suffix/link safely
-                bare_msg = f"{prefix}{suffix}"
-                while count_septets(bare_msg) > max_septets and len(bare_msg) > 10:
-                    bare_msg = bare_msg[:-1]
-                return bare_msg
-            else:
-                # UCS-2 Unicode (e.g. Hindi caller or summary): max 134 chars
-                max_chars = 134
-                if len(candidate) <= max_chars:
-                    return candidate
-                
-                fixed_len = len(prefix) + len(suffix)
-                avail = max_chars - fixed_len
-                if avail > 10:
-                    return f"{prefix}{intel_str[:avail]}{suffix}"
-                else:
-                    return f"{prefix}{suffix}"[:max_chars]
+            heads = [f"[SUSPECTED SCAM] Call from {caller_num}. ", "[SUSPECTED SCAM] "]
+            return _fit_sms(heads, intel_str, f" Report: {report_link}")
 
         else:
             # WhatsApp rich formatting
@@ -238,26 +252,19 @@ def format_alert_message(
             summary = call_record.get("summary") or "Suspected fraud attempt screened by voice assistant."
             return (
                 f"🚨 *GUARDIANLINE SCAM ALERT*\n\n"
-                f"A suspected scam call targeting the elder was screened and redirected to the honeypot.\n\n"
+                f"A suspected scam call was handled by GuardianLine. Please check on them.\n\n"
                 f"*Caller:* {caller_num}\n"
                 f"*Summary:* {summary}\n\n"
                 f"*Captured Attacker Intel:*\n"
                 f"{intel_block}\n\n"
-                f"📄 *Draft 1930 Cybercrime Dossier:* {report_link}\n"
+                f"📄 *Draft 1930 report (check before filing):* {report_link}\n"
                 f"Call ID: `{call_id}`"
             )
 
     elif verdict == "genuine":
         message_body = call_record.get("message") or call_record.get("summary") or "Caller left a message."
         if channel == AlertChannel.SMS:
-            prefix = f"[MESSAGE TAKEN] Call from {caller_num}: "
-            candidate = f"{prefix}{message_body}"
-            if is_gsm7(candidate):
-                while count_septets(candidate) > 306:
-                    candidate = candidate[:-1]
-                return candidate
-            else:
-                return candidate[:134]
+            return _fit_sms([f"[MESSAGE TAKEN] Call from {caller_num}: "], message_body, "")
         else:
             return (
                 f"📞 *GUARDIANLINE MESSAGE TAKEN*\n\n"
@@ -533,10 +540,15 @@ class FamilyAlertDispatcher:
         sub_results = [self._dispatch_single(call_record, r) for r in recipients]
 
         # Overall summary result
+        reason = sub_results[0].reason
         if all(r.status == AlertStatus.SENT for r in sub_results):
             overall_status = AlertStatus.SENT
         elif any(r.status == AlertStatus.SENT for r in sub_results):
+            # At least one family member was reached; flag the ones that were not
             overall_status = AlertStatus.SENT
+            failed = [mask_number(r.recipient) for r in sub_results if r.status == AlertStatus.FAILED]
+            if failed:
+                reason = f"PARTIAL_FAILURE: {', '.join(failed)}"
         elif all(r.status == AlertStatus.MOCK for r in sub_results):
             overall_status = AlertStatus.MOCK
         elif all(r.status == AlertStatus.SKIPPED for r in sub_results):
@@ -548,7 +560,7 @@ class FamilyAlertDispatcher:
         return AlertResult(
             status=overall_status,
             call_id=first.call_id,
-            reason=first.reason,
+            reason=reason,
             recipient=", ".join(r.recipient for r in sub_results),
             channel=self.config.channel,
             message_sid=first.message_sid,
@@ -703,7 +715,7 @@ def build_dispatcher_from_env() -> FamilyAlertDispatcher:
         channel=channel,
         base_report_url=report_url,
         token=dash_token,
-        signing_secret=dash_token,
+        signing_secret=get_report_signing_secret(),
     )
 
     env_mode = os.environ.get("ENV", "").lower()

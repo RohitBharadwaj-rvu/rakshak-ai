@@ -115,18 +115,5 @@ Paste this tool definition directly into your Bolna agent configuration YAML/JSO
 
 ---
 
-## 5. Lane C Proposal: Event Contracts & Intel Types (For Lane B)
-Lane C provides initial JSON Schema proposals for CallRecord and post-call notifications:
-- **`contracts/callrecord.schema.json`**: Supports `start_time` (per Sprint Plan Interfaces) and `created_at`, plus `links` array under `extracted_intel` (`upi_ids`, `bank_accounts`, `ifsc_codes`, `phone_numbers`, `links`).
-- **`contracts/call_finalized.schema.json`**: Emitted by backend upon finalization to trigger family alerts and dashboard live feed.
-> [!NOTE]
-> Lane B owns `CallRecord` backend storage. These contracts serve as the baseline proposal for cross-lane alignment.
-
----
-
-## 6. Open Telephony Questions (For Lane A & Lane C)
-Before Gate 1 T-XFER testing, Lane A and Lane C must settle:
-1. **Transfer Caller ID**: When Bolna initiates an outbound transfer to the parent handset, does carrier network present the Bolna gateway number (whitelisted by `GuardianCallScreeningService`) or the scammer's caller ID?
-2. **Transfer Loop Prevention**: If the elder's line is busy or declined, the carrier's `**67*` rule forwards the call back to Bolna. Bolna must check if an inbound call leg arrives from the protected handset and switch to taking a message rather than re-initiating a transfer.
-3. **Naming Alignment**: The Android app, family dashboard, and alert notifications are branded **GuardianLine**, while the voice receptionist persona is **Rakshak**.
-
+## 5. Lane C (family alerts, dashboard, Android)
+Lane C now consumes Lane B's `contracts/call_record.schema.json` and `contracts/call_finalized.schema.json` (Lane C's earlier `callrecord.schema.json` proposal is withdrawn). Wiring into B's app (`install(app)`), settings, India SMS/WhatsApp delivery caveats and the open transfer-loop questions for Lane A are in [`docs/lane_c_integration.md`](lane_c_integration.md).

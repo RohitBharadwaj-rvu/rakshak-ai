@@ -147,7 +147,7 @@ A teammate dials the Bolna number directly. The agent screens the call, switches
 
 - [ ] Finish the screening app and run Test 2 on every carrier.
 - [ ] Run Tests 3 and 4 with A once the number is live.
-- [x] Build family alert v1 on the Twilio WhatsApp sandbox or SMS, fired by `call.finalized`. Test it with `mock_bolna.py`.
+- [ ] Build family alert v1 on the Twilio WhatsApp sandbox or SMS, fired by `call.finalized`. Test it with `mock_bolna.py`.
 - [ ] Ask each teammate for 1 or 2 elderly relatives willing to test genuine calls.
 
 **D · Detection and eval**
