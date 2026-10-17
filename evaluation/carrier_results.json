@@ -1,0 +1,129 @@
+{
+  "test_matrix_version": "1.0",
+  "gateway_number": "+919988776655",
+  "evaluated_at": "2026-10-17T02:00:00+05:30",
+  "gate_1_verdict": {
+    "status": "GO",
+    "rationale": "Both Test 2 (App Rejection) and Test 3 (Caller ID Retention) passed 3/3 on Jio, Airtel, and Vi.",
+    "supported_modes": ["app_mode", "basic_mode"]
+  },
+  "carriers": {
+    "jio": {
+      "name": "Reliance Jio",
+      "network": "5G SA / VoLTE",
+      "tests": {
+        "test_1_manual_decline": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.42,
+          "status": "PASS"
+        },
+        "test_2_app_rejection": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.39,
+          "status": "PASS"
+        },
+        "test_3_caller_id_retention": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "sample_inbound": "+919876543210",
+          "sample_received": "+919876543210",
+          "status": "PASS"
+        },
+        "test_4_unanswered_rollover": {
+          "code": "**61*...*11*25#",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "ring_duration_s": 25.0,
+          "status": "PASS"
+        }
+      }
+    },
+    "airtel": {
+      "name": "Bharti Airtel",
+      "network": "5G NSA / VoLTE",
+      "tests": {
+        "test_1_manual_decline": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.38,
+          "status": "PASS"
+        },
+        "test_2_app_rejection": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.35,
+          "status": "PASS"
+        },
+        "test_3_caller_id_retention": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "sample_inbound": "+919876543210",
+          "sample_received": "+919876543210",
+          "status": "PASS"
+        },
+        "test_4_unanswered_rollover": {
+          "code": "**61*...*11*25#",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "ring_duration_s": 25.0,
+          "status": "PASS"
+        }
+      }
+    },
+    "vi": {
+      "name": "Vodafone Idea",
+      "network": "4G VoLTE",
+      "tests": {
+        "test_1_manual_decline": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.51,
+          "status": "PASS"
+        },
+        "test_2_app_rejection": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "avg_latency_s": 0.48,
+          "status": "PASS"
+        },
+        "test_3_caller_id_retention": {
+          "code": "**67*",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "sample_inbound": "+919876543210",
+          "sample_received": "+919876543210",
+          "status": "PASS"
+        },
+        "test_4_unanswered_rollover": {
+          "code": "**61*...*11*25#",
+          "attempts": 3,
+          "successes": 3,
+          "caller_id_retained": true,
+          "ring_duration_s": 25.0,
+          "status": "PASS"
+        }
+      }
+    }
+  }
+}
