@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""
+run.py - GuardianLine Backend Server Entrypoint.
+Run with: python run.py
+"""
+
+import os
+import uvicorn
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8000")),
+        reload=False,
+        log_level="info",
+    )

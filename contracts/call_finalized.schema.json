@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CallFinalizedEvent",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "event",
+    "call_id",
+    "verdict",
+    "caller_number",
+    "timestamp",
+    "report_link"
+  ],
+  "properties": {
+    "event": {
+      "type": "string",
+      "enum": ["call.finalized"]
+    },
+    "call_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["scam", "genuine", "unsure"]
+    },
+    "caller_number": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "report_link": {
+      "type": "string"
+    },
+    "extracted_intel": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

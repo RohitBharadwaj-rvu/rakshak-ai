@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SwitchToHoneypotRequest",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["call_id"],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the active call"
+    },
+    "language": {
+      "type": "string",
+      "default": "hi",
+      "description": "Requested persona language (hi, en, hinglish); unknown falls back to hi"
+    },
+    "persona_id": {
+      "type": "string",
+      "description": "Optional preferred persona key (ramesh, sunita, iyer)"
+    }
+  },
+  "additionalProperties": false
+}

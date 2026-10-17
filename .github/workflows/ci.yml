@@ -2,9 +2,9 @@ name: GuardianLine CI
 
 on:
   push:
-    branches: [ main, voice, lane-d ]
+    branches: [ main, voice, lane-d, lane-b ]
   pull_request:
-    branches: [ main, voice, lane-d ]
+    branches: [ main, voice, lane-d, lane-b ]
 
 jobs:
   test-and-eval:
@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest jsonschema requests httpx pydantic fastapi
+          pip install pytest jsonschema requests httpx pydantic fastapi pyyaml
 
       - name: Run Unit & Contract Tests (T-CONTRACT, T-PRIV, T-SCN)
         run: |

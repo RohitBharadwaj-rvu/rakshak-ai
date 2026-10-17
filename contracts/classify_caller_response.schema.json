@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassifyCallerResponse",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "call_id",
+    "verdict",
+    "confidence",
+    "reason"
+  ],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["scam", "genuine", "unsure"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "reason": {
+      "type": "string"
+    },
+    "latency_ms": {
+      "type": "number",
+      "minimum": 0.0
+    },
+    "method": {
+      "type": "string"
+    },
+    "pillars_detected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

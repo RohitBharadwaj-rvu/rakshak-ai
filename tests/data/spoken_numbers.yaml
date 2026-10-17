@@ -1,0 +1,644 @@
+# tests/data/spoken_numbers.yaml - T-NORM Corpus (155+ deterministic test cases)
+# Covers English, Hindi (Roman & Devanagari), Tamil (Roman & Script), native digits,
+# repeats, UPI handles, separators, spelled IFSC codes, and unchanged amounts/times.
+
+cases:
+  # ============================================================================
+  # Group 1: English digit words & repeats (40 cases)
+  # ============================================================================
+  - id: en_01
+    group: english_digits
+    input: "nine eight four five zero"
+    expected: "98450"
+  - id: en_02
+    group: english_digits
+    input: "nine eight seven six five four three two one zero"
+    expected: "9876543210"
+  - id: en_03
+    group: repeats
+    input: "double five triple zero"
+    expected: "55000"
+  - id: en_04
+    group: oh_for_zero
+    input: "nine oh one"
+    expected: "901"
+  - id: en_05
+    group: oh_for_zero
+    input: "eight oh oh five two"
+    expected: "80052"
+  - id: en_06
+    group: repeats
+    input: "nine double eight four five"
+    expected: "98845"
+  - id: en_07
+    group: repeats
+    input: "triple nine double zero one"
+    expected: "999001"
+  - id: en_08
+    group: repeats
+    input: "seven double six triple four"
+    expected: "766444"
+  - id: en_09
+    group: english_digits
+    input: "one two three four five six seven eight nine"
+    expected: "123456789"
+  - id: en_10
+    group: english_digits
+    input: "six seven eight nine zero one two three four five"
+    expected: "6789012345"
+  - id: en_11
+    group: english_digits
+    input: "five zero one zero zero four three two eight nine"
+    expected: "5010043289"
+  - id: en_12
+    group: repeats
+    input: "double eight double seven double six"
+    expected: "887766"
+  - id: en_13
+    group: repeats
+    input: "quadruple nine zero one"
+    expected: "999901"
+  - id: en_14
+    group: oh_for_zero
+    input: "seven oh eight oh nine oh"
+    expected: "708090"
+  - id: en_15
+    group: mixed_digits
+    input: "98 four 5"
+    expected: "9845"
+  - id: en_16
+    group: mixed_digits
+    input: "9 8 seven 6 five 4"
+    expected: "987654"
+  - id: en_17
+    group: mixed_digits
+    input: "501 double zero 43"
+    expected: "5010043"
+  - id: en_18
+    group: english_digits
+    input: "four five six seven"
+    expected: "4567"
+  - id: en_19
+    group: english_digits
+    input: "two three four five six"
+    expected: "23456"
+  - id: en_20
+    group: english_digits
+    input: "three one four one five nine"
+    expected: "314159"
+  - id: en_21
+    group: english_digits
+    input: "eight five two zero"
+    expected: "8520"
+  - id: en_22
+    group: english_digits
+    input: "seven four one zero"
+    expected: "7410"
+  - id: en_23
+    group: english_digits
+    input: "nine six three two"
+    expected: "9632"
+  - id: en_24
+    group: repeats
+    input: "double one double two double three"
+    expected: "112233"
+  - id: en_25
+    group: repeats
+    input: "triple five triple six"
+    expected: "555666"
+  - id: en_26
+    group: oh_for_zero
+    input: "nine oh nine oh"
+    expected: "9090"
+  - id: en_27
+    group: mixed_digits
+    input: "88 nine nine 00"
+    expected: "889900"
+  - id: en_28
+    group: spelled_ifsc
+    input: "S B I N zero zero zero one two three four"
+    expected: "SBIN0001234"
+  - id: en_29
+    group: spelled_ifsc
+    input: "H D F C zero zero zero nine eight seven six"
+    expected: "HDFC0009876"
+  - id: en_30
+    group: spelled_ifsc
+    input: "I C I C zero zero zero one one two two"
+    expected: "ICIC0001122"
+  - id: en_31
+    group: spelled_ifsc
+    input: "U T I B zero zero zero four five six seven"
+    expected: "UTIB0004567"
+  - id: en_32
+    group: spelled_ifsc
+    input: "P U N B zero one two three four five six"
+    expected: "PUNB0123456"
+  - id: en_33
+    group: upi_handles
+    input: "ramesh at the rate okaxis"
+    expected: "ramesh@okaxis"
+  - id: en_34
+    group: upi_handles
+    input: "ramesh at rate ok axis"
+    expected: "ramesh@okaxis"
+  - id: en_35
+    group: upi_handles
+    input: "cbi dot officer dot verma at the rate ok axis"
+    expected: "cbi.officer.verma@okaxis"
+  - id: en_36
+    group: separators
+    input: "ramesh dot kumar underscore one"
+    expected: "ramesh.kumar_1"
+  - id: en_37
+    group: separators
+    input: "pay dot verification dash cell at the rate ybl"
+    expected: "pay.verification-cell@ybl"
+  - id: en_38
+    group: upi_handles
+    input: "nine eight eight four five six seven eight nine zero @ paytm"
+    expected: "9884567890@paytm"
+  - id: en_39
+    group: upi_handles
+    input: "sunita dot sharma at the rate ok hdfc bank"
+    expected: "sunita.sharma@okhdfcbank"
+  - id: en_40
+    group: upi_handles
+    input: "inspector underscore raj at the rate ok icici"
+    expected: "inspector_raj@okicici"
+
+  # ============================================================================
+  # Group 2: Hindi words (Roman & Devanagari) & native digits (45 cases)
+  # ============================================================================
+  - id: hi_01
+    group: hindi_roman
+    input: "nau aath chaar"
+    expected: "984"
+  - id: hi_02
+    group: hindi_devanagari
+    input: "नौ आठ चार"
+    expected: "984"
+  - id: hi_03
+    group: native_digits_hi
+    input: "९८४"
+    expected: "984"
+  - id: hi_04
+    group: native_digits_hi
+    input: "९८७६५४३२१०"
+    expected: "9876543210"
+  - id: hi_05
+    group: hindi_devanagari
+    input: "नौ आठ सात छह पाँच चार तीन दो एक शून्य"
+    expected: "9876543210"
+  - id: hi_06
+    group: hindi_devanagari
+    input: "पांच शून्य एक शून्य शून्य चार तीन दो आठ नौ एक दो तीन चार"
+    expected: "50100432891234"
+  - id: hi_07
+    group: hindi_ifsc
+    input: "एच डी एफ सी शून्य शून्य शून्य एक दो तीन चार"
+    expected: "HDFC0001234"
+  - id: hi_08
+    group: hindi_ifsc
+    input: "एस बी आई एन शून्य शून्य शून्य चार पांच छह सात"
+    expected: "SBIN0004567"
+  - id: hi_09
+    group: hindi_upi
+    input: "नौ आठ आठ चार पांच छह सात आठ नौ शून्य @ paytm"
+    expected: "9884567890@paytm"
+  - id: hi_10
+    group: hindi_roman
+    input: "nau aath saat chhe paanch chaar teen do ek shunya"
+    expected: "9876543210"
+  - id: hi_11
+    group: hindi_roman
+    input: "ek do teen char panch"
+    expected: "12345"
+  - id: hi_12
+    group: hindi_roman
+    input: "chey saat aath nau shunya"
+    expected: "67890"
+  - id: hi_13
+    group: hindi_roman
+    input: "saat aath nau ek do"
+    expected: "78912"
+  - id: hi_14
+    group: hindi_roman
+    input: "double nau teen char"
+    expected: "9934"
+  - id: hi_15
+    group: hindi_roman
+    input: "triple aath do ek"
+    expected: "88821"
+  - id: hi_16
+    group: hindi_devanagari
+    input: "डबल नौ तीन चार"
+    expected: "9934"
+  - id: hi_17
+    group: hindi_devanagari
+    input: "ट्रिपल शून्य एक दो"
+    expected: "00012"
+  - id: hi_18
+    group: hindi_devanagari
+    input: "सात छह पाँच चार तीन"
+    expected: "76543"
+  - id: hi_19
+    group: hindi_devanagari
+    input: "आठ नौ शून्य एक दो"
+    expected: "89012"
+  - id: hi_20
+    group: hindi_devanagari
+    input: "एक एक दो दो तीन तीन"
+    expected: "112233"
+  - id: hi_21
+    group: hindi_devanagari
+    input: "चार पाँच छह सात आठ"
+    expected: "45678"
+  - id: hi_22
+    group: hindi_devanagari
+    input: "छः सात आठ नौ शून्य"
+    expected: "67890"
+  - id: hi_23
+    group: hindi_devanagari
+    input: "छे एक दो तीन चार"
+    expected: "61234"
+  - id: hi_24
+    group: hindi_devanagari
+    input: "जीरो नौ आठ सात"
+    expected: "0987"
+  - id: hi_25
+    group: hindi_devanagari
+    input: "वन टू थ्री फोर फाइव"
+    expected: "12345"
+  - id: hi_26
+    group: hindi_devanagari
+    input: "सिक्स सेवन एट नाइन जीरो"
+    expected: "67890"
+  - id: hi_27
+    group: hindi_upi
+    input: "sharma dot ji एट द रेट ओके ऐक्सिस"
+    expected: "sharma.ji@okaxis"
+  - id: hi_28
+    group: hindi_upi
+    input: "verma एट रेट पेटीएम"
+    expected: "verma@paytm"
+  - id: hi_29
+    group: hindi_upi
+    input: "ramesh डॉट kumar एट द रेट वाईबीएल"
+    expected: "ramesh.kumar@ybl"
+  - id: hi_30
+    group: hindi_mixed
+    input: "nau eight saat six paanch four teen two ek zero"
+    expected: "9876543210"
+  - id: hi_31
+    group: hindi_mixed
+    input: "नौ eight सात six पाँच"
+    expected: "98765"
+  - id: hi_32
+    group: hindi_mixed
+    input: "98 सात छह 54 तीन दो 10"
+    expected: "9876543210"
+  - id: hi_33
+    group: native_digits_hi
+    input: "५०१००४३२८९१२३४"
+    expected: "50100432891234"
+  - id: hi_34
+    group: native_digits_hi
+    input: "९१२३४५६७८९"
+    expected: "9123456789"
+  - id: hi_35
+    group: native_digits_hi
+    input: "८०००११२२३३"
+    expected: "8000112233"
+  - id: hi_36
+    group: hindi_roman
+    input: "shoonya ek do teen"
+    expected: "0123"
+  - id: hi_37
+    group: hindi_roman
+    input: "sifar nau aath saat"
+    expected: "0987"
+  - id: hi_38
+    group: hindi_roman
+    input: "panch che sat ath nau"
+    expected: "56789"
+  - id: hi_39
+    group: hindi_roman
+    input: "char char panch panch"
+    expected: "4455"
+  - id: hi_40
+    group: hindi_roman
+    input: "do teen char panch chey"
+    expected: "23456"
+  - id: hi_41
+    group: hindi_devanagari
+    input: "नौ शून्य शून्य एक दो"
+    expected: "90012"
+  - id: hi_42
+    group: hindi_devanagari
+    input: "आठ आठ सात सात छह छह"
+    expected: "887766"
+  - id: hi_43
+    group: hindi_devanagari
+    input: "पाँच पाँच चार चार तीन तीन"
+    expected: "554433"
+  - id: hi_44
+    group: hindi_devanagari
+    input: "दो शून्य दो छह"
+    expected: "2026"
+  - id: hi_45
+    group: hindi_ifsc
+    input: "आई सी आई सी शून्य शून्य शून्य नौ नौ आठ आठ"
+    expected: "ICIC0009988"
+
+  # ============================================================================
+  # Group 3: Tamil words (Roman & Tamil Script) & native digits (40 cases)
+  # ============================================================================
+  - id: ta_01
+    group: tamil_roman
+    input: "onbadhu ettu naalu"
+    expected: "984"
+  - id: ta_02
+    group: tamil_script
+    input: "ஒன்பது எட்டு நான்கு"
+    expected: "984"
+  - id: ta_03
+    group: native_digits_ta
+    input: "௯௮௪"
+    expected: "984"
+  - id: ta_04
+    group: native_digits_ta
+    input: "௯௮௭௬௫௪௩௨௧௦"
+    expected: "9876543210"
+  - id: ta_05
+    group: tamil_roman
+    input: "onru irandu moonru naangu aindhu"
+    expected: "12345"
+  - id: ta_06
+    group: tamil_roman
+    input: "aaru ezhu ettu onbadhu poojyam"
+    expected: "67890"
+  - id: ta_07
+    group: tamil_roman
+    input: "onnu rendu moonu naalu anju"
+    expected: "12345"
+  - id: ta_08
+    group: tamil_roman
+    input: "onbadhu ettu ezhu aaru anju naalu moonu rendu onnu suzhli"
+    expected: "9876543210"
+  - id: ta_09
+    group: tamil_script
+    input: "ஒன்று இரண்டு மூன்று நான்கு ஐந்து"
+    expected: "12345"
+  - id: ta_10
+    group: tamil_script
+    input: "ஆறு ஏழு எட்டு ஒன்பது பூஜ்ஜியம்"
+    expected: "67890"
+  - id: ta_11
+    group: tamil_script
+    input: "ஒன்பது எட்டு ஏழு ஆறு ஐந்து நான்கு மூன்று இரண்டு ஒன்று சுழி"
+    expected: "9876543210"
+  - id: ta_12
+    group: tamil_roman
+    input: "double onbadhu triple poojyam"
+    expected: "99000"
+  - id: ta_13
+    group: tamil_roman
+    input: "ettu ettu ezhu ezhu aaru aaru"
+    expected: "887766"
+  - id: ta_14
+    group: tamil_roman
+    input: "anju suzhi onnu suzhi suzhi"
+    expected: "50100"
+  - id: ta_15
+    group: tamil_roman
+    input: "ombathu ettu ezhu aaru"
+    expected: "9876"
+  - id: ta_16
+    group: tamil_roman
+    input: "ondru irandu moondru"
+    expected: "123"
+  - id: ta_17
+    group: tamil_roman
+    input: "naalu anju aaru ezhu"
+    expected: "4567"
+  - id: ta_18
+    group: tamil_roman
+    input: "ezhu ettu onbadhu poojyam"
+    expected: "7890"
+  - id: ta_19
+    group: tamil_roman
+    input: "rendu naalu aaru ettu"
+    expected: "2468"
+  - id: ta_20
+    group: tamil_roman
+    input: "onnu moonu anju ezhu"
+    expected: "1357"
+  - id: ta_21
+    group: tamil_script
+    input: "இரண்டு चार ஆறு எட்டு"
+    expected: "2468"
+  - id: ta_22
+    group: tamil_script
+    input: "ஐந்து பூஜ்ஜியம் ஒன்று பூஜ்ஜியம்"
+    expected: "5010"
+  - id: ta_23
+    group: tamil_script
+    input: "ஏழு ஏழு आठ आठ"
+    expected: "7788"
+  - id: ta_24
+    group: tamil_script
+    input: "மூன்று மூன்று நான்கு நான்கு"
+    expected: "3344"
+  - id: ta_25
+    group: tamil_script
+    input: "ஆறு ஐந்து நான்கு மூன்று"
+    expected: "6543"
+  - id: ta_26
+    group: native_digits_ta
+    input: "௫௦௧௦௦௪௩௨௮௯"
+    expected: "5010043289"
+  - id: ta_27
+    group: native_digits_ta
+    input: "௭௭௬௬௫௫௪௪"
+    expected: "77665544"
+  - id: ta_28
+    group: native_digits_ta
+    input: "௯௦௦௦௧௧௧௧"
+    expected: "90001111"
+  - id: ta_29
+    group: tamil_mixed
+    input: "onbadhu eight ezhu six anju four"
+    expected: "987654"
+  - id: ta_30
+    group: tamil_mixed
+    input: "98 ettu naalu 50"
+    expected: "988450"
+  - id: ta_31
+    group: tamil_upi
+    input: "iyer dot sbi at the rate okaxis"
+    expected: "iyer.sbi@okaxis"
+  - id: ta_32
+    group: tamil_upi
+    input: "onbadhu ettu naalu aindhu poojyam at the rate ybl"
+    expected: "98450@ybl"
+  - id: ta_33
+    group: tamil_ifsc
+    input: "S B I N poojyam poojyam poojyam onnu rendu moonu naalu"
+    expected: "SBIN0001234"
+  - id: ta_34
+    group: tamil_roman
+    input: "suzhli suzhli onnu rendu"
+    expected: "0012"
+  - id: ta_35
+    group: tamil_roman
+    input: "ettu onbadhu suzhli onnu"
+    expected: "8901"
+  - id: ta_36
+    group: tamil_roman
+    input: "aaru aaru ezhu ezhu"
+    expected: "6677"
+  - id: ta_37
+    group: tamil_roman
+    input: "aindhu aindhu naangu naangu"
+    expected: "5544"
+  - id: ta_38
+    group: tamil_script
+    input: "எட்டு ஒன்பது பூஜ்ஜியம் ஒன்று"
+    expected: "8901"
+  - id: ta_39
+    group: tamil_script
+    input: "நான்கு மூன்று இரண்டு ஒன்று"
+    expected: "4321"
+  - id: ta_40
+    group: tamil_script
+    input: "ஒன்பது ஒன்பது எட்டு எட்டு"
+    expected: "9988"
+
+  # ============================================================================
+  # Group 4: Must come out unchanged (Amounts, Times, Ordinary Sentences) (30 cases)
+  # ============================================================================
+  - id: un_01
+    group: unchanged_time
+    input: "call at ten thirty"
+    expected: "call at ten thirty"
+  - id: un_02
+    group: unchanged_time
+    input: "please call back at five thirty pm"
+    expected: "please call back at five thirty pm"
+  - id: un_03
+    group: unchanged_time
+    input: "कल सुबह 11:30 बजे डॉक्टर सुंदरम के साथ अपॉइंटमेंट है"
+    expected: "कल सुबह 11:30 बजे डॉक्टर सुंदरम के साथ अपॉइंटमेंट है"
+  - id: un_04
+    group: unchanged_time
+    input: "आज शाम 5 बजे आपका खाता ब्लॉक कर दिया जाएगा"
+    expected: "आज शाम 5 बजे आपका खाता ब्लॉक कर दिया जाएगा"
+  - id: un_05
+    group: unchanged_time
+    input: "सर आपका बिजली कनेक्शन कटने वाला है रात नौ बजे तक"
+    expected: "सर आपका बिजली कनेक्शन कटने वाला है रात नौ बजे तक"
+  - id: un_06
+    group: unchanged_amount
+    input: "send five thousand to 9845012345"
+    expected: "send five thousand to 9845012345"
+  - id: un_07
+    group: unchanged_amount
+    input: "transfer two lakh rupees immediately"
+    expected: "transfer two lakh rupees immediately"
+  - id: un_08
+    group: unchanged_amount
+    input: "पचास हज़ार रुपये सरकारी सेफ अकाउंट में जमा कीजिए"
+    expected: "पचास हज़ार रुपये सरकारी सेफ अकाउंट में जमा कीजिए"
+  - id: un_09
+    group: unchanged_amount
+    input: "पाँच हज़ार रुपये तुरंत भेजिए"
+    expected: "पाँच हज़ार रुपये तुरंत भेजिए"
+  - id: un_10
+    group: unchanged_amount
+    input: "दस लाख का लोन पास हुआ है"
+    expected: "दस लाख का लोन पास हुआ है"
+  - id: un_11
+    group: unchanged_amount
+    input: "pay five hundred rupees for verification"
+    expected: "pay five hundred rupees for verification"
+  - id: un_12
+    group: unchanged_amount
+    input: "एक टोकन अमाउंट भेजिए"
+    expected: "एक टोकन अमाउंट भेजिए"
+  - id: un_13
+    group: unchanged_ordinary
+    input: "नमस्ते, मैं शर्मा जी के यहाँ से बोल रहा हूँ।"
+    expected: "नमस्ते, मैं शर्मा जी के यहाँ से बोल रहा हूँ।"
+  - id: un_14
+    group: unchanged_ordinary
+    input: "भैया मैं ब्लू डार्ट कोरियर से बात कर रहा हूँ।"
+    expected: "भैया मैं ब्लू डार्ट कोरियर से बात कर रहा हूँ।"
+  - id: un_15
+    group: unchanged_ordinary
+    input: "ठीक है भैया, मैं गार्ड रूम में जमा करा देता हूँ। शुक्रिया।"
+    expected: "ठीक है भैया, मैं गार्ड रूम में जमा करा देता हूँ। शुक्रिया।"
+  - id: un_16
+    group: unchanged_ordinary
+    input: "नहीं, बस पुरानी चश्मे की पर्ची और आई ड्रॉप्स साथ लेकर आएं।"
+    expected: "नहीं, बस पुरानी चश्मे की पर्ची और आई ड्रॉप्स साथ लेकर आएं।"
+  - id: un_17
+    group: unchanged_ordinary
+    input: "Hello sir, I am calling from courier office regarding your parcel."
+    expected: "Hello sir, I am calling from courier office regarding your parcel."
+  - id: un_18
+    group: unchanged_ordinary
+    input: "Please wait one minute while I find my glasses."
+    expected: "Please wait one minute while I find my glasses."
+  - id: un_19
+    group: unchanged_ordinary
+    input: "मेरा चश्मा नहीं मिल रहा है, एक मिनट रुकिए।"
+    expected: "मेरा चश्मा नहीं मिल रहा है, एक मिनट रुकिए।"
+  - id: un_20
+    group: unchanged_ordinary
+    input: "मैं अपने बेटे से पूछ कर बताता हूँ।"
+    expected: "मैं अपने बेटे से पूछ कर बताता हूँ।"
+  - id: un_21
+    group: unchanged_time
+    input: "meeting is at nine am tomorrow"
+    expected: "meeting is at nine am tomorrow"
+  - id: un_22
+    group: unchanged_time
+    input: "we will close by six pm today"
+    expected: "we will close by six pm today"
+  - id: un_23
+    group: unchanged_amount
+    input: "the fee is seven hundred rupees only"
+    expected: "the fee is seven hundred rupees only"
+  - id: un_24
+    group: unchanged_amount
+    input: "deposit three thousand in the branch"
+    expected: "deposit three thousand in the branch"
+  - id: un_25
+    group: unchanged_ordinary
+    input: "अरे कौन बोल रहा है रॉन्ग नंबर"
+    expected: "अरे कौन बोल रहा है रॉन्ग नंबर"
+  - id: un_26
+    group: unchanged_ordinary
+    input: "धन्यवाद भैया।"
+    expected: "धन्यवाद भैया।"
+  - id: un_27
+    group: unchanged_ordinary
+    input: "जी नमस्ते कविता जी।"
+    expected: "जी नमस्ते कविता जी।"
+  - id: un_28
+    group: unchanged_amount
+    input: "दो सौ रुपये का रिचार्ज"
+    expected: "दो सौ रुपये का रिचार्ज"
+  - id: un_29
+    group: unchanged_time
+    input: "चार बजे फोन करना"
+    expected: "चार बजे फोन करना"
+  - id: un_30
+    group: unchanged_amount
+    input: "आठ हज़ार का बिल है"
+    expected: "आठ हज़ार का बिल है"
+  - id: un_31
+    group: amount_beside_number
+    input: "send five thousand to nine eight four five zero"
+    expected: "send five thousand to 98450"

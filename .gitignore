@@ -23,3 +23,7 @@ htmlcov/
 # Environment variables
 .env
 .env.local
+
+# SQLite databases
+*.db
+*.sqlite3

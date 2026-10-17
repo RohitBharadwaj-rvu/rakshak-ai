@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassifyCallerRequest",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["call_id", "conversation"],
+  "properties": {
+    "call_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the active call"
+    },
+    "caller_number": {
+      "type": "string",
+      "description": "Inbound caller phone number"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["hi", "en", "hinglish"],
+      "default": "hi",
+      "description": "Primary conversation language"
+    },
+    "max_latency_budget_s": {
+      "type": "number",
+      "minimum": 0.1,
+      "default": 1.4,
+      "description": "Maximum latency budget in seconds before returning unsure"
+    },
+    "conversation": {
+      "type": "array",
+      "description": "Ordered transcript turns of the conversation so far",
+      "items": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["caller", "user", "assistant", "system"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
