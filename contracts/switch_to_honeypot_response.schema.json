@@ -29,10 +29,22 @@
     "persona_name": {
       "type": "string"
     },
+    "name": {
+      "type": "string"
+    },
     "persona_age": {
       "type": "integer"
     },
+    "age": {
+      "type": "integer"
+    },
     "persona_city": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "short_backstory": {
       "type": "string"
     },
     "persona_lines": {
@@ -47,18 +59,25 @@
       "type": "object",
       "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
       "properties": {
-        "upi_id": {
-          "type": "string"
-        },
-        "account_number": {
-          "type": "string"
-        },
-        "ifsc_code": {
-          "type": "string"
-        },
-        "phone_number": {
-          "type": "string"
-        }
+        "upi_id": {"type": "string"},
+        "account_number": {"type": "string"},
+        "ifsc_code": {"type": "string"},
+        "phone_number": {"type": "string"},
+        "otp": {"type": "string"},
+        "aadhaar": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "bait_values": {
+      "type": "object",
+      "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
+      "properties": {
+        "upi_id": {"type": "string"},
+        "account_number": {"type": "string"},
+        "ifsc_code": {"type": "string"},
+        "phone_number": {"type": "string"},
+        "otp": {"type": "string"},
+        "aadhaar": {"type": "string"}
       },
       "additionalProperties": false
     }

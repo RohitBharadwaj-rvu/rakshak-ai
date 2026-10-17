@@ -192,3 +192,52 @@ def test_load_100_sequential_requests_p95_under_300ms(client):
 
     assert sw_p95 <= 300.0, f"switch_to_honeypot p95 {sw_p95:.2f} ms > 300 ms"
     assert log_p95 <= 300.0, f"log_intel p95 {log_p95:.2f} ms > 300 ms"
+
+
+def test_bolna_v1_prompt_field_names_compatibility(client):
+    # 1. classify_caller with caller_summary (Saket's Bolna v1 prompt parameter)
+    r_cls = client.post(
+        "/tools/classify_caller",
+        json={
+            "call_id": "bolna_v1_001",
+            "caller_number": "+919876543210",
+            "caller_summary": "Caller claims to be from CBI Mumbai, says a parcel with drugs was found in the user's name, threatens digital arrest and demands immediate UPI transfer.",
+        },
+    )
+    assert r_cls.status_code == 200
+    d_cls = r_cls.json()
+    assert d_cls["verdict"] == "scam"
+    assert "confidence" in d_cls
+    assert "reason" in d_cls
+
+    # 2. switch_to_honeypot returns name, age, city, short_backstory, bait_values
+    r_sw = client.post(
+        "/tools/switch_to_honeypot",
+        json={"call_id": "bolna_v1_001", "language": "hi"},
+    )
+    assert r_sw.status_code == 200
+    d_sw = r_sw.json()
+    assert d_sw["name"] == "Ramesh Sharma"
+    assert d_sw["age"] == 72
+    assert d_sw["city"] == "Lucknow"
+    assert "retired post office clerk" in d_sw["short_backstory"]
+    assert d_sw["bait_values"]["upi_id"] == "ramesh.elderly@okhdfc"
+    assert d_sw["bait_values"]["account_number"] == "9999000011112222"
+    assert d_sw["bait_values"]["otp"] == "000000"
+    assert d_sw["bait_values"]["aadhaar"] == "9999 0000 1111"
+
+    # 3. log_intel with `value` (Saket's Bolna v1 prompt parameter)
+    r_lg = client.post(
+        "/tools/log_intel",
+        json={
+            "call_id": "bolna_v1_001",
+            "type": "upi",
+            "value": "cbi dot officer at the rate ok axis",
+        },
+    )
+    assert r_lg.status_code == 200
+    d_lg = r_lg.json()
+    assert d_lg["status"] == "logged"
+    assert d_lg["value"] == "cbi dot officer at the rate ok axis"
+    assert d_lg["normalized_value"] == "cbi.officer@okaxis"
+

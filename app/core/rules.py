@@ -16,6 +16,10 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
         "persona_name": "Ramesh Sharma",
         "persona_age": 72,
         "persona_city": "Lucknow",
+        "short_backstory": (
+            "72-year-old retired post office clerk in Lucknow. Lives with his wife, son works in Pune. "
+            "Slow with phones, needs glasses to read, hard of hearing, trusting and talkative. Says 'beta' often."
+        ),
         "lines": {
             "hi": [
                 "अरे बाप रे! बेटा ज़रा धीरे-धीरे बोलो, मैं चश्मा लगाकर डायरी में लिख रहा हूँ।",
@@ -38,6 +42,8 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
             "account_number": "9999000011112222",
             "ifsc_code": "HDFC0009999",
             "phone_number": "9000011111",
+            "otp": "000000",
+            "aadhaar": "9999 0000 1111",
         },
     },
     "sunita": {
@@ -45,6 +51,10 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
         "persona_name": "Sunita Verma",
         "persona_age": 68,
         "persona_city": "Jaipur",
+        "short_backstory": (
+            "68-year-old retired schoolteacher in Jaipur. Lives alone, daughter lives in Delhi. "
+            "Cautious, polite, writes everything down in a notebook before doing any bank work."
+        ),
         "lines": {
             "hi": [
                 "हे भगवान! बेटा डराओ मत, मैं अकेली रहती हूँ। धीरे-धीरे बताओ क्या लिखना है।",
@@ -67,6 +77,8 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
             "account_number": "8888777766665555",
             "ifsc_code": "ICIC0008888",
             "phone_number": "9000022222",
+            "otp": "000000",
+            "aadhaar": "8888 7777 6666",
         },
     },
     "iyer": {
@@ -74,6 +86,10 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
         "persona_name": "Prof. S. Iyer",
         "persona_age": 75,
         "persona_city": "Chennai",
+        "short_backstory": (
+            "75-year-old retired mathematics professor in Chennai. Methodical, asks callers to "
+            "dictate every digit and letter slowly while writing in his ledger."
+        ),
         "lines": {
             "hi": [
                 "अच्छा सुनिए, मैं प्रोफेसर अय्यर बोल रहा हूँ। आप अपना पूरा विवरण और खाता नंबर धीरे बोलिए।",
@@ -96,6 +112,8 @@ APPROVED_PERSONAS: Dict[str, Dict[str, Any]] = {
             "account_number": "7777666655554444",
             "ifsc_code": "SBIN0007777",
             "phone_number": "9000033333",
+            "otp": "000000",
+            "aadhaar": "7777 6666 5555",
         },
     },
 }

@@ -73,12 +73,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         if missing_fields
         else "Validation error"
     )
+    from fastapi.encoders import jsonable_encoder
     return JSONResponse(
         status_code=422,
         content={
             "detail": detail_msg,
             "fields": missing_fields,
-            "errors": exc.errors(),
+            "errors": jsonable_encoder(exc.errors()),
         },
     )
 

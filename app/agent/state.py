@@ -37,15 +37,21 @@ def get_persona_bundle(call_id: str, language: Optional[str] = "hi", preferred_p
     persona = APPROVED_PERSONAS[p_key]
     lines = persona["lines"].get(lang, persona["lines"]["hi"])
 
+    bait_copy = dict(persona["fake_bait"])
     return {
         "call_id": call_id,
         "language": lang,
         "persona_id": persona["persona_id"],
         "persona_name": persona["persona_name"],
+        "name": persona["persona_name"],
         "persona_age": persona["persona_age"],
+        "age": persona["persona_age"],
         "persona_city": persona["persona_city"],
+        "city": persona["persona_city"],
+        "short_backstory": persona["short_backstory"],
         "persona_lines": list(lines),
-        "fake_bait": dict(persona["fake_bait"]),
+        "fake_bait": bait_copy,
+        "bait_values": dict(bait_copy),
     }
 
 

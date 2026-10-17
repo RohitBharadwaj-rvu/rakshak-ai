@@ -32,6 +32,10 @@ class ConversationTurn(BaseModel):
 class ClassifyCallerRequest(BaseModel):
     call_id: str = Field(..., min_length=1, description="Unique identifier for the active call")
     caller_number: Optional[str] = Field(default="", description="Inbound caller phone number")
+    caller_summary: Optional[str] = Field(
+        default=None,
+        description="1-3 sentence summary from Bolna screening mode describing who the caller claims to be and what they want",
+    )
     conversation: List[ConversationTurn] = Field(
         default_factory=list, description="Ordered transcript turns of the conversation so far"
     )
@@ -63,6 +67,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             {"role": t.role, "content": t.get_text()}
             for t in req.conversation
         ]
+        if req.caller_summary and req.caller_summary.strip():
+            conv_dicts.append({"role": "caller", "content": req.caller_summary.strip()})
         budget = min(float(req.max_latency_budget_s or 1.4), HARD_TIMEOUT_SECONDS)
 
         future = _EXECUTOR.submit(

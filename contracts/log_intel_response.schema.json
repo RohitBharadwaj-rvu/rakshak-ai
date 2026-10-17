@@ -24,6 +24,9 @@
       "type": "string",
       "enum": ["upi", "phone", "account", "ifsc", "link", "pan", "other"]
     },
+    "value": {
+      "type": "string"
+    },
     "value_as_heard": {
       "type": "string"
     },
