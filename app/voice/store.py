@@ -71,6 +71,106 @@ def _get_conn(db_path: Optional[str] = None) -> sqlite3.Connection:
     return conn
 
 
+_PG_RESTORED: bool = False
+
+
+def _get_pg_conn():
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    if not db_url or _CUSTOM_DB_PATH is not None:
+        return None
+    try:
+        import psycopg2
+        if db_url.startswith("postgres://"):
+            db_url = "postgresql://" + db_url[len("postgres://") :]
+        return psycopg2.connect(db_url)
+    except Exception as exc:
+        logger.warning("Postgres mirror connection unavailable: %s", exc)
+        return None
+
+
+def _sync_sqlite_row_to_pg(conn: sqlite3.Connection, call_id: str) -> None:
+    pg_conn = _get_pg_conn()
+    if pg_conn is None:
+        return
+    try:
+        row = conn.execute("SELECT * FROM call_records WHERE call_id = ?", (call_id,)).fetchone()
+        if not row:
+            return
+        row_dict = {k: row[k] for k in row.keys()}
+        row_json = json.dumps(row_dict, ensure_ascii=False)
+        with pg_conn:
+            with pg_conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS guardianline_call_records_mirror (
+                        call_id TEXT PRIMARY KEY,
+                        row_json TEXT NOT NULL,
+                        updated_at TEXT
+                    )
+                    """
+                )
+                cur.execute(
+                    """
+                    INSERT INTO guardianline_call_records_mirror (call_id, row_json, updated_at)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (call_id) DO UPDATE
+                    SET row_json = EXCLUDED.row_json,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (call_id, row_json, row_dict.get("updated_at") or ""),
+                )
+    except Exception as exc:
+        logger.warning("Postgres mirror sync failed for call_id=%s: %s", call_id, exc)
+    finally:
+        try:
+            pg_conn.close()
+        except Exception:
+            pass
+
+
+def _restore_from_pg_if_needed(conn: sqlite3.Connection) -> None:
+    global _PG_RESTORED
+    if _PG_RESTORED or _CUSTOM_DB_PATH is not None:
+        return
+    _PG_RESTORED = True
+    pg_conn = _get_pg_conn()
+    if pg_conn is None:
+        return
+    try:
+        with pg_conn:
+            with pg_conn.cursor() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS guardianline_call_records_mirror (
+                        call_id TEXT PRIMARY KEY,
+                        row_json TEXT NOT NULL,
+                        updated_at TEXT
+                    )
+                    """
+                )
+                cur.execute("SELECT row_json FROM guardianline_call_records_mirror")
+                pg_rows = cur.fetchall()
+        for (r_json,) in pg_rows:
+            d = json.loads(r_json)
+            cols = list(d.keys())
+            placeholders = ", ".join(["?"] * len(cols))
+            col_names = ", ".join(cols)
+            conn.execute(
+                f"INSERT OR IGNORE INTO call_records ({col_names}) VALUES ({placeholders})",
+                [d[c] for c in cols],
+            )
+        conn.commit()
+        if pg_rows:
+            logger.info("Restored %d CallRecords from DATABASE_URL Postgres mirror into SQLite", len(pg_rows))
+    except Exception as exc:
+        logger.warning("Postgres mirror restore failed: %s", exc)
+    finally:
+        try:
+            pg_conn.close()
+        except Exception:
+            pass
+
+
 def init_db(db_path: Optional[str] = None) -> None:
     with _DB_LOCK:
         conn = _get_conn(db_path)
@@ -103,6 +203,7 @@ def init_db(db_path: Optional[str] = None) -> None:
                 """
             )
             conn.commit()
+            _restore_from_pg_if_needed(conn)
         finally:
             conn.close()
 
@@ -264,6 +365,7 @@ def get_or_assign_honeypot_persona(
                     ),
                 )
             conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
             return bundle
         finally:
             conn.close()
@@ -359,6 +461,7 @@ def append_mid_call_intel(
                     ),
                 )
             conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
             return log_entry
         finally:
             conn.close()
@@ -509,6 +612,7 @@ def finalize_call_record_from_webhook(
                     ),
                 )
             conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
             updated_row = conn.execute(
                 "SELECT * FROM call_records WHERE call_id = ?", (call_id,)
             ).fetchone()
@@ -580,11 +684,49 @@ def save_post_call_enrichment_and_reflection(
                 (intel_json, now_iso, call_id),
             )
             conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
             updated = conn.execute(
                 "SELECT * FROM call_records WHERE call_id = ?",
                 (call_id,),
             ).fetchone()
             return _row_to_record(updated)
+        finally:
+            conn.close()
+
+
+def export_all_raw_rows() -> List[Dict[str, Any]]:
+    """Export all raw SQLite rows from `call_records` for JSON snapshot backup."""
+    init_db()
+    with _DB_LOCK:
+        conn = _get_conn()
+        try:
+            rows = conn.execute("SELECT * FROM call_records ORDER BY created_at ASC").fetchall()
+            return [{k: r[k] for k in r.keys()} for r in rows]
+        finally:
+            conn.close()
+
+
+def restore_raw_rows(rows: List[Dict[str, Any]]) -> int:
+    """Restore raw SQLite rows from a JSON snapshot backup and return number of rows restored."""
+    init_db()
+    count = 0
+    with _DB_LOCK:
+        conn = _get_conn()
+        try:
+            for d in rows or []:
+                if not isinstance(d, dict) or not d.get("call_id"):
+                    continue
+                cols = list(d.keys())
+                placeholders = ", ".join(["?"] * len(cols))
+                col_names = ", ".join(cols)
+                conn.execute(
+                    f"INSERT OR REPLACE INTO call_records ({col_names}) VALUES ({placeholders})",
+                    [d[c] for c in cols],
+                )
+                _sync_sqlite_row_to_pg(conn, str(d["call_id"]))
+                count += 1
+            conn.commit()
+            return count
         finally:
             conn.close()
 

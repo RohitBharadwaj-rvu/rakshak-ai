@@ -17,11 +17,13 @@ from app.voice.cleanup import cleanup_call_intel
 from app.voice.extractor import extract_from_transcript
 from app.voice.report import generate_1930_report
 from app.voice.store import (
+    export_all_raw_rows,
     export_call_records_to_csv_string,
     finalize_call_record_from_webhook,
     get_call_record,
     list_call_records,
     mask_phone,
+    restore_raw_rows,
     save_post_call_enrichment_and_reflection,
 )
 
@@ -480,6 +482,34 @@ async def api_export_calls_csv(
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": 'attachment; filename="call_records.csv"'},
     )
+
+
+@router.get("/api/calls/backup.json")
+async def api_backup_calls_json(
+    _token: str = Depends(require_api_token),
+):
+    """
+    Export a full raw SQLite snapshot of all CallRecords as JSON so they can be
+    backed up before or restored after a stateless container redeploy.
+    """
+    rows = export_all_raw_rows()
+    return {"count": len(rows), "rows": rows}
+
+
+@router.post("/api/calls/restore.json")
+async def api_restore_calls_json(
+    request: Request,
+    _token: str = Depends(require_api_token),
+):
+    """
+    Restore raw CallRecord rows from a backup snapshot produced by `/api/calls/backup.json`.
+    """
+    data = await request.json()
+    rows = data.get("rows", data) if isinstance(data, dict) else data
+    if not isinstance(rows, list):
+        raise HTTPException(status_code=400, detail="Expected JSON list of rows or {'rows': [...]}")
+    restored = restore_raw_rows(rows)
+    return {"restored": restored}
 
 
 @router.get("/api/calls/{call_id}")
