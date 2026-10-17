@@ -216,3 +216,62 @@ def test_llm_cleanup_down_marks_record_cleanup_pending_with_rule_based_intel(cli
     assert rec["status"] == "cleanup_pending"
     assert "cbi.officer.verma@okaxis" in rec["extracted_intel"]["upi_ids"]
     assert "9876543210" in rec["extracted_intel"]["phone_numbers"]
+
+
+def test_real_bolna_webhook_payload_exact_json(client):
+    from jsonschema import validate
+
+    schema_path = os.path.join(ROOT_DIR, "contracts", "webhook.schema.json")
+    with open(schema_path, "r", encoding="utf-8") as sf:
+        webhook_schema = json.load(sf)
+
+    real_bolna_payload = {
+        "id": "bolna-exec-9f8e7d6c-5b4a-3210",
+        "agent_id": "2840f8c1-77a2-4d3b-9c12-112233445566",
+        "batch_id": None,
+        "conversation_time": 94.2,
+        "conversation_duration": 94.2,
+        "status": "completed",
+        "user_number": "+919820112233",
+        "agent_number": "+918035737000",
+        "created_at": "2026-10-17T09:15:00Z",
+        "updated_at": "2026-10-17T09:16:34Z",
+        "transcript": (
+            "assistant: हैलो जी?\n"
+            "user: मैं CBI क्राइम ब्रांच मुंबई से बोल रहा हूँ, आप डिजिटल अरेस्ट पर हैं। तुरंत cbi dot verma at the rate ok axis पर पैसे भेजो।\n"
+            "assistant: अरे बाप रे! बेटा ज़रा धीरे बोलो, मैं लिख रहा हूँ।\n"
+            "user: मेरा नंबर नौ आठ सात छह पाँच चार तीन दो एक शून्य है, तुरंत भेजो।"
+        ),
+        "telephony_data": {
+            "duration": "95",
+            "to_number": "+918035737000",
+            "from_number": "+919820112233",
+            "recording_url": "https://media.plivo.com/v1/Account/MAXX/Recording/rec-9f8e7d6c.mp3",
+            "hosted_telephony": True,
+            "provider_call_id": "plivo-call-uuid-99887766",
+            "call_type": "inbound",
+            "provider": "plivo",
+            "hangup_by": "Caller",
+            "hangup_reason": "Caller hungup",
+            "hangup_provider_code": 16,
+        },
+        "extracted_data": None,
+        "context_details": {"recipient_data": {}},
+    }
+
+    # 1. Validates against contracts/webhook.schema.json
+    validate(instance=real_bolna_payload, schema=webhook_schema)
+
+    # 2. POST /webhook accepts it with 200 OK and maps all native Bolna fields
+    res = client.post("/webhook", json=real_bolna_payload)
+    assert res.status_code == 200
+    rec = res.json()
+    assert rec["call_id"] == "bolna-exec-9f8e7d6c-5b4a-3210"
+    assert rec["caller_number"] == "+919820112233"
+    assert rec["caller_number_missing"] is False
+    assert rec["duration"] == 94.2
+    assert rec["call_recording_url"] == "https://media.plivo.com/v1/Account/MAXX/Recording/rec-9f8e7d6c.mp3"
+    assert rec["verdict"] == "scam"
+    assert "cbi.verma@okaxis" in rec["extracted_intel"]["upi_ids"]
+    assert "9876543210" in rec["extracted_intel"]["phone_numbers"]
+

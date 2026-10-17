@@ -1,9 +1,25 @@
 {
+  "id": "call_early_hangup_006",
   "call_id": "call_early_hangup_006",
   "agent_id": "bolna_agent_guardianline_v0",
+  "user_number": "",
   "caller_number": "",
+  "conversation_duration": 8.5,
   "call_duration": 8.5,
+  "status": "completed",
   "call_status": "completed",
+  "telephony_data": {
+    "duration": "8.5",
+    "to_number": "+918035737000",
+    "from_number": "",
+    "recording_url": "https://storage.guardianline.ai/recordings/call_early_hangup_006.mp3",
+    "hosted_telephony": true,
+    "provider_call_id": "plivo-uuid-0006",
+    "call_type": "inbound",
+    "provider": "plivo",
+    "hangup_by": "Callee",
+    "hangup_reason": "Call recipient hungup"
+  },
   "call_recording_url": "https://storage.guardianline.ai/recordings/call_early_hangup_006.mp3",
   "transcript": [
     {

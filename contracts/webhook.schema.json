@@ -1,65 +1,182 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "BolnaWebhookPayload",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "object",
-  "required": [
-    "call_id",
-    "agent_id",
-    "call_duration",
-    "call_status",
-    "transcript"
+  "anyOf": [
+    {
+      "required": ["id", "agent_id", "status"]
+    },
+    {
+      "required": ["call_id", "agent_id", "call_duration", "call_status", "transcript"]
+    }
   ],
   "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bolna execution / call ID"
+    },
     "call_id": {
       "type": "string",
-      "description": "Unique identifier of the phone call"
+      "minLength": 1,
+      "description": "Alias for Bolna call ID"
     },
     "agent_id": {
       "type": "string",
+      "minLength": 1,
       "description": "Identifier of the Bolna voice agent"
     },
+    "user_number": {
+      "type": ["string", "null"],
+      "description": "Caller phone number sent by Bolna"
+    },
+    "agent_number": {
+      "type": ["string", "null"],
+      "description": "Inbound/outbound Bolna number"
+    },
     "caller_number": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "E.164 phone number of the caller, or empty string if withheld"
     },
+    "conversation_duration": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Total duration of call in seconds (Bolna native field)"
+    },
+    "conversation_time": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
     "call_duration": {
-      "type": "number",
+      "type": ["number", "null"],
       "minimum": 0,
       "description": "Total duration of call in seconds"
     },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "call-disconnected",
+        "ended",
+        "terminated",
+        "failed",
+        "busy",
+        "no-answer",
+        "in-progress",
+        "canceled",
+        "cancelled",
+        "queued",
+        "ringing",
+        "initiated",
+        "balance-low"
+      ],
+      "description": "Bolna execution status"
+    },
     "call_status": {
       "type": "string",
-      "enum": ["completed", "failed", "busy", "no-answer", "in-progress", "canceled"],
+      "enum": [
+        "completed",
+        "call-disconnected",
+        "ended",
+        "terminated",
+        "failed",
+        "busy",
+        "no-answer",
+        "in-progress",
+        "canceled",
+        "cancelled"
+      ],
       "description": "Final status of the call session"
     },
+    "telephony_data": {
+      "type": ["object", "null"],
+      "properties": {
+        "duration": {
+          "type": ["string", "number", "null"]
+        },
+        "to_number": {
+          "type": ["string", "null"]
+        },
+        "from_number": {
+          "type": ["string", "null"]
+        },
+        "recording_url": {
+          "type": ["string", "null"]
+        },
+        "hosted_telephony": {
+          "type": ["boolean", "null"]
+        },
+        "provider_call_id": {
+          "type": ["string", "null"]
+        },
+        "call_type": {
+          "type": ["string", "null"]
+        },
+        "provider": {
+          "type": ["string", "null"]
+        },
+        "hangup_by": {
+          "type": ["string", "null"]
+        },
+        "hangup_reason": {
+          "type": ["string", "null"]
+        },
+        "hangup_provider_code": {
+          "type": ["integer", "string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
     "call_recording_url": {
-      "type": "string",
-      "format": "uri",
+      "type": ["string", "null"],
       "description": "Secure link to audio recording of the conversation"
     },
     "transcript": {
-      "type": "array",
-      "description": "Chronological turns between caller and agent",
-      "items": {
-        "type": "object",
-        "required": ["role", "content"],
-        "properties": {
-          "role": {
-            "type": "string",
-            "enum": ["user", "assistant", "system"]
-          },
-          "content": {
-            "type": "string"
-          },
-          "timestamp": {
-            "type": "number"
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Bolna native newline-delimited speaker transcript (e.g. 'assistant: ...\\nuser: ...')"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "description": "Chronological turns between caller and agent",
+          "items": {
+            "type": "object",
+            "required": ["role", "content"],
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": ["user", "assistant", "system", "caller"]
+              },
+              "content": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "number"
+              }
+            }
           }
         }
-      }
+      ]
+    },
+    "extracted_data": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "context_details": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "cost_breakdown": {
+      "type": ["object", "null"],
+      "additionalProperties": true
     },
     "metadata": {
-      "type": "object",
+      "type": ["object", "null"],
       "additionalProperties": true
     }
   },

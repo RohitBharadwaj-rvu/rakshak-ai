@@ -121,39 +121,198 @@ def require_api_token(
     return provided
 
 
-def _validate_webhook_payload(data: Any) -> Optional[str]:
-    if not isinstance(data, dict):
-        return "Webhook payload must be a JSON object"
-    missing = [f for f in REQUIRED_WEBHOOK_FIELDS if f not in data]
-    if missing:
-        return f"Missing required webhook field(s): {', '.join(sorted(missing))}"
-    if not isinstance(data.get("call_id"), str) or not data["call_id"].strip():
-        return "Field 'call_id' must be a non-empty string"
-    if not isinstance(data.get("agent_id"), str) or not data["agent_id"].strip():
-        return "Field 'agent_id' must be a non-empty string"
-    if not isinstance(data.get("call_duration"), (int, float)) or data["call_duration"] < 0:
-        return "Field 'call_duration' must be a non-negative number"
-    if data.get("call_status") not in VALID_CALL_STATUSES:
-        return f"Field 'call_status' must be one of {sorted(VALID_CALL_STATUSES)}"
-    if not isinstance(data.get("transcript"), list):
-        return "Field 'transcript' must be a list of turn objects"
-    for idx, turn in enumerate(data["transcript"]):
-        if not isinstance(turn, dict) or "role" not in turn or "content" not in turn:
-            return f"Transcript turn at index {idx} must be an object with 'role' and 'content'"
+import re
+
+VALID_CALL_STATUSES = {
+    "completed",
+    "call-disconnected",
+    "ended",
+    "terminated",
+    "failed",
+    "busy",
+    "no-answer",
+    "in-progress",
+    "canceled",
+    "cancelled",
+    "queued",
+    "ringing",
+    "initiated",
+    "balance-low",
+}
+
+_SPEAKER_LINE_RE = re.compile(
+    r"^\s*(assistant|agent|bot|user|caller|scammer|system)\s*:\s*(.*)$",
+    re.IGNORECASE,
+)
+
+
+def _parse_bolna_transcript(raw_transcript: Any) -> Optional[list]:
+    """
+    Convert Bolna's `transcript` field into a list of `{"role": ..., "content": ...}` turn objects.
+    Supports:
+      1. Native Bolna multi-line string: "assistant: हैलो जी?\\nuser: मैं CBI से बोल रहा हूँ..."
+      2. List of turn dicts: [{"role": "user", "content": "..."}]
+      3. None / empty string (e.g., on early drop / no-answer calls) -> []
+    Returns None if `raw_transcript` is an invalid type or contains malformed turn objects.
+    """
+    if raw_transcript is None:
+        return []
+    if isinstance(raw_transcript, str):
+        turns = []
+        for raw_line in raw_transcript.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            m = _SPEAKER_LINE_RE.match(line)
+            if m:
+                raw_role = m.group(1).lower()
+                content = m.group(2).strip()
+                if raw_role in ("assistant", "agent", "bot"):
+                    role = "assistant"
+                elif raw_role in ("user", "caller", "scammer"):
+                    role = "user"
+                else:
+                    role = "system"
+                turns.append({"role": role, "content": content})
+            elif turns:
+                turns[-1]["content"] = f"{turns[-1]['content']} {line}".strip()
+            else:
+                turns.append({"role": "user", "content": line})
+        return turns
+    if isinstance(raw_transcript, list):
+        normalized_turns = []
+        for idx, turn in enumerate(raw_transcript):
+            if not isinstance(turn, dict):
+                return None
+            role = turn.get("role") or turn.get("sender")
+            content = turn.get("content") if "content" in turn else turn.get("text")
+            if not isinstance(role, str) or not isinstance(content, str):
+                return None
+            entry: Dict[str, Any] = {"role": role, "content": content}
+            if "timestamp" in turn and isinstance(turn["timestamp"], (int, float)):
+                entry["timestamp"] = turn["timestamp"]
+            normalized_turns.append(entry)
+        return normalized_turns
     return None
+
+
+def _normalize_and_validate_webhook_payload(data: Any) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Normalize a raw Bolna post-call webhook payload (supporting both native Bolna keys
+    `id`, `conversation_duration`, `status`, `user_number`, `telephony_data.recording_url`,
+    `telephony_data.provider_call_id` and legacy fixture keys `call_id`, `call_duration`,
+    `call_status`, `caller_number`, `call_recording_url`).
+    Returns `(normalized_payload, error_message)`.
+    """
+    if not isinstance(data, dict):
+        return None, "Webhook payload must be a JSON object"
+
+    is_native_bolna = "id" in data or "status" in data or "conversation_duration" in data or "telephony_data" in data
+    telephony = data.get("telephony_data") if isinstance(data.get("telephony_data"), dict) else {}
+
+    # 1. Call ID (`id` or `call_id` or `telephony_data.provider_call_id`)
+    raw_call_id = data.get("id") or data.get("call_id") or telephony.get("provider_call_id")
+    if not isinstance(raw_call_id, str) or not raw_call_id.strip():
+        return None, "Missing or invalid required field 'id' / 'call_id'"
+    call_id = raw_call_id.strip()
+
+    # 2. Agent ID
+    raw_agent_id = data.get("agent_id")
+    if not isinstance(raw_agent_id, str) or not raw_agent_id.strip():
+        return None, "Missing or invalid required field 'agent_id'"
+    agent_id = raw_agent_id.strip()
+
+    # 3. Call Status (`status` or `call_status`)
+    raw_status = data.get("status") or data.get("call_status")
+    if not isinstance(raw_status, str) or raw_status not in VALID_CALL_STATUSES:
+        return None, f"Missing or invalid 'status' / 'call_status' (got {raw_status!r})"
+
+    # 4. Duration (`conversation_duration`, `conversation_time`, `call_duration`, `telephony_data.duration`)
+    raw_dur = (
+        data.get("conversation_duration")
+        if data.get("conversation_duration") is not None
+        else (
+            data.get("conversation_time")
+            if data.get("conversation_time") is not None
+            else (
+                data.get("call_duration")
+                if data.get("call_duration") is not None
+                else telephony.get("duration")
+            )
+        )
+    )
+    if raw_dur is None:
+        if is_native_bolna:
+            call_duration = 0.0
+        else:
+            return None, "Missing required webhook field: call_duration"
+    else:
+        try:
+            call_duration = float(raw_dur)
+        except (TypeError, ValueError):
+            return None, "Field 'conversation_duration' / 'call_duration' must be a number"
+        if call_duration < 0:
+            return None, "Field 'conversation_duration' / 'call_duration' must be non-negative"
+
+    # 5. Transcript
+    if "transcript" not in data and not is_native_bolna:
+        return None, "Missing required webhook field: transcript"
+    parsed_transcript = _parse_bolna_transcript(data.get("transcript"))
+    if parsed_transcript is None:
+        return None, "Field 'transcript' must be a speaker-prefixed string or list of turn objects with 'role' and 'content'"
+
+    # 6. Caller number (`user_number`, `caller_number`, or `telephony_data.from_number` on inbound)
+    raw_caller = data.get("user_number")
+    if raw_caller is None:
+        raw_caller = data.get("caller_number")
+    if not raw_caller and telephony.get("call_type") == "inbound":
+        raw_caller = telephony.get("from_number")
+    caller_number = str(raw_caller or "").strip()
+
+    # 7. Recording URL & Provider Call ID (`telephony_data.recording_url`, `telephony_data.provider_call_id`)
+    recording_url = str(
+        telephony.get("recording_url") or data.get("call_recording_url") or ""
+    ).strip()
+    provider_call_id = str(
+        telephony.get("provider_call_id") or data.get("provider_call_id") or ""
+    ).strip()
+
+    metadata = dict(data.get("metadata") or {})
+    if provider_call_id and "provider_call_id" not in metadata:
+        metadata["provider_call_id"] = provider_call_id
+    if telephony.get("provider") and "telephony_provider" not in metadata:
+        metadata["telephony_provider"] = telephony.get("provider")
+
+    normalized = {
+        **data,
+        "id": call_id,
+        "call_id": call_id,
+        "agent_id": agent_id,
+        "user_number": caller_number,
+        "caller_number": caller_number,
+        "conversation_duration": call_duration,
+        "call_duration": call_duration,
+        "status": raw_status,
+        "call_status": raw_status,
+        "call_recording_url": recording_url,
+        "provider_call_id": provider_call_id,
+        "transcript": parsed_transcript,
+        "metadata": metadata,
+    }
+    return normalized, None
 
 
 @router.post("/webhook")
 async def bolna_post_call_webhook(request: Request, background_tasks: BackgroundTasks):
     """
-    Receive Bolna's post-call webhook payload, merge any mid-call `log_intel` captures,
-    run rule-based transcript extraction + grounded post-call cleanup, store a finalized
-    `CallRecord` in SQLite, fire `call.finalized` once, and schedule post-call reflection
-    and enrichment in the background.
+    Receive Bolna's post-call webhook payload (native Bolna format or fixture format),
+    merge any mid-call `log_intel` captures, run rule-based transcript extraction +
+    grounded post-call cleanup, store a finalized `CallRecord` in SQLite, fire
+    `call.finalized` once, and schedule post-call reflection and enrichment in the background.
     """
     try:
         raw_body = await request.body()
-        payload = json.loads(raw_body.decode("utf-8"))
+        raw_payload = json.loads(raw_body.decode("utf-8"))
     except Exception as exc:
         logger.warning("Malformed JSON on /webhook: %s", exc)
         return JSONResponse(
@@ -161,19 +320,23 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
             content={"detail": "Malformed JSON payload", "call_id": None},
         )
 
-    call_id_hint = payload.get("call_id") if isinstance(payload, dict) else None
-    err = _validate_webhook_payload(payload)
-    if err:
+    call_id_hint = (
+        (raw_payload.get("id") or raw_payload.get("call_id"))
+        if isinstance(raw_payload, dict)
+        else None
+    )
+    payload, err = _normalize_and_validate_webhook_payload(raw_payload)
+    if err or payload is None:
         logger.warning("Invalid webhook payload call_id=%s error=%s", call_id_hint, err)
         return JSONResponse(
             status_code=400,
             content={"detail": err, "call_id": call_id_hint},
         )
 
-    call_id = str(payload["call_id"]).strip()
-    caller_number = str(payload.get("caller_number") or "").strip()
-    transcript = payload.get("transcript") or []
-    metadata = payload.get("metadata") or {}
+    call_id = payload["call_id"]
+    caller_number = payload["caller_number"]
+    transcript = payload["transcript"]
+    metadata = payload["metadata"]
     language = str(metadata.get("language") or "hi")
 
     logger.info(

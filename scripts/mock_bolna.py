@@ -86,9 +86,9 @@ def replay_fixtures(
     for idx, fpath in enumerate(fixtures, 1):
         filename = os.path.basename(fpath)
         payload = load_fixture(fpath)
-        call_id = payload.get("call_id", "unknown")
-        caller = payload.get("caller_number", "<withheld>")
-        duration = payload.get("call_duration", 0)
+        call_id = payload.get("id") or payload.get("call_id", "unknown")
+        caller = payload.get("user_number") or payload.get("caller_number", "<withheld>")
+        duration = payload.get("conversation_duration") if payload.get("conversation_duration") is not None else payload.get("call_duration", 0)
 
         print(f"[{idx}/{len(fixtures)}] Sending {filename} (call_id: {call_id}, caller: {caller}, dur: {duration}s)...")
         res = send_webhook(url, payload, token=token)
