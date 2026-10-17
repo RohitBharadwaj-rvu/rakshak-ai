@@ -147,3 +147,54 @@ class TestDashboardApiAndEmptyState:
         ui_resp = client.get(f"/dashboard?token={TEST_TOKEN}")
         assert ui_resp.status_code == 200
         assert "No suspicious calls intercepted yet" in ui_resp.text
+
+    def test_per_call_signed_url_authorization(self, client, monkeypatch):
+        import time
+        from app.notify.alerts import generate_report_signature
+
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        call_id = "call_scam_001"
+        valid_exp = int(time.time()) + 3600
+        valid_sig = generate_report_signature(call_id, valid_exp, TEST_TOKEN)
+
+        # Access with valid per-call signature succeeds without master token
+        resp = client.get(f"/dashboard/report/{call_id}?exp={valid_exp}&sig={valid_sig}")
+        assert resp.status_code == 200
+        assert "NATIONAL CYBERCRIME REPORTING PORTAL" in resp.text
+
+        # Access with tampered signature is rejected
+        bad_resp = client.get(f"/dashboard/report/{call_id}?exp={valid_exp}&sig=fake_signature_12")
+        assert bad_resp.status_code == 401
+
+        # Access with expired timestamp is rejected
+        expired_exp = int(time.time()) - 3600
+        expired_sig = generate_report_signature(call_id, expired_exp, TEST_TOKEN)
+        exp_resp = client.get(f"/dashboard/report/{call_id}?exp={expired_exp}&sig={expired_sig}")
+        assert exp_resp.status_code == 401
+
+    def test_detail_page_renders_verdict_and_intel_tags(self, client, monkeypatch):
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        resp = client.get(f"/dashboard/calls/call_scam_001?token={TEST_TOKEN}")
+        assert resp.status_code == 200
+        html = resp.text
+        assert "SUSPECTED SCAM" in html
+        assert "UPI: cbi.officer.verma@okaxis" in html
+        assert "Ph: 9876543210" in html
+
+    def test_role_escaping_preserves_title_case_without_entity_corruption(self, client, isolated_store, monkeypatch):
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        isolated_store.add_call({
+            "call_id": "call_entity_test",
+            "caller_number": "+919876543210",
+            "verdict": "scam",
+            "duration": 60.0,
+            "transcript": [
+                {"role": "caller<admin>", "content": "Sample dialogue"}
+            ]
+        })
+        resp = client.get(f"/dashboard/calls/call_entity_test?token={TEST_TOKEN}")
+        assert resp.status_code == 200
+        # Title of "caller<admin>" is "Caller<Admin>", which escaped should be "Caller&lt;Admin&gt;"
+        # NOT "&Lt;"
+        assert "&Lt;" not in resp.text
+        assert "Caller&lt;Admin&gt;" in resp.text

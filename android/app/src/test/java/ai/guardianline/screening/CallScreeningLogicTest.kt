@@ -1,17 +1,60 @@
 package ai.guardianline.screening
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
+import java.io.File
+import java.util.stream.Stream
+
+data class ScreeningTestCase(
+    val description: String,
+    val caller_number: String?,
+    val contacts: List<String>,
+    val bolna_number: String,
+    val expected_action: String,
+    val expected_reason: String
+)
 
 class CallScreeningLogicTest {
 
     private val bolnaProxyNumber = "+919988776655"
     private lateinit var screeningLogic: CallScreeningLogic
 
+    companion object {
+        @JvmStatic
+        fun provideSharedScreeningCases(): Stream<ScreeningTestCase> {
+            val jsonText: String = run {
+                val stream = CallScreeningLogicTest::class.java.getResourceAsStream("/screening_cases.json")
+                if (stream != null) {
+                    stream.bufferedReader().use { it.readText() }
+                } else {
+                    val fallback = File("src/test/resources/screening_cases.json")
+                    if (fallback.exists()) fallback.readText() else File("../../tests/data/screening_cases.json").readText()
+                }
+            }
+            val listType = object : TypeToken<List<ScreeningTestCase>>() {}.type
+            val cases: List<ScreeningTestCase> = Gson().fromJson(jsonText, listType)
+            return cases.stream()
+        }
+    }
+
     @BeforeEach
     fun setUp() {
         screeningLogic = CallScreeningLogic(bolnaProxyNumber)
+    }
+
+    @ParameterizedTest(name = "{index}: {0}")
+    @MethodSource("provideSharedScreeningCases")
+    fun testSharedScreeningCasesFromCanonicalJson(testCase: ScreeningTestCase) {
+        val logic = CallScreeningLogic(testCase.bolna_number)
+        val decision = logic.evaluateCall(testCase.caller_number, testCase.contacts.toSet())
+        val expectedAction = ScreeningAction.valueOf(testCase.expected_action)
+        assertEquals(expectedAction, decision.action, "Action mismatch for case: ${testCase.description}")
+        assertEquals(testCase.expected_reason, decision.reason, "Reason mismatch for case: ${testCase.description}")
     }
 
     @Test

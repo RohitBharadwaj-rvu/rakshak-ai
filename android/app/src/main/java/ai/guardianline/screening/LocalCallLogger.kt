@@ -12,6 +12,7 @@ object LocalCallLogger {
 
     private const val TAG = "GuardianScreeningLog"
     private const val LOG_FILENAME = "screening_soak_log.jsonl"
+    private const val MAX_LOG_SIZE_BYTES = 500_000L // 500 KB limit for soak test logs
 
     /**
      * Masks telephone number for privacy in logs and logcat:
@@ -26,12 +27,27 @@ object LocalCallLogger {
         return "$prefix****$suffix"
     }
 
+    fun getLogFile(context: Context): File {
+        return File(context.filesDir, LOG_FILENAME)
+    }
+
+    fun readLogContent(context: Context): String {
+        val file = getLogFile(context)
+        return if (file.exists()) file.readText() else ""
+    }
+
+    fun clearLog(context: Context) {
+        val file = getLogFile(context)
+        if (file.exists()) file.delete()
+    }
+
     /**
-     * Appends an entry to the local soak test log file.
+     * Appends an entry to the local soak test log file with verified UTC timestamp.
+     * Enforces maximum file size cap to prevent runaway disk usage.
      */
     fun logDecision(context: Context, rawNumber: String?, decision: ScreeningDecision) {
         val masked = maskPhoneNumber(rawNumber)
-        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(Date())
+        val nowIso = java.time.Instant.now().toString()
 
         val logEntryJson = """{"timestamp":"$nowIso","masked_caller":"$masked","action":"${decision.action}","reason":"${decision.reason}"}"""
 
@@ -39,7 +55,13 @@ object LocalCallLogger {
         Log.i(TAG, "Screened Call: $logEntryJson")
 
         try {
-            val logFile = File(context.filesDir, LOG_FILENAME)
+            val logFile = getLogFile(context)
+            if (logFile.exists() && logFile.length() > MAX_LOG_SIZE_BYTES) {
+                // Keep the most recent 1000 lines
+                val lines = logFile.readLines()
+                val keepLines = lines.takeLast(1000)
+                logFile.writeText(keepLines.joinToString("\n") + "\n")
+            }
             FileWriter(logFile, true).use { writer ->
                 writer.append(logEntryJson).append("\n")
             }

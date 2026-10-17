@@ -16,10 +16,12 @@ data class ScreeningDecision(
  *
  * TRANSFER LOOP MITIGATION:
  * Whitelisting the Bolna gateway number ensures that when Bolna initiates an outbound transfer
- * of a genuine caller to the elder, the device does not reject it.
- * Note: If the elder declines the call or is already on an active call, the carrier's **67*
- * forward could loop back to Bolna. Lane A's agent architecture handles this by detecting
- * transfer session markers and taking a message rather than re-initiating a transfer.
+ * of a genuine caller to the elder, the device allows it to ring instead of rejecting.
+ * OPEN INTERFACE ITEM FOR LANE A (T-XFER):
+ * If the elder declines the call or is busy, the carrier's **67* rule forwards the call back
+ * to Bolna. Before T-XFER testing, Lane A and Lane C must agree on:
+ * 1) What caller ID Bolna's transfer leg presents to the elder's handset.
+ * 2) Agent behaviour when an inbound call originates from its own gateway or forwarded number.
  */
 class CallScreeningLogic(
     bolnaProxyNumber: String?,

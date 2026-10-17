@@ -2,7 +2,7 @@
 
 **Project Name:** GuardianLine (Autonomous Telecom Scam Defense & Call Screening)  
 **Lead Investigator:** Rohit Bharadwaj (Lead Researcher, GuardianLine Research Initiative)  
-**Contact for Queries / Data Withdrawal:** `guardianline-research@rvu.edu.in`  
+**Contact for Queries / Data Withdrawal:** `[VERIFIED INSTITUTIONAL EMAIL TO BE INSERTED BEFORE PARTICIPANT SIGN-OFF]`  
 **Affiliation:** School of Computer Science and Engineering, RV University  
 **Governing Regulation:** Digital Personal Data Protection (DPDP) Act, 2023
 

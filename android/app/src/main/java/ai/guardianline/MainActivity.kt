@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
         val title = TextView(this).apply {
             text = getString(R.string.title_shield)
-            textSize = 24f
+            textSize = 28f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 16)
         }
@@ -53,37 +53,39 @@ class MainActivity : AppCompatActivity() {
 
         val subtitle = TextView(this).apply {
             text = getString(R.string.subtitle_shield)
-            textSize = 15f
-            setTextColor(android.graphics.Color.GRAY)
+            textSize = 18f
+            setTextColor(android.graphics.Color.DKGRAY)
             setPadding(0, 0, 0, 32)
         }
         layout.addView(subtitle)
 
         statusText = TextView(this).apply {
-            textSize = 18f
+            textSize = 22f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(0, 0, 0, 24)
         }
         layout.addView(statusText)
 
         permText = TextView(this).apply {
-            textSize = 15f
+            textSize = 18f
             setPadding(0, 0, 0, 36)
         }
         layout.addView(permText)
 
         btnEnableScreening = Button(this).apply {
             text = getString(R.string.btn_enable_screening)
-            textSize = 17f
-            setPadding(24, 24, 24, 24)
+            textSize = 20f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(32, 32, 32, 32)
             setOnClickListener { requestCallScreeningRole() }
         }
         layout.addView(btnEnableScreening)
 
         btnSetupForwarding = Button(this).apply {
             text = getString(R.string.btn_setup_forwarding)
-            textSize = 17f
-            setPadding(24, 24, 24, 24)
+            textSize = 20f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(32, 32, 32, 32)
             setOnClickListener { triggerCarrierForwardingDialer() }
         }
         layout.addView(btnSetupForwarding)
@@ -120,10 +122,10 @@ class MainActivity : AppCompatActivity() {
         ) == PackageManager.PERMISSION_GRANTED
 
         if (hasContacts) {
-            permText.text = "✓ Contact access: GRANTED (Family calls ring normally)"
+            permText.text = getString(R.string.perm_contacts_granted)
             permText.setTextColor(android.graphics.Color.parseColor("#2E7D32"))
         } else {
-            permText.text = "! Contact access: MISSING (Tap here to grant)"
+            permText.text = getString(R.string.perm_contacts_missing)
             permText.setTextColor(android.graphics.Color.parseColor("#C62828"))
             permText.setOnClickListener {
                 requestPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
@@ -144,7 +146,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun triggerCarrierForwardingDialer() {
-        val gatewayNumber = BuildConfig.BOLNA_GATEWAY_NUMBER.ifBlank { "+919988776655" }
+        val gatewayNumber = BuildConfig.BOLNA_GATEWAY_NUMBER.trim()
+        if (gatewayNumber.isBlank()) {
+            Toast.makeText(this, getString(R.string.gateway_not_configured), Toast.LENGTH_LONG).show()
+            return
+        }
         val ussdCode = "**67*${gatewayNumber}#"
         val encodedUssd = Uri.encode(ussdCode)
         val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$encodedUssd"))

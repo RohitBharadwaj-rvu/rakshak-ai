@@ -66,14 +66,24 @@ def test_callrecord_and_finalized_schemas_exist_and_validate():
         "caller_number": "+919876543210",
         "verdict": "scam",
         "duration": 120.0,
+        "start_time": "2026-10-17T02:00:00Z",
         "created_at": "2026-10-17T02:00:00Z",
         "summary": "Suspected scam attempt",
         "extracted_intel": {
             "upi_ids": ["attacker@okaxis"],
             "bank_accounts": [],
             "ifsc_codes": [],
-            "phone_numbers": []
+            "phone_numbers": [],
+            "links": ["https://malicious-kyc.com/verify"]
         }
     }
     validate(instance=sample_callrecord, schema=cr_schema)
+
+    sample_event = {
+        "event": "call.finalized",
+        "call_id": "call_sample_001",
+        "timestamp": "2026-10-17T02:02:00Z",
+        "record": sample_callrecord
+    }
+    validate(instance=sample_event, schema=fin_schema)
 

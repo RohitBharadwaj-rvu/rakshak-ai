@@ -9,5 +9,10 @@
     <string name="btn_enable_screening">१. सुरक्षा चालू करें (स्क्रीनिंग अनुमति)</string>
     <string name="btn_setup_forwarding">२. सिम फ़ॉरवर्डिंग चालू करें (**67*)</string>
     <string name="perm_contacts_needed">परिवार की कॉल सामान्य रूप से आने के लिए संपर्कों (कॉन्टैक्ट्स) की अनुमति आवश्यक है।</string>
+    <string name="perm_contacts_granted">✓ संपर्क अनुमति: प्राप्त (परिवार की कॉल सामान्य रूप से बजेंगी)</string>
+    <string name="perm_contacts_missing">! संपर्क अनुमति: नहीं मिली (अनुमति देने के लिए यहाँ टैप करें)</string>
+    <string name="gateway_not_configured">गेटवे नंबर कॉन्फ़िगर नहीं है। कॉल फ़ॉरवर्डिंग चालू नहीं की जा सकती।</string>
+    <string name="notification_channel_name">गार्डियनलाइन सुरक्षा स्थिति</string>
+    <string name="notification_protection_disabled">चेतावनी: गार्डियनलाइन कॉल स्क्रीनिंग सुरक्षा बंद है!</string>
     <string name="toast_role_unavailable">इस फ़ोन पर कॉल स्क्रीनिंग सुविधा उपलब्ध नहीं है।</string>
 </resources>

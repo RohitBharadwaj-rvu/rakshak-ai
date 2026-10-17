@@ -196,8 +196,8 @@ All three personas speak naturally in Hindi and English (with natural Hinglish c
 
 **C · Phone and family, if Gate 1 is no-go**
 
-- [x] Write the basic-mode setup guide per carrier: `**61*<number>#`, checked with `*#61#`.
-- [x] Build family dashboard v1 by adapting `/gui` on top of B's API: recent calls, verdicts, extracted details.
+- [ ] Write the basic-mode setup guide per carrier: `**61*<number>#`, checked with `*#61#`.
+- [ ] Build family dashboard v1 by adapting `/gui` on top of B's API: recent calls, verdicts, extracted details.
 
 **D · Detection and eval**
 
@@ -234,7 +234,7 @@ Every claim in the application works end to end, and features freeze on the nigh
 **C · Phone and family**
 
 - [ ] If go: family dashboard v1 (adapt `/gui`), plus a signed APK with an install guide.
-- [x] If no-go: dashboard polish (call detail, transcript, report download), and confirm basic mode on every carrier.
+- [ ] If no-go: dashboard polish (call detail, transcript, report download), and confirm basic mode on every carrier.
 - [ ] Write the consent form and book the 5 to 10 elderly genuine-call tests for Sprint 4.
 
 **D · Detection and eval**
