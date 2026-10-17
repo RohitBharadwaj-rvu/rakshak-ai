@@ -1,14 +1,16 @@
 """
-app/voice/webhook.py - Bolna Post-Call Webhook & CallRecord Read Endpoints (T-HOOK, T-API).
+app/voice/webhook.py - Bolna Post-Call Webhook & Authenticated CallRecord Read API (T-HOOK, T-CLEAN, T-API).
 """
 
 import json
 import logging
+import os
 from typing import Any, Callable, Dict, Optional
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 
 import app.voice.classifier as _classifier_mod
+from app.voice.cleanup import cleanup_call_intel
 from app.voice.extractor import extract_from_transcript
 from app.voice.store import (
     finalize_call_record_from_webhook,
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Bolna Post-Call Webhook & CallRecords"])
 
-# Optional post-call LLM cleanup hook (injected or overridden in Sprint 2 / tests)
+# Optional custom cleanup override for failure-injection testing (T-HOOK)
 _CLEANUP_FN: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
 
 REQUIRED_WEBHOOK_FIELDS = {"call_id", "agent_id", "call_duration", "call_status", "transcript"}
@@ -29,28 +31,36 @@ VALID_CALL_STATUSES = {"completed", "failed", "busy", "no-answer", "in-progress"
 
 
 def set_cleanup_hook(fn: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]]) -> None:
-    """Register or clear an optional post-call LLM cleanup function."""
+    """Register or clear a custom post-call LLM cleanup override."""
     global _CLEANUP_FN
     _CLEANUP_FN = fn
 
 
-def _build_default_summary(
-    verdict: str,
-    duration: float,
-    extracted_intel: Dict[str, Any],
-    metadata: Dict[str, Any],
+def get_expected_api_token() -> str:
+    return os.getenv("GUARDIANLINE_API_TOKEN", "local_api_token_123")
+
+
+def require_api_token(
+    authorization: Optional[str] = Header(default=None),
+    x_api_token: Optional[str] = Header(default=None),
+    token: Optional[str] = Query(default=None),
 ) -> str:
-    scam_type = metadata.get("simulated_scam_type") or metadata.get("scenario") or "telephony"
-    parts = [f"Verdict: {verdict} ({scam_type}, {round(duration, 1)}s)."]
-    if extracted_intel.get("upi_ids"):
-        parts.append(f"UPI: {', '.join(extracted_intel['upi_ids'])}.")
-    if extracted_intel.get("bank_accounts"):
-        parts.append(f"Accounts: {', '.join(extracted_intel['bank_accounts'])}.")
-    if extracted_intel.get("ifsc_codes"):
-        parts.append(f"IFSC: {', '.join(extracted_intel['ifsc_codes'])}.")
-    if extracted_intel.get("phone_numbers"):
-        parts.append(f"Phones: {', '.join(extracted_intel['phone_numbers'])}.")
-    return " ".join(parts)
+    """
+    Verify Bearer / API token on read routes (`/api/calls`, `/api/calls/{id}`).
+    Returns HTTP 401 on missing or invalid token (T-API, T-PRIV).
+    """
+    expected = get_expected_api_token()
+    provided: Optional[str] = None
+    if authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    elif x_api_token:
+        provided = x_api_token.strip()
+    elif token:
+        provided = token.strip()
+
+    if not provided or provided != expected:
+        raise HTTPException(status_code=401, detail="Missing or invalid API token")
+    return provided
 
 
 def _validate_webhook_payload(data: Any) -> Optional[str]:
@@ -79,8 +89,8 @@ def _validate_webhook_payload(data: Any) -> Optional[str]:
 async def bolna_post_call_webhook(request: Request):
     """
     Receive Bolna's post-call webhook payload, merge any mid-call `log_intel` captures,
-    run rule-based transcript extraction, store a finalized `CallRecord` in SQLite,
-    and fire `call.finalized` once.
+    run rule-based transcript extraction + grounded post-call cleanup, store a finalized
+    `CallRecord` in SQLite, and fire `call.finalized` once.
     """
     try:
         raw_body = await request.body()
@@ -115,10 +125,8 @@ async def bolna_post_call_webhook(request: Request):
         payload.get("call_duration", 0),
     )
 
-    # Check if there is an existing pending/finalized record
     existing = get_call_record(call_id)
     if existing and existing.get("status") == "finalized":
-        # Duplicate delivery: finalize_call_record_from_webhook returns the existing record without re-firing
         record = finalize_call_record_from_webhook(
             payload=payload,
             extracted_intel=existing["extracted_intel"],
@@ -133,13 +141,13 @@ async def bolna_post_call_webhook(request: Request):
         existing.get("extracted_intel", {}).get("mid_call_logs", []) if existing else []
     )
 
-    # Run rule-based extraction over caller turns + merge mid-call logs
+    # Step 1: Rule-based extraction + mid-call log merge
     extracted_intel = extract_from_transcript(
         transcript=transcript,
         mid_call_logs=existing_mid_logs,
     )
 
-    # Determine verdict using classifier + extracted intel + pending persona switch
+    # Step 2: Verdict classification
     cls_res = _classifier_mod.classify_caller(
         call_id=call_id,
         caller_number=caller_number,
@@ -163,16 +171,11 @@ async def bolna_post_call_webhook(request: Request):
         confidence = max(confidence, 0.92)
 
     status_value = "finalized"
-    summary = _build_default_summary(
-        verdict=verdict,
-        duration=float(payload.get("call_duration") or 0.0),
-        extracted_intel=extracted_intel,
-        metadata=metadata,
-    )
+    summary = ""
 
-    # If a post-call LLM cleanup hook is registered, attempt it; on failure mark 'cleanup_pending'
-    if _CLEANUP_FN is not None:
-        try:
+    # Step 3: Post-call cleanup & grounded summary (T-CLEAN)
+    try:
+        if _CLEANUP_FN is not None:
             cleanup_out = _CLEANUP_FN(
                 {
                     "call_id": call_id,
@@ -181,14 +184,28 @@ async def bolna_post_call_webhook(request: Request):
                     "verdict": verdict,
                 }
             )
-            if isinstance(cleanup_out, dict):
-                if "extracted_intel" in cleanup_out:
-                    extracted_intel = cleanup_out["extracted_intel"]
-                if "summary" in cleanup_out and cleanup_out["summary"]:
-                    summary = cleanup_out["summary"]
-        except Exception as exc:
-            logger.error("Post-call cleanup failed for call_id=%s: %s", call_id, exc)
-            status_value = "cleanup_pending"
+        else:
+            cleanup_out = cleanup_call_intel(
+                transcript=transcript,
+                verdict=verdict,
+                mid_call_logs=extracted_intel.get("mid_call_logs", []),
+                metadata=metadata,
+            )
+            # Preserve any valid pre-webhook mid_call_logs that were merged in Step 1
+            for k in ("upi_ids", "phone_numbers", "bank_accounts", "ifsc_codes", "pan_numbers", "links"):
+                for v in extracted_intel.get(k, []):
+                    if v not in cleanup_out["extracted_intel"][k]:
+                        cleanup_out["extracted_intel"][k].append(v)
+
+        if isinstance(cleanup_out, dict):
+            if "extracted_intel" in cleanup_out:
+                extracted_intel = cleanup_out["extracted_intel"]
+            if "summary" in cleanup_out and cleanup_out["summary"]:
+                summary = cleanup_out["summary"]
+    except Exception as exc:
+        logger.error("Post-call cleanup failed for call_id=%s: %s", call_id, exc)
+        status_value = "cleanup_pending"
+        summary = f"Call verdict is {verdict}. Post-call cleanup pending retry."
 
     record = finalize_call_record_from_webhook(
         payload=payload,
@@ -203,17 +220,31 @@ async def bolna_post_call_webhook(request: Request):
 
 @router.get("/api/calls")
 async def api_list_calls(
-    limit: int = Query(default=50, ge=1, le=200),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=50),
     verdict: Optional[str] = Query(default=None),
+    _token: str = Depends(require_api_token),
 ):
-    """List CallRecords newest-first, optionally filtered by verdict."""
-    records = list_call_records(limit=limit, verdict=verdict)
-    return {"calls": records, "count": len(records)}
+    """
+    List CallRecords newest-first, 50 per page, optionally filtered by verdict (T-API).
+    Requires valid API token.
+    """
+    offset = (page - 1) * limit
+    records = list_call_records(limit=limit, verdict=verdict, offset=offset)
+    return {
+        "calls": records,
+        "page": page,
+        "per_page": limit,
+        "count": len(records),
+    }
 
 
 @router.get("/api/calls/{call_id}")
-async def api_get_call(call_id: str):
-    """Retrieve a single CallRecord by ID."""
+async def api_get_call(
+    call_id: str,
+    _token: str = Depends(require_api_token),
+):
+    """Retrieve a single CallRecord by ID (T-API). Requires valid API token."""
     record = get_call_record(call_id)
     if not record:
         raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")

@@ -162,20 +162,24 @@ def get_call_record(call_id: str) -> Optional[Dict[str, Any]]:
             conn.close()
 
 
-def list_call_records(limit: int = 50, verdict: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_call_records(
+    limit: int = 50,
+    verdict: Optional[str] = None,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     init_db()
     with _DB_LOCK:
         conn = _get_conn()
         try:
             if verdict:
                 rows = conn.execute(
-                    "SELECT * FROM call_records WHERE verdict = ? ORDER BY created_at DESC LIMIT ?",
-                    (verdict, limit),
+                    "SELECT * FROM call_records WHERE verdict = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
+                    (verdict, limit, offset),
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT * FROM call_records ORDER BY created_at DESC LIMIT ?",
-                    (limit,),
+                    "SELECT * FROM call_records ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
+                    (limit, offset),
                 ).fetchall()
             return [_row_to_record(r) for r in rows]
         finally:

@@ -136,7 +136,10 @@ def test_webhook_and_callrecord_and_finalized_event_schemas(temp_client, fixture
     validate(instance=record, schema=_load_schema("call_record.schema.json"))
 
     # Also verify read API response validates against CallRecord schema
-    get_res = temp_client.get(f"/api/calls/{payload['call_id']}")
+    get_res = temp_client.get(
+        f"/api/calls/{payload['call_id']}",
+        headers={"Authorization": "Bearer local_api_token_123"},
+    )
     assert get_res.status_code == 200
     validate(instance=get_res.json(), schema=_load_schema("call_record.schema.json"))
 

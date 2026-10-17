@@ -642,3 +642,47 @@ cases:
     group: amount_beside_number
     input: "send five thousand to nine eight four five zero"
     expected: "send five thousand to 98450"
+
+  # ============================================================================
+  # Group 5: Normalizer v2 - Mid-string language switches & paired digits (10 cases)
+  # ============================================================================
+  - id: v2_01
+    group: mid_string_switch
+    input: "नौ आठ 76 five four तीन दो ek zero"
+    expected: "9876543210"
+  - id: v2_02
+    group: mid_string_switch
+    input: "अठारह चौबीस पचपन 00"
+    expected: "18245500"
+  - id: v2_03
+    group: mid_string_switch
+    input: "98 पचपन chhappan सात आठ"
+    expected: "98555678"
+  - id: v2_04
+    group: mid_string_switch
+    input: "S B I N शून्य zero ० एक two ३ चार"
+    expected: "SBIN0001234"
+  - id: v2_05
+    group: mid_string_switch
+    input: "ramesh डॉट verma underscore एक at the rate ओके एचडीएफसी बैंक"
+    expected: "ramesh.verma_1@okhdfcbank"
+  - id: v2_06
+    group: mid_string_switch
+    input: "double नौ triple शून्य four पांच"
+    expected: "9900045"
+  - id: v2_07
+    group: mid_string_switch
+    input: "निन्यानवे अस्सी सत्तर साठ"
+    expected: "99807060"
+  - id: v2_08
+    group: mid_string_switch
+    input: "gyarah barah terah chaudah pandrah"
+    expected: "1112131415"
+  - id: v2_09
+    group: mid_string_switch
+    input: "९८ seven ६५ four ३२ one ०"
+    expected: "9876543210"
+  - id: v2_10
+    group: mid_string_switch
+    input: "pay डॉट cell dash दो at rate पेटीएम"
+    expected: "pay.cell-2@paytm"
