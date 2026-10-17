@@ -1,6 +1,7 @@
 package ai.guardianline
 
 import ai.guardianline.BuildConfig
+import ai.guardianline.screening.LocalCallLogger
 import android.Manifest
 import android.app.role.RoleManager
 import android.content.Context
@@ -22,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var permText: TextView
     private lateinit var btnEnableScreening: Button
     private lateinit var btnSetupForwarding: Button
+    private lateinit var btnShareLog: Button
 
     private val requestRoleLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -34,6 +36,10 @@ class MainActivity : AppCompatActivity() {
     ) { _ ->
         checkPermissionsStatus()
     }
+
+    private val requestNotificationLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,7 +96,23 @@ class MainActivity : AppCompatActivity() {
         }
         layout.addView(btnSetupForwarding)
 
+        btnShareLog = Button(this).apply {
+            text = getString(R.string.btn_share_log)
+            textSize = 16f
+            setPadding(24, 24, 24, 24)
+            setOnClickListener { shareSoakLog() }
+        }
+        layout.addView(btnShareLog)
+
         setContentView(layout)
+
+        // Warn through a notification if the screening role is ever revoked (T-AND step 8)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        ProtectionStatusWorker.schedule(this)
     }
 
     override fun onResume() {
@@ -104,6 +126,7 @@ class MainActivity : AppCompatActivity() {
             val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
             val isHeld = roleManager?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
             if (isHeld) {
+                ProtectionStatusWorker.clearWarning(this)
                 statusText.text = getString(R.string.status_active)
                 statusText.setTextColor(android.graphics.Color.parseColor("#2E7D32")) // Green
             } else {
@@ -143,6 +166,21 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, getString(R.string.toast_role_unavailable), Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    /** Shares the last 200 soak-log lines (masked numbers only) for the T-AND 24-hour soak. */
+    private fun shareSoakLog() {
+        val lines = LocalCallLogger.readLogContent(this).lines().filter { it.isNotBlank() }
+        if (lines.isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_log_empty), Toast.LENGTH_LONG).show()
+            return
+        }
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "GuardianLine screening log")
+            putExtra(Intent.EXTRA_TEXT, lines.takeLast(200).joinToString(separator = "\n"))
+        }
+        startActivity(Intent.createChooser(send, getString(R.string.btn_share_log)))
     }
 
     private fun triggerCarrierForwardingDialer() {

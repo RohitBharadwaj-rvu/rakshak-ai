@@ -15,4 +15,6 @@
     <string name="notification_channel_name">GuardianLine Protection Status</string>
     <string name="notification_protection_disabled">WARNING: GuardianLine Call Screening is inactive!</string>
     <string name="toast_role_unavailable">Call Screening Role is unavailable on this device.</string>
+    <string name="btn_share_log">Share screening log</string>
+    <string name="toast_log_empty">No screened calls logged yet.</string>
 </resources>

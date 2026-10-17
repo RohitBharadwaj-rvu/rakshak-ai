@@ -15,4 +15,6 @@
     <string name="notification_channel_name">गार्डियनलाइन सुरक्षा स्थिति</string>
     <string name="notification_protection_disabled">चेतावनी: गार्डियनलाइन कॉल स्क्रीनिंग सुरक्षा बंद है!</string>
     <string name="toast_role_unavailable">इस फ़ोन पर कॉल स्क्रीनिंग सुविधा उपलब्ध नहीं है।</string>
+    <string name="btn_share_log">स्क्रीनिंग लॉग भेजें</string>
+    <string name="toast_log_empty">अभी तक कोई कॉल लॉग नहीं हुई है।</string>
 </resources>

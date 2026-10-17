@@ -22,13 +22,20 @@ app.include_router(classifier_router)
 
 ## 2. Exact HTTP Contract (`POST /tools/classify_caller`)
 
-### Request JSON Payload
+### Request JSON Payload (Bolna Mid-Call Mode via `caller_summary`)
+```json
+{
+  "call_id": "%(call_sid)s",
+  "caller_number": "%(from_number)s",
+  "caller_summary": "Caller claims to be Sub-Inspector Verma from Hauz Khas police station, states an arrest warrant was issued, and demands immediate ₹25,000 transfer."
+}
+```
+
+*Note: For regression benchmarking and offline simulation, the endpoint also accepts the full conversation history:*
 ```json
 {
   "call_id": "call_live_9872",
   "caller_number": "+919876543210",
-  "language": "hi",
-  "max_latency_budget_s": 1.4,
   "conversation": [
     {"role": "caller", "content": "Namaste sir, Hauz Khas police station se Sub-Inspector Verma bol raha hoon."},
     {"role": "assistant", "content": "Ji kahiye, kis baare mein call kiya hai?"},
@@ -81,37 +88,24 @@ Paste this tool definition directly into your Bolna agent configuration YAML/JSO
   "type": "function",
   "function": {
     "name": "classify_caller",
-    "description": "Evaluates inbound caller intent and dialogue turns against scam behavioral pillars. Returns verdict ('scam', 'genuine', or 'unsure').",
+    "description": "Evaluates inbound caller intent against scam behavioral pillars. Returns verdict ('scam', 'genuine', or 'unsure').",
     "parameters": {
       "type": "object",
       "properties": {
         "call_id": {
           "type": "string",
-          "description": "Unique telephony call session ID"
+          "description": "Unique telephony call session ID (pass %(call_sid)s)"
         },
         "caller_number": {
           "type": "string",
-          "description": "Caller phone number with country code"
+          "description": "Caller phone number with country code (pass %(from_number)s)"
         },
-        "language": {
+        "caller_summary": {
           "type": "string",
-          "enum": ["hi", "en", "hinglish"],
-          "default": "hi"
-        },
-        "conversation": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "role": {"type": "string", "enum": ["caller", "assistant", "user"]},
-              "content": {"type": "string"}
-            },
-            "required": ["role", "content"]
-          },
-          "description": "Chronological history of conversation utterances"
+          "description": "1 to 3 sentence agent summary of who the caller claims to be, what they want, and any payment/OTP/credential demands"
         }
       },
-      "required": ["call_id", "conversation"]
+      "required": ["call_id", "caller_summary"]
     }
   },
   "url": "http://localhost:8000/tools/classify_caller",
@@ -119,19 +113,3 @@ Paste this tool definition directly into your Bolna agent configuration YAML/JSO
 }
 ```
 
----
-
-## 5. Lane C Proposal: Event Contracts & Intel Types (For Lane B)
-Lane C provides initial JSON Schema proposals for CallRecord and post-call notifications:
-- **`contracts/callrecord.schema.json`**: Supports `start_time` (per Sprint Plan Interfaces) and `created_at`, plus `links` array under `extracted_intel` (`upi_ids`, `bank_accounts`, `ifsc_codes`, `phone_numbers`, `links`).
-- **`contracts/call_finalized.schema.json`**: Emitted by backend upon finalization to trigger family alerts and dashboard live feed.
-> [!NOTE]
-> Lane B owns `CallRecord` backend storage. These contracts serve as the baseline proposal for cross-lane alignment.
-
----
-
-## 6. Open Telephony Questions (For Lane A & Lane C)
-Before Gate 1 T-XFER testing, Lane A and Lane C must settle:
-1. **Transfer Caller ID**: When Bolna initiates an outbound transfer to the parent handset, does carrier network present the Bolna gateway number (whitelisted by `GuardianCallScreeningService`) or the scammer's caller ID?
-2. **Transfer Loop Prevention**: If the elder's line is busy or declined, the carrier's `**67*` rule forwards the call back to Bolna. Bolna must check if an inbound call leg arrives from the protected handset and switch to taking a message rather than re-initiating a transfer.
-3. **Naming Alignment**: The Android app, family dashboard, and alert notifications are branded **GuardianLine**, while the voice receptionist persona is **Rakshak**.

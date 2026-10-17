@@ -7,7 +7,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
-import java.io.File
 import java.util.stream.Stream
 
 data class ScreeningTestCase(
@@ -27,15 +26,11 @@ class CallScreeningLogicTest {
     companion object {
         @JvmStatic
         fun provideSharedScreeningCases(): Stream<ScreeningTestCase> {
-            val jsonText: String = run {
-                val stream = CallScreeningLogicTest::class.java.getResourceAsStream("/screening_cases.json")
-                if (stream != null) {
-                    stream.bufferedReader().use { it.readText() }
-                } else {
-                    val fallback = File("src/test/resources/screening_cases.json")
-                    if (fallback.exists()) fallback.readText() else File("../../tests/data/screening_cases.json").readText()
-                }
+            // tests/data is a test resource dir (see app/build.gradle.kts)
+            val stream = requireNotNull(CallScreeningLogicTest::class.java.getResourceAsStream("/screening_cases.json")) {
+                "screening_cases.json not on the test classpath"
             }
+            val jsonText = stream.bufferedReader().use { it.readText() }
             val listType = object : TypeToken<List<ScreeningTestCase>>() {}.type
             val cases: List<ScreeningTestCase> = Gson().fromJson(jsonText, listType)
             return cases.stream()
