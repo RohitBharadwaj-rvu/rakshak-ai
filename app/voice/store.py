@@ -389,6 +389,13 @@ def finalize_call_record_from_webhook(
     language = str(metadata.get("language") or "hi")
     meta_persona = str(metadata.get("persona") or "")
 
+    start_time_val = str(
+        payload.get("created_at")
+        or payload.get("start_time")
+        or metadata.get("created_at")
+        or now_iso
+    )
+
     should_fire_event = False
     event_payload: Optional[Dict[str, Any]] = None
 
@@ -400,7 +407,7 @@ def finalize_call_record_from_webhook(
                 (call_id,),
             ).fetchone()
 
-            if row and row["finalized_fired"]:
+            if row and row["finalized_fired"] and row["status"] == "finalized":
                 # Duplicate webhook delivery: return existing record without firing a second event
                 logger.info(
                     "Duplicate webhook ignored for call_id=%s caller=%s",
@@ -409,6 +416,7 @@ def finalize_call_record_from_webhook(
                 )
                 return _row_to_record(row)
 
+            already_fired = bool(row["finalized_fired"]) if row else False
             honeypot_switch_time = row["honeypot_switch_time"] if row else None
             persona = (
                 (row["persona"] if row and row["persona"] != "screening_receptionist" else None)
@@ -416,7 +424,7 @@ def finalize_call_record_from_webhook(
                 or ("ramesh" if verdict == "scam" else "screening_receptionist")
             )
             if verdict == "scam" and not honeypot_switch_time:
-                honeypot_switch_time = now_iso
+                honeypot_switch_time = start_time_val
 
             report_link = f"/api/calls/{call_id}/report"
             transcript_json = json.dumps(transcript, ensure_ascii=False)
@@ -429,6 +437,7 @@ def finalize_call_record_from_webhook(
                     SET agent_id = ?,
                         caller_number = ?,
                         caller_number_missing = ?,
+                        start_time = ?,
                         duration = ?,
                         verdict = ?,
                         confidence = ?,
@@ -449,6 +458,7 @@ def finalize_call_record_from_webhook(
                         agent_id,
                         caller_number,
                         caller_missing,
+                        start_time_val,
                         duration,
                         verdict,
                         confidence,
@@ -481,7 +491,7 @@ def finalize_call_record_from_webhook(
                         agent_id,
                         caller_number,
                         caller_missing,
-                        now_iso,
+                        start_time_val,
                         duration,
                         verdict,
                         confidence,
@@ -504,16 +514,17 @@ def finalize_call_record_from_webhook(
             ).fetchone()
             record = _row_to_record(updated_row)
 
-            should_fire_event = True
-            event_payload = {
-                "event": "call.finalized",
-                "call_id": call_id,
-                "verdict": record["verdict"],
-                "caller_number": record["caller_number"],
-                "timestamp": now_iso,
-                "report_link": record["report_link"],
-                "extracted_intel": record["extracted_intel"],
-            }
+            if not already_fired:
+                should_fire_event = True
+                event_payload = {
+                    "event": "call.finalized",
+                    "call_id": call_id,
+                    "verdict": record["verdict"],
+                    "caller_number": record["caller_number"],
+                    "timestamp": now_iso,
+                    "report_link": record["report_link"],
+                    "extracted_intel": record["extracted_intel"],
+                }
         finally:
             conn.close()
 
@@ -532,3 +543,126 @@ def finalize_call_record_from_webhook(
                 logger.error("Error in call.finalized listener for call_id=%s: %s", call_id, exc)
 
     return record
+
+
+def save_post_call_enrichment_and_reflection(
+    call_id: str,
+    reflection: Optional[Dict[str, Any]] = None,
+    enrichment: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Attach post-call `reflection` and `enrichment` results onto an already-saved CallRecord
+    without altering `status`, `verdict`, `summary`, or `finalized_fired` (T-POST).
+    """
+    init_db()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with _DB_LOCK:
+        conn = _get_conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            if not row:
+                return None
+            intel = json.loads(row["extracted_intel_json"] or "{}")
+            for k, default_v in _empty_intel().items():
+                if k not in intel:
+                    intel[k] = default_v
+            if reflection is not None:
+                intel["reflection"] = reflection
+            if enrichment is not None:
+                intel["enrichment"] = enrichment
+
+            intel_json = json.dumps(intel, ensure_ascii=False)
+            conn.execute(
+                "UPDATE call_records SET extracted_intel_json = ?, updated_at = ? WHERE call_id = ?",
+                (intel_json, now_iso, call_id),
+            )
+            conn.commit()
+            updated = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            return _row_to_record(updated)
+        finally:
+            conn.close()
+
+
+CSV_EXPORT_FIELDNAMES = [
+    "call_id",
+    "scenario_id",
+    "language",
+    "caller_number",
+    "final_verdict",
+    "verdict",
+    "confidence",
+    "switched_to_honeypot",
+    "persona",
+    "total_turns",
+    "call_duration",
+    "upi_ids",
+    "phone_numbers",
+    "bank_accounts",
+    "ifsc_codes",
+    "pan_numbers",
+    "links",
+    "bait_leaks",
+    "adversarial_leaks",
+    "status",
+    "summary",
+    "start_time",
+]
+
+
+def export_call_records_to_csv_string() -> str:
+    """
+    Export all stored CallRecords as a CSV string compatible with `scripts/compute_metrics.py`
+    (Sprint 3 & 4 metrics pipeline).
+    """
+    import csv
+    import io
+
+    records = list_call_records(limit=10000, offset=0)
+    buf = io.StringIO()
+    writer = csv.DictWriter(buf, fieldnames=CSV_EXPORT_FIELDNAMES)
+    writer.writeheader()
+    for rec in records:
+        intel = rec.get("extracted_intel") or {}
+        switched = bool(rec.get("honeypot_switch_time")) or rec.get("verdict") == "scam"
+        writer.writerow(
+            {
+                "call_id": rec.get("call_id", ""),
+                "scenario_id": rec.get("call_id", ""),
+                "language": rec.get("language", "hi"),
+                "caller_number": rec.get("caller_number", ""),
+                "final_verdict": rec.get("verdict", "unsure"),
+                "verdict": rec.get("verdict", "unsure"),
+                "confidence": rec.get("confidence", 0.5),
+                "switched_to_honeypot": str(switched),
+                "persona": rec.get("persona", ""),
+                "total_turns": len(rec.get("transcript") or []),
+                "call_duration": rec.get("duration", 0.0),
+                "upi_ids": ";".join(intel.get("upi_ids") or []),
+                "phone_numbers": ";".join(intel.get("phone_numbers") or []),
+                "bank_accounts": ";".join(intel.get("bank_accounts") or []),
+                "ifsc_codes": ";".join(intel.get("ifsc_codes") or []),
+                "pan_numbers": ";".join(intel.get("pan_numbers") or []),
+                "links": ";".join(intel.get("links") or []),
+                "bait_leaks": 0,
+                "adversarial_leaks": 0,
+                "status": rec.get("status", "finalized"),
+                "summary": rec.get("summary", ""),
+                "start_time": rec.get("start_time", ""),
+            }
+        )
+    return buf.getvalue()
+
+
+def export_call_records_csv(csv_path: str) -> str:
+    """Write all CallRecords to `csv_path` and return the path."""
+    content = export_call_records_to_csv_string()
+    os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
+    with open(csv_path, "w", encoding="utf-8", newline="") as f:
+        f.write(content)
+    return csv_path

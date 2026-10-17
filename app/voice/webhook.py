@@ -1,30 +1,38 @@
 """
-app/voice/webhook.py - Bolna Post-Call Webhook & Authenticated CallRecord Read API (T-HOOK, T-CLEAN, T-API).
+app/voice/webhook.py - Bolna Post-Call Webhook & Authenticated CallRecord Read API
+(T-HOOK, T-CLEAN, T-API, T-RPT, T-POST).
 """
 
 import json
 import logging
 import os
 from typing import Any, Callable, Dict, Optional
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
+from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 import app.voice.classifier as _classifier_mod
+from app.agent.nodes.reflection import run_post_call_reflection
+from app.core.enrichment import run_post_call_enrichment
 from app.voice.cleanup import cleanup_call_intel
 from app.voice.extractor import extract_from_transcript
+from app.voice.report import generate_1930_report
 from app.voice.store import (
+    export_call_records_to_csv_string,
     finalize_call_record_from_webhook,
     get_call_record,
     list_call_records,
     mask_phone,
+    save_post_call_enrichment_and_reflection,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Bolna Post-Call Webhook & CallRecords"])
 
-# Optional custom cleanup override for failure-injection testing (T-HOOK)
+# Optional custom hooks for failure-injection testing (T-HOOK, T-POST)
 _CLEANUP_FN: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+_REFLECTION_FN: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
+_ENRICHMENT_FN: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None
 
 REQUIRED_WEBHOOK_FIELDS = {"call_id", "agent_id", "call_duration", "call_status", "transcript"}
 VALID_CALL_STATUSES = {"completed", "failed", "busy", "no-answer", "in-progress", "canceled"}
@@ -34,6 +42,56 @@ def set_cleanup_hook(fn: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]]) -
     """Register or clear a custom post-call LLM cleanup override."""
     global _CLEANUP_FN
     _CLEANUP_FN = fn
+
+
+def set_reflection_hook(fn: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]]) -> None:
+    """Register or clear a custom post-call reflection override (for T-POST testing)."""
+    global _REFLECTION_FN
+    _REFLECTION_FN = fn
+
+
+def set_enrichment_hook(fn: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]]) -> None:
+    """Register or clear a custom post-call enrichment override (for T-POST testing)."""
+    global _ENRICHMENT_FN
+    _ENRICHMENT_FN = fn
+
+
+def execute_post_call_tasks(record: Dict[str, Any]) -> None:
+    """
+    Execute post-call reflection and intelligence enrichment AFTER the CallRecord
+    is saved and `call.finalized` has been emitted (T-POST).
+    Never delays the webhook response or the family alert.
+    Any failure in either task is logged with `call_id` and leaves the saved CallRecord intact.
+    """
+    call_id = str(record.get("call_id") or "unknown")
+    reflection_out: Optional[Dict[str, Any]] = None
+    enrichment_out: Optional[Dict[str, Any]] = None
+
+    try:
+        fn_ref = _REFLECTION_FN or run_post_call_reflection
+        reflection_out = fn_ref(record)
+    except Exception as exc:
+        logger.error("Post-call reflection failed for call_id=%s: %s", call_id, exc)
+
+    try:
+        fn_enr = _ENRICHMENT_FN or run_post_call_enrichment
+        enrichment_out = fn_enr(record)
+    except Exception as exc:
+        logger.error("Post-call enrichment failed for call_id=%s: %s", call_id, exc)
+
+    if reflection_out is not None or enrichment_out is not None:
+        try:
+            save_post_call_enrichment_and_reflection(
+                call_id=call_id,
+                reflection=reflection_out,
+                enrichment=enrichment_out,
+            )
+        except Exception as exc:
+            logger.error(
+                "Saving post-call reflection/enrichment failed for call_id=%s: %s",
+                call_id,
+                exc,
+            )
 
 
 def get_expected_api_token() -> str:
@@ -46,7 +104,7 @@ def require_api_token(
     token: Optional[str] = Query(default=None),
 ) -> str:
     """
-    Verify Bearer / API token on read routes (`/api/calls`, `/api/calls/{id}`).
+    Verify Bearer / API token on read routes (`/api/calls`, `/api/calls/{id}`, `/api/calls/{id}/report`).
     Returns HTTP 401 on missing or invalid token (T-API, T-PRIV).
     """
     expected = get_expected_api_token()
@@ -86,11 +144,12 @@ def _validate_webhook_payload(data: Any) -> Optional[str]:
 
 
 @router.post("/webhook")
-async def bolna_post_call_webhook(request: Request):
+async def bolna_post_call_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Receive Bolna's post-call webhook payload, merge any mid-call `log_intel` captures,
     run rule-based transcript extraction + grounded post-call cleanup, store a finalized
-    `CallRecord` in SQLite, and fire `call.finalized` once.
+    `CallRecord` in SQLite, fire `call.finalized` once, and schedule post-call reflection
+    and enrichment in the background.
     """
     try:
         raw_body = await request.body()
@@ -215,6 +274,11 @@ async def bolna_post_call_webhook(request: Request):
         summary=summary,
         status_value=status_value,
     )
+
+    # Step 4: Schedule post-call reflection & enrichment in the background (T-POST)
+    # Runs AFTER the CallRecord is saved and `call.finalized` has been emitted.
+    background_tasks.add_task(execute_post_call_tasks, record)
+
     return record
 
 
@@ -239,6 +303,22 @@ async def api_list_calls(
     }
 
 
+@router.get("/api/calls/export.csv")
+async def api_export_calls_csv(
+    _token: str = Depends(require_api_token),
+):
+    """
+    Export all CallRecords as a CSV file for the Sprint 3/4 metrics script (T-MET).
+    Requires valid API token.
+    """
+    csv_text = export_call_records_to_csv_string()
+    return Response(
+        content=csv_text,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="call_records.csv"'},
+    )
+
+
 @router.get("/api/calls/{call_id}")
 async def api_get_call(
     call_id: str,
@@ -249,3 +329,22 @@ async def api_get_call(
     if not record:
         raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")
     return record
+
+
+@router.get("/api/calls/{call_id}/report")
+async def api_get_call_report(
+    call_id: str,
+    format: str = Query(default="text", pattern="^(text|json)$"),
+    _token: str = Depends(require_api_token),
+):
+    """
+    Generate and return the pre-filled 1930 cybercrime report for `call_id` (T-RPT).
+    Linked directly from the family alert (`report_link`). Requires valid API token.
+    """
+    record = get_call_record(call_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")
+    report_text = generate_1930_report(record)
+    if format == "json":
+        return {"call_id": call_id, "report": report_text}
+    return PlainTextResponse(content=report_text)
