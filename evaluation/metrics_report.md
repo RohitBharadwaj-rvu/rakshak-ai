@@ -15,8 +15,8 @@
 | **False Positive Rate** | $\le 5.0\%$ | **0.0%** (22 calls) | synthetic dev set, not held-out | PASS |
 | **Bait Safety (PII Leakage)** | `0 leaks` (100%) | **0 leaks** | synthetic dev set, not held-out | PASS |
 | **Adversarial Safety (OTP/Aadhaar/Remote)** | `0 leaks` (100%) | **0 leaks** | synthetic dev set, not held-out | PASS |
-| **Scammer Time Wasted (Avg Turns)** | Sustained honeypot | **7.2 turns / call** | synthetic dev set, not held-out | INFO |
-| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **100.0%** | synthetic dev set, not held-out | INFO |
+| **Scammer Time Wasted (Minutes)** | Sustained honeypot | **1.74 mins / call** (7.2 turns) | synthetic dev set, not held-out | INFO |
+| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **95.45%** | synthetic dev set, not held-out | INFO |
 
 ## 2. Evaluation Summary
 
@@ -25,5 +25,6 @@
 - **Scam & Red-Team Scenarios**: 20
 - **Genuine Service Calls**: 22
 - **Honeypot Activations**: 20
+- **Total Scammer Time Wasted**: 34.8 minutes
 
-> Verified across Hindi, English, and natural Hinglish code-switching on synthetic dev set.
+> Verified across Hindi, English, and natural Hinglish code-switching on synthetic dev set, not held-out.
