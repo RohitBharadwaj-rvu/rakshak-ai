@@ -92,10 +92,10 @@ Every producer and consumer across Lanes A, B, C, and D is tested against the JS
     "मेरा हाथ काँप रहा है बेटा, एक-एक अंक आराम से बोलिए।"
   ],
   "fake_bait": {
-    "upi_id": "ramesh.elderly@okhdfc",
+    "upi_id": "ramesh.elderly@testbank",
     "account_number": "9999000011112222",
-    "ifsc_code": "HDFC0009999",
-    "phone_number": "9000011111"
+    "ifsc_code": "DUMY0001234",
+    "phone_number": "5550010001"
   }
 }
 ```

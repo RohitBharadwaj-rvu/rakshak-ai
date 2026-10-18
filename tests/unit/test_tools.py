@@ -221,10 +221,10 @@ def test_bolna_v1_prompt_field_names_compatibility(client):
     assert d_sw["age"] == 72
     assert d_sw["city"] == "Lucknow"
     assert "retired post office clerk" in d_sw["short_backstory"]
-    assert d_sw["bait_values"]["upi_id"] == "ramesh.elderly@okhdfc"
+    assert d_sw["bait_values"]["upi_id"] == "ramesh.elderly@testbank"
     assert d_sw["bait_values"]["account_number"] == "9999000011112222"
     assert d_sw["bait_values"]["otp"] == "000000"
-    assert d_sw["bait_values"]["aadhaar"] == "9999 0000 1111"
+    assert d_sw["bait_values"]["aadhaar"] == "0000 0000 0000"
 
     # 3. log_intel with `value` (Saket's Bolna v1 prompt parameter)
     r_lg = client.post(
@@ -241,3 +241,16 @@ def test_bolna_v1_prompt_field_names_compatibility(client):
     assert d_lg["value"] == "cbi dot officer at the rate ok axis"
     assert d_lg["normalized_value"] == "cbi.officer@okaxis"
 
+
+
+def test_fake_bait_uses_only_non_routable_values():
+    # docs/security/approved_bait_signoff.md (lane-d): bait must never collide with real people.
+    import re
+    from app.core.rules import APPROVED_PERSONAS
+
+    for pid, persona in APPROVED_PERSONAS.items():
+        bait = persona["fake_bait"]
+        assert bait["upi_id"].endswith("@testbank"), pid
+        assert re.fullmatch(r"555001\d{4}", bait["phone_number"]), pid
+        assert bait["ifsc_code"] == "DUMY0001234", pid
+        assert bait["aadhaar"] == "0000 0000 0000", pid

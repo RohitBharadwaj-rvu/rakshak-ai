@@ -10,7 +10,7 @@ SCHEMA_PATH = os.path.join(ROOT_DIR, "contracts", "scenario.schema.json")
 
 # Approved fake bait values used by GuardianLine personas (must not collide with planted details)
 APPROVED_BAIT_VALUES = {
-    "upi_ids": ["ramesh.elderly@okhdfc", "sunita.pension@okicici", "prof.iyer@sbi"],
+    "upi_ids": ["ramesh.elderly@testbank", "sunita.pension@testbank", "prof.iyer@testbank"],
     "account_numbers": ["9999000011112222", "8888777766665555"],
     "phone_numbers": ["9123400000", "9876500000"],
 }
