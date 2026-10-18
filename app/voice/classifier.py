@@ -209,6 +209,8 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
 # LLM CLASSIFIER PROMPT & INFERENCE
 # ==============================================================================
 
+GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
+
 CLASSIFIER_SYSTEM_PROMPT = """You are the GuardianLine Real-Time Scam Classifier for incoming phone calls in India.
 Your mission is to protect elderly citizens from telecom fraud, including known scams (Digital Arrest, KYC block, electricity cutoff, courier narcotics, lottery, fake job tasks) AND novel, emergent scam pretexts.
 
@@ -244,22 +246,26 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
 
 
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Groq Llama 3.3 70B via standard HTTP API with strict timeout."""
+    """Calls Groq (default openai/gpt-oss-20b, override via GROQ_MODEL) via HTTP API with strict timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
     }
+    model = os.getenv("GROQ_MODEL", "").strip() or GROQ_DEFAULT_MODEL
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": model,
         "messages": [
             {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
             {"role": "user", "content": f"Analyze this call transcript:\n\n{conversation_text}"},
         ],
         "temperature": 0.0,
         "response_format": {"type": "json_object"},
-        "max_tokens": 150,
+        # gpt-oss models spend completion tokens on reasoning; keep it short so the JSON fits the budget.
+        "max_tokens": 600,
     }
+    if model.startswith("openai/gpt-oss"):
+        payload["reasoning_effort"] = "low"
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
