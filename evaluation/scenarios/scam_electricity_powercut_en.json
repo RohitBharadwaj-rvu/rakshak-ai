@@ -9,8 +9,12 @@
     "upi_ids": [
       "powerboard.support@okaxis"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "20100778899001"
+    ],
+    "ifsc_codes": [
+      "ICIC0005678"
+    ],
     "phone_numbers": [
       "9442211334"
     ],

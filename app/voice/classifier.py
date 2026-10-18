@@ -60,6 +60,7 @@ AUTHORITY_PATTERNS = [
     r"customs|kustoms|kastam|कस्टम्स|कस्टम\s*अधिकारी",
     r"(tawan|taiwan|illegal|contraband|drugs|overseas)\s*(parcel|shipment)|(ताइवान|अवैध|ड्रग्स)\s*पार्सल",
     r"(account|acnt|a/c|card|sim|pension).*(block|suspend|freeze|सीज|बंद|सस्पेंड)",
+    r"(sbi|hdfc|icici|pnb|axis|bob|canara|bank|स्टेट\s*बैंक|केनरा\s*बैंक|एचडीएफसी|आईसीआईसीआई|पंजाब\s*नेशनल\s*बैंक).*(kyc|account|debit|card|a/c|खाता|पेंशन).*(expire|block|suspend|deactivat|बंद|सीज|सस्पेंड)",
     r"kyc\b|केवाईसी|biometric\s*kyc",
     r"electricity.*(cut|disconnect|bill)|power.*(cut|disconnect)|बिजली.*(काट|कट|काटी|बिल|मीटर)",
     r"trai.*(deactivat|block)|sim.*(block|disconnect)|दूरसंचार|telecom",
@@ -77,6 +78,9 @@ URGENCY_PATTERNS = [
     r"don'?t\s*tell|किसी\s*को\s*(मत|नहीं)\s*बताना|गोपनीय",
     r"urgent|urgnt|arjent|इमरजेंसी|आपातकालीन",
     r"before\s*\d+|आज\s*शाम|आज\s*रात|रात\s*\d+\s*बजे",
+    r"today\b|aaj\s*hi|aaj\s*ke\s*aaj|आज\s*ही|आज\s*के\s*आज|aaj\b",
+    r"block(ed)?\s*today|expire[sd]?\s*today|ब्लॉक\s*हो\s*जाएगा|बंद\s*हो\s*जाएगा|हो\s*गया\s*है",
+    r"within\s*24\s*(hour|hr|ghante)s?|24\s*घंटे",
     r"पेनल्टी|penalty|सीज़|freeze|सीज",
     r"standby|हथकड़ी|गैर-जमानती|non-bailable",
 ]
@@ -136,9 +140,10 @@ def has_critical_value_or_credential_demand(text: str) -> bool:
 
 # Genuine Service Whitelist Patterns (Zero demand for OTP, transfer, or threats)
 GENUINE_INDICATORS = [
-    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|amazon\s*parcel|security\s*guard|flipkart|फ्लिपकार्ट",
+    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|कूरियर|courier|amazon\s*parcel|security\s*guard|flipkart|फ्लिपकार्ट",
+    r"delivery\s*(boy|agent|partner|person)|parcel\s*(delivery|deliver|aaya|hai)|blue\s*dart|bluedart|dtdc|delhivery|e-?kart|ekart|shadowfax",
     r"appointment.*doctor|clinic|क्लिनिक|डॉक्टर.*अपॉइंटमेंट|dr\.\s*sundaram|eye\s*checkup|medanta|मेदांता|fortis",
-    r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह",
+    r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह|security\s*guard|main\s*gate",
     r"routine.*check|अपॉइंटमेंट.*कन्फर्म",
     r"society.*maintenance|फ्लैट\s*नंबर",
     r"होम\s*लोन|ब्याज\s*दर|नज़दीकी\s*शाखा|home\s*loan|interest\s*rate",
@@ -168,6 +173,24 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
         pillars.append("artificial_urgency")
     if has_value_demand:
         pillars.append("value_demand")
+
+    # Routine administrative non-financial tenant verification or hospital check
+    is_routine_administrative = bool(
+        re.search(r"tenant\s*verification|किराएदार.*सत्यापन|किराएदारों\s*का\s*सत्यापन", text_lower)
+    )
+    if is_routine_administrative and not has_value_demand and not has_urgency:
+        has_authority = False
+        if "authority_coercion" in pillars:
+            pillars.remove("authority_coercion")
+
+    # Bank security advisories that explicitly warn NEVER to share OTP/password
+    is_security_advisory = bool(
+        re.search(r"सतर्कता\s*शाखा|security\s*advisory|risk\s*prevention|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|never\s*ask.*(otp|pin|password)|ओटीपी.*न\s*दें", text_lower)
+    )
+    if is_security_advisory and not has_value_demand:
+        has_authority = False
+        has_urgency = False
+        pillars = []
 
     # =========================================================================
     # GENERAL INVARIANT SAFETY RULE:
@@ -322,6 +345,24 @@ def _classify_offline_rules(conversation_text: str) -> Dict[str, Any]:
         pillars.append("artificial_urgency")
     if has_value_demand:
         pillars.append("value_demand")
+
+    # Routine administrative non-financial tenant verification or hospital check
+    is_routine_administrative = bool(
+        re.search(r"tenant\s*verification|किराएदार.*सत्यापन|किराएदारों\s*का\s*सत्यापन", text_lower)
+    )
+    if is_routine_administrative and not has_value_demand and not has_urgency:
+        has_authority = False
+        if "authority_coercion" in pillars:
+            pillars.remove("authority_coercion")
+
+    # Bank security advisories that explicitly warn NEVER to share OTP/password
+    is_security_advisory = bool(
+        re.search(r"सतर्कता\s*शाखा|security\s*advisory|risk\s*prevention|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|never\s*ask.*(otp|pin|password)|ओटीपी.*न\s*दें", text_lower)
+    )
+    if is_security_advisory and not has_value_demand:
+        has_authority = False
+        has_urgency = False
+        pillars = []
 
     # =========================================================================
     # GENERAL INVARIANT SAFETY RULE:

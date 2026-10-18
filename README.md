@@ -9,7 +9,7 @@
 India faces an unprecedented wave of sophisticated phone fraud—notably **Digital Arrest scams**, **fake KYC verification**, **delivery/courier fraud**, and **unauthorized bank transfers**. Elderly citizens are disproportionately targeted and victimized.
 
 **GuardianLine** serves as an intelligent shield:
-1. **Screening & Reception**: Unrecognized callers are screened in natural languages (**Hindi**, **English**, and Hinglish, with regional expansion) using an ultra-low-latency voice AI receptionist.
+1. **Screening & Reception**: Unrecognized callers are screened in natural languages (**Hindi**, **English**, and **Hinglish**; standardized strictly to Hindi, English, and Hinglish, replacing earlier Tamil draft targets) using an ultra-low-latency voice AI receptionist.
 2. **Real-time Scam Classification**: A fast mid-call language model classifies the caller intent within the first few conversational exchanges.
 3. **Deceptive Honeypot Engagement**: When a scam is identified, the agent transitions seamlessly to an elderly persona (e.g., *Ramesh*, *Sunita*, *Prof. Iyer*) that plays along, acts technologically hesitant (*"Beta, wait let me find my reading glasses..."*), and keeps scammers occupied.
 4. **Actionable Intel Extraction**: The agent coaxes scammers to repeat payment addresses (UPI handles), bank account numbers, IFSC codes, and callback numbers.

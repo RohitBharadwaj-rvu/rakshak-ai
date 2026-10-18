@@ -9,8 +9,12 @@
     "upi_ids": [
       "echallan.traffic.pay@okaxis"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "60100223344556"
+    ],
+    "ifsc_codes": [
+      "PUNB0001234"
+    ],
     "phone_numbers": [
       "9811223399"
     ],

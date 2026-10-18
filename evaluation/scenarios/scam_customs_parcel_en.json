@@ -9,8 +9,12 @@
     "upi_ids": [
       "delhi.customs.clearance@okicici"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "30200998877665"
+    ],
+    "ifsc_codes": [
+      "SBIN0005678"
+    ],
     "phone_numbers": [
       "9443322110"
     ],
