@@ -9,6 +9,7 @@ Employs a two-stage hybrid architecture:
 """
 
 import json
+import logging
 import os
 import re
 import time
@@ -209,7 +210,11 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
 # LLM CLASSIFIER PROMPT & INFERENCE
 # ==============================================================================
 
+logger = logging.getLogger(__name__)
+
 GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
+# Groq's Cloudflare front rejects the default "Python-urllib/x.y" agent with 403 (error 1010).
+HTTP_USER_AGENT = "guardianline-backend/1.0"
 
 CLASSIFIER_SYSTEM_PROMPT = """You are the GuardianLine Real-Time Scam Classifier for incoming phone calls in India.
 Your mission is to protect elderly citizens from telecom fraud, including known scams (Digital Arrest, KYC block, electricity cutoff, courier narcotics, lottery, fake job tasks) AND novel, emergent scam pretexts.
@@ -245,12 +250,25 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+def _log_llm_failure(provider: str, exc: Exception) -> None:
+    """Log why a Stage 2 call failed so fallbacks are never silent (never logs keys or URLs)."""
+    if isinstance(exc, urllib.error.HTTPError):
+        try:
+            body = exc.read()[:200].decode("utf-8", "replace")
+        except Exception:
+            body = ""
+        logger.warning("Stage 2 %s failed: HTTP %s %s", provider, exc.code, body)
+    else:
+        logger.warning("Stage 2 %s failed: %s", provider, type(exc).__name__)
+
+
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
     """Calls Groq (default openai/gpt-oss-20b, override via GROQ_MODEL) via HTTP API with strict timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
+        "User-Agent": HTTP_USER_AGENT,
     }
     model = os.getenv("GROQ_MODEL", "").strip() or GROQ_DEFAULT_MODEL
     payload = {
@@ -272,14 +290,15 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
             res_body = json.loads(response.read().decode("utf-8"))
             content = res_body["choices"][0]["message"]["content"]
             return json.loads(content)
-    except Exception:
+    except Exception as exc:
+        _log_llm_failure("groq", exc)
         return None
 
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
     """Calls Google Gemini 2.0 Flash / 1.5 Flash via AI Studio REST API."""
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", "User-Agent": HTTP_USER_AGENT}
     payload = {
         "system_instruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},
         "contents": [{"parts": [{"text": f"Analyze this call transcript:\n\n{conversation_text}"}]}],
@@ -291,7 +310,8 @@ def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> 
             res_body = json.loads(response.read().decode("utf-8"))
             content = res_body["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(content)
-    except Exception:
+    except Exception as exc:
+        _log_llm_failure("gemini", exc)
         return None
 
 
