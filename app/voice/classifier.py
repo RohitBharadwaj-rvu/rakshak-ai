@@ -213,6 +213,7 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
 logger = logging.getLogger(__name__)
 
 GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
+GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"
 # Groq's Cloudflare front rejects the default "Python-urllib/x.y" agent with 403 (error 1010).
 HTTP_USER_AGENT = "guardianline-backend/1.0"
 
@@ -296,9 +297,10 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
 
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Google Gemini 2.0 Flash / 1.5 Flash via AI Studio REST API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-    headers = {"Content-Type": "application/json", "User-Agent": HTTP_USER_AGENT}
+    """Calls Google Gemini (default gemini-3.5-flash-lite, override via GEMINI_MODEL) via AI Studio REST API."""
+    model = os.getenv("GEMINI_MODEL", "").strip() or GEMINI_DEFAULT_MODEL
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    headers = {"Content-Type": "application/json", "User-Agent": HTTP_USER_AGENT, "x-goog-api-key": api_key}
     payload = {
         "system_instruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},
         "contents": [{"parts": [{"text": f"Analyze this call transcript:\n\n{conversation_text}"}]}],
