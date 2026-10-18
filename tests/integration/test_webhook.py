@@ -552,3 +552,27 @@ def test_init_db_adds_stage2_columns_to_old_database():
     finally:
         set_db_path(None)
         os.remove(db_file)
+
+
+def test_fallback_join_never_merges_smoke_test_records(client):
+    # scripts/smoke.sh leaves a pending smoke_call_001 record; a real webhook must not adopt it.
+    client.post(
+        "/tools/log_intel",
+        json={"call_id": "smoke_call_001", "type": "upi", "value_as_heard": "cbi dot officer at the rate ok axis"},
+    )
+    res = client.post(
+        "/webhook",
+        json={
+            "id": "bolna-exec-real-001",
+            "agent_id": "agent-1",
+            "status": "completed",
+            "conversation_duration": 30.0,
+            "user_number": "+919820112233",
+            "transcript": "assistant: जी?\nuser: पेमेंट करो।",
+            "telephony_data": {"provider_call_id": "plivo-sid-real-001"},
+        },
+    )
+    assert res.status_code == 200
+    assert "cbi.officer@okaxis" not in res.json()["extracted_intel"]["upi_ids"]
+    smoke = get_call_record("smoke_call_001")
+    assert smoke is not None and smoke["status"] == "pending"

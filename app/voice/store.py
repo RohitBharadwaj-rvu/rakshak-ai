@@ -398,6 +398,9 @@ def _adopt_or_merge_pending_row(conn: sqlite3.Connection, target_call_id: str, s
     _sync_sqlite_row_to_pg(conn, target_call_id)
 
 
+SMOKE_CALL_ID_PREFIX = "smoke_"
+
+
 def resolve_and_merge_pending_mid_call_record(
     call_id: str,
     provider_call_id: Optional[str] = None,
@@ -449,6 +452,9 @@ def resolve_and_merge_pending_mid_call_record(
                 ).fetchall()
                 active_pending = []
                 for p_row in pending_rows:
+                    # Smoke-test records (scripts/smoke.sh) must never be guessed into a real call.
+                    if str(p_row["call_id"]).startswith(SMOKE_CALL_ID_PREFIX):
+                        continue
                     ts_str = p_row["updated_at"] or p_row["created_at"] or ""
                     try:
                         ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
