@@ -414,6 +414,8 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
             confidence=existing.get("confidence", 0.9),
             summary=existing["summary"],
             status_value=existing["status"],
+            stage2_ran=existing.get("stage2_ran"),
+            classifier_method=existing.get("classifier_method", ""),
         )
         return record
 
@@ -436,6 +438,8 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
     )
     verdict = cls_res.verdict
     confidence = cls_res.confidence
+    # Record whether the LLM stage actually answered, so silent fallbacks show up in the data.
+    stage2_ran = cls_res.method in ("groq", "gemini")
 
     has_scam_intel = bool(
         extracted_intel["upi_ids"]
@@ -494,6 +498,8 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
         confidence=confidence,
         summary=summary,
         status_value=status_value,
+        stage2_ran=stage2_ran,
+        classifier_method=cls_res.method,
     )
 
     # Step 4: Schedule post-call reflection & enrichment in the background (T-POST)

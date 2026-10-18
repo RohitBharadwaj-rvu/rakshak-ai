@@ -497,3 +497,58 @@ def test_live_call_2_no_glued_phone_and_split_devanagari_upi_extracted(client):
     assert "9723597235" not in rec["extracted_intel"]["phone_numbers"]
     assert rec["extracted_intel"]["upi_ids"] == ["rahul.sbi@ybl"]
 
+
+
+@pytest.mark.parametrize(
+    "method,expected",
+    [("groq", True), ("gemini", True), ("offline_rules", False), ("heuristic", False)],
+)
+def test_call_record_records_whether_stage2_ran(client, monkeypatch, method, expected):
+    import app.voice.classifier as classifier_mod
+    from app.voice.classifier import CallerClassificationResult
+
+    def fake_classify(call_id, caller_number="", conversation=None, language="hi", **kwargs):
+        return CallerClassificationResult(
+            call_id=call_id, verdict="unsure", confidence=0.5, reason="stub",
+            latency_ms=1.0, method=method, pillars_detected=[],
+        )
+
+    monkeypatch.setattr(classifier_mod, "classify_caller", fake_classify)
+    with open(os.path.join(FIXTURES_DIR, "03_genuine_courier.json"), "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    rec = client.post("/webhook", json=payload).json()
+    assert rec["stage2_ran"] is expected
+    assert rec["classifier_method"] == method
+    stored = get_call_record(payload["call_id"])
+    assert stored["stage2_ran"] is expected
+    assert stored["classifier_method"] == method
+
+
+def test_pending_record_has_unknown_stage2(client):
+    client.post("/tools/log_intel", json={"call_id": "stage2_pending_001", "type": "upi", "value": "a@okaxis"})
+    rec = get_call_record("stage2_pending_001")
+    assert rec["stage2_ran"] is None
+    assert rec["classifier_method"] == ""
+
+
+def test_init_db_adds_stage2_columns_to_old_database():
+    import sqlite3
+    from app.voice.store import init_db
+
+    fd, db_file = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    conn = sqlite3.connect(db_file)
+    conn.execute("CREATE TABLE call_records (call_id TEXT PRIMARY KEY, status TEXT)")
+    conn.commit()
+    conn.close()
+    try:
+        set_db_path(db_file)
+        init_db()
+        conn = sqlite3.connect(db_file)
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(call_records)")}
+        conn.close()
+        assert {"stage2_ran", "classifier_method"} <= cols
+    finally:
+        set_db_path(None)
+        os.remove(db_file)

@@ -57,6 +57,14 @@
     "persona": {
       "type": "string"
     },
+    "stage2_ran": {
+      "type": ["boolean", "null"],
+      "description": "True if the Stage 2 LLM (groq/gemini) produced the post-call verdict; false if it fell back to heuristic/offline rules; null if unknown (pending record)"
+    },
+    "classifier_method": {
+      "type": "string",
+      "description": "Engine that produced the post-call verdict: heuristic, groq, gemini, offline_rules, or empty if unknown"
+    },
     "language": {
       "type": "string"
     },
