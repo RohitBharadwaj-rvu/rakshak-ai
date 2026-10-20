@@ -19,7 +19,9 @@
       "planted_upi_ids": [
         "cbi.cybercell.verify@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "50100984501234"
+      ],
       "planted_phone_numbers": [
         "9845012345"
       ],
@@ -42,7 +44,9 @@
       "planted_upi_ids": [
         "cbi.officer.verma@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "50100987654321"
+      ],
       "planted_phone_numbers": [
         "9876543210"
       ],
@@ -688,7 +692,9 @@
       "type": "scam",
       "expected_verdict": "scam",
       "max_turns": 6,
-      "planted_upi_ids": [],
+      "planted_upi_ids": [
+        "sbi.debit.reverify@okhdfc"
+      ],
       "planted_account_numbers": [
         "50100432899999"
       ],
@@ -711,7 +717,9 @@
       "type": "scam",
       "expected_verdict": "scam",
       "max_turns": 6,
-      "planted_upi_ids": [],
+      "planted_upi_ids": [
+        "sbi.kyc.verification@okaxis"
+      ],
       "planted_account_numbers": [
         "50100432891234"
       ],
@@ -737,7 +745,9 @@
       "planted_upi_ids": [
         "delhi.customs.clearance@okicici"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "30200998877665"
+      ],
       "planted_phone_numbers": [
         "9443322110"
       ],
@@ -760,7 +770,9 @@
       "planted_upi_ids": [
         "customs.clearance.delhi@okicici"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "30200112233445"
+      ],
       "planted_phone_numbers": [
         "9911224455"
       ],
@@ -783,7 +795,9 @@
       "planted_upi_ids": [
         "powerboard.support@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "20100778899001"
+      ],
       "planted_phone_numbers": [
         "9442211334"
       ],
@@ -806,7 +820,9 @@
       "planted_upi_ids": [
         "9884567890@paytm"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "20100334455667"
+      ],
       "planted_phone_numbers": [
         "9884567890"
       ],
@@ -829,7 +845,9 @@
       "planted_upi_ids": [
         "task.earn.direct@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "40100889900112"
+      ],
       "planted_phone_numbers": [
         "9445588776"
       ],
@@ -852,7 +870,9 @@
       "planted_upi_ids": [
         "task.earn.direct@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "40100556677889"
+      ],
       "planted_phone_numbers": [
         "9123499887"
       ],
@@ -875,7 +895,9 @@
       "planted_upi_ids": [
         "echallan.traffic.pay@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "60100667788990"
+      ],
       "planted_phone_numbers": [
         "9442299881"
       ],
@@ -898,7 +920,9 @@
       "planted_upi_ids": [
         "echallan.traffic.pay@okaxis"
       ],
-      "planted_account_numbers": [],
+      "planted_account_numbers": [
+        "60100223344556"
+      ],
       "planted_phone_numbers": [
         "9811223399"
       ],

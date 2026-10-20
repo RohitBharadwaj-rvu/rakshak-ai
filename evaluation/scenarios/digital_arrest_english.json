@@ -12,8 +12,12 @@
     "phone_numbers": [
       "9845012345"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "50100984501234"
+    ],
+    "ifsc_codes": [
+      "HDFC0000984"
+    ],
     "callback_numbers": []
   },
   "caller_script": [

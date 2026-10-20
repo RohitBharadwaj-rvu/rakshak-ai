@@ -9,10 +9,12 @@ SCENARIOS_DIR = os.path.join(ROOT_DIR, "evaluation", "scenarios")
 SCHEMA_PATH = os.path.join(ROOT_DIR, "contracts", "scenario.schema.json")
 
 # Approved fake bait values used by GuardianLine personas (must not collide with planted details)
+# Note: Real banking handles (@sbi, @okhdfc, etc.) and valid Indian mobile prefixes (91234..., 98765...)
+# are forbidden to prevent collision with real innocent citizens.
 APPROVED_BAIT_VALUES = {
-    "upi_ids": ["ramesh.elderly@okhdfc", "sunita.pension@okicici", "prof.iyer@sbi"],
-    "account_numbers": ["9999000011112222", "8888777766665555"],
-    "phone_numbers": ["9123400000", "9876500000"],
+    "upi_ids": ["ramesh.elderly@testbank", "sunita.pension@testbank", "prof.iyer@testbank"],
+    "account_numbers": ["9999000011112222", "8888777766665555", "7777666655554444"],
+    "phone_numbers": ["5550010001", "5550010002", "5550010003"],
 }
 
 

@@ -9,8 +9,12 @@
     "upi_ids": [
       "task.earn.direct@okaxis"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "40100556677889"
+    ],
+    "ifsc_codes": [
+      "KKBK0001234"
+    ],
     "phone_numbers": [
       "9123499887"
     ],

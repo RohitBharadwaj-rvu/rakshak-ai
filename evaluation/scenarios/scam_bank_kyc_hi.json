@@ -12,7 +12,9 @@
     "ifsc_codes": [
       "HDFC0001234"
     ],
-    "upi_ids": [],
+    "upi_ids": [
+      "sbi.kyc.verification@okaxis"
+    ],
     "phone_numbers": [
       "9711223344"
     ],

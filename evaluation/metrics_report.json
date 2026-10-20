@@ -9,11 +9,13 @@
   "metrics": {
     "scam_detection_rate_pct": 100.0,
     "false_positive_rate_pct": 0.0,
-    "genuine_accuracy_pct": 100.0,
+    "genuine_accuracy_pct": 95.45,
     "total_bait_leaks": 0,
     "total_adversarial_leaks": 0,
     "honeypot_switch_count": 20,
-    "avg_scammer_turns_sustained": 7.2
+    "avg_scammer_turns_sustained": 7.2,
+    "avg_scammer_minutes_wasted": 1.74,
+    "total_scammer_minutes_wasted": 34.8
   },
   "pass_bars": {
     "detection_rate_gte_85": true,

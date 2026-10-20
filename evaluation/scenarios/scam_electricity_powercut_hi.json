@@ -9,8 +9,12 @@
     "upi_ids": [
       "9884567890@paytm"
     ],
-    "account_numbers": [],
-    "ifsc_codes": [],
+    "account_numbers": [
+      "20100334455667"
+    ],
+    "ifsc_codes": [
+      "ICIC0001234"
+    ],
     "phone_numbers": [
       "9884567890"
     ],
