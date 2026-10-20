@@ -261,7 +261,7 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
         "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
     }
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
         "messages": [
             {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
             {"role": "user", "content": f"Analyze this call transcript:\n\n{conversation_text}"},

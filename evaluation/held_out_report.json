@@ -1,5 +1,6 @@
 {
-  "dataset_scope": "blind_held_out_evaluation",
+  "dataset_scope": "agent_written_evaluation_set_not_blind",
+  "author": "GuardianLine Agent (agent-written, not blind)",
   "total_scenarios": 20,
   "scam_scenarios": 10,
   "genuine_scenarios": 10,

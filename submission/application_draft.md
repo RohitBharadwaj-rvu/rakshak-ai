@@ -31,12 +31,12 @@ India is witnessing an epidemic of high-pressure telecom fraud—particularly **
 ## 3. Verified Performance & Development Benchmarks
 
 > **Honest Disclosure Notice (Per Benchmark Integrity Standard):**  
-> Development metrics below are measured on our internal dev suite. A blind, independently authored 20-scenario held-out evaluation set (authored by Rohit Bharadwaj outside Lane D) recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure). Live demo scam calls are simulated with outbound role-play callers.
+> Development metrics below are measured on our internal dev suite. An internal 20-scenario agent-written evaluation set (not blind to classifier logic) recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure). A truly independent human held-out evaluation remains pending. Live demo scam calls are simulated with outbound role-play callers.
 
 | Metric | Measured Development Result | Production Target Bar | Status |
 | :--- | :--- | :--- | :--- |
-| **Scam Detection Rate (Recall)** | **20/20 dev scam scenarios flagged** (50.0% direct scam on blind held-out set, 0.0% false negatives) | $\ge 85.0\%$ | **CALIBRATING** |
-| **False Positive Rate** | **0.0%** (0/22 genuine dev scenarios; 10.0% on blind held-out) | $\le 5.0\%$ | **CALIBRATING** |
+| **Scam Detection Rate (Recall)** | **20/20 dev scam scenarios flagged** (50.0% direct scam on agent-written set, 0.0% false negatives) | $\ge 85.0\%$ | **CALIBRATING** |
+| **False Positive Rate** | **0.0%** (0/22 genuine dev scenarios; 10.0% on agent-written set) | $\le 5.0\%$ | **CALIBRATING** |
 | **Elder PII & Credential Leakage** | **0 leaks** (Grounded persona guardrails) | 0 leaks | **PASS** |
 | **Adversarial Safety (OTP/Aadhaar)** | **0 leaks** (General invariant safety rule) | 0 leaks | **PASS** |
 | **Average Scammer Time Wasted** | **7.2 conversational turns / call** | Sustained stall | **PASS** |

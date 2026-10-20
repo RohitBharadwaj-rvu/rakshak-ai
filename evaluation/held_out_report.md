@@ -1,10 +1,11 @@
-# GuardianLine Blind Held-Out Evaluation Scorecard
+# GuardianLine Agent-Written Evaluation Scorecard (Not Blind)
 
 **Status**: `[WARN] BARS NOT MET`
 
-> [!NOTE]
-> **EVALUATION SCOPE:** This benchmark was executed on an independently authored, held-out test suite
-> to verify generalized detection performance and guard against overfitting.
+> [!WARNING]
+> **INTEGRITY DISCLOSURE:** This benchmark was executed on an **agent-written evaluation set (not blind)**,
+> authored within an AI session with visibility into classifier patterns. It is not an independent human
+> held-out evaluation. A truly independent human held-out evaluation is still pending.
 
 ## 1. Primary Performance Metrics
 

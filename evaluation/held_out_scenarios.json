@@ -1,8 +1,8 @@
 {
-  "version": "1.0-held-out",
-  "author": "Rohit Bharadwaj (Backend Lead, Lane B)",
+  "version": "1.0-agent-written",
+  "author": "GuardianLine Agent (agent-written, not blind)",
   "created_at": "2026-10-20T10:30:00Z",
-  "description": "Blind held-out evaluation scenarios authored independently outside Lane D for unbiased benchmark validation.",
+  "description": "Agent-written evaluation scenarios (not blind; authored during development session) for internal validation.",
   "scenarios": [
     {
       "id": "heldout_01_courier_stealth_otp",

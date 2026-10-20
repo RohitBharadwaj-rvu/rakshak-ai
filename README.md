@@ -120,6 +120,6 @@ For full sprint details and test suite designs, see [guardianline-sprint-plan.md
 > [!IMPORTANT]
 > **Benchmarking Integrity Notice:**
 > - Development metrics are measured strictly against an internal synthetic dev set.
-> - An independently authored, blind 20-scenario **held-out evaluation set** (`evaluation/held_out_scenarios.json`) authored by Rohit Bharadwaj outside Lane D recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure).
+> - An internal 20-scenario **agent-written evaluation set (not blind)** recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure). An external, independent human held-out benchmark is pending.
 > - Whitelist loophole probe (`scripts/probe_whitelist_holes.py`) verifies 0/6 exploits bypass the classifier after enforcing the general invariant safety rule (`f48301c`).
 > - Telephony audio checks (`scripts/run_audio_format_check.py`) verify 8kHz mono PCM telephony codec formatting and manifest turn logic; they do not benchmark acoustic speech-to-text (STT) accuracy.
