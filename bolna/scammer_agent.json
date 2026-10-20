@@ -1,0 +1,172 @@
+{
+  "agent_config": {
+    "agent_name": "rakshak-scammer-test",
+    "agent_welcome_message": "Hello, main {{scammer_name}} bol raha hoon, {{scammer_org}} se.",
+    "agent_type": "other",
+    "webhook_url": null,
+    "tasks": [
+      {
+        "task_type": "conversation",
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "voicemail": true,
+          "use_fillers": false,
+          "dtmf_enabled": false,
+          "ambient_noise": false,
+          "inbound_limit": -1,
+          "backchanneling": false,
+          "call_terminate": 300,
+          "auto_reschedule": true,
+          "optimize_latency": true,
+          "incremental_delay": 600,
+          "ambient_noise_track": "coffee-shop",
+          "call_hangup_message": null,
+          "max_silence_repeats": null,
+          "check_if_user_online": true,
+          "hangup_after_LLMCall": true,
+          "hangup_after_silence": 20,
+          "welcome_message_delay": 1000,
+          "whitelist_phone_numbers": null,
+          "call_cancellation_prompt": "You decide whether a test phone call is complete, based on the transcript. The assistant is playing a scammer.\nThe call is complete if any of these is true:\n1) The assistant has said all its payment details (UPI ID, or account number and IFSC) at least once AND the other person has agreed to pay or has said goodbye.\n2) The assistant has said goodbye.\n3) The other person clearly ended the conversation.\nOtherwise the call is NOT complete.",
+          "disallow_unknown_numbers": false,
+          "language_detection_turns": null,
+          "noise_cancellation_level": 70,
+          "voicemail_check_interval": 7.0,
+          "voicemail_detection_time": null,
+          "check_user_online_message": {
+            "en": "Hello, are you still there",
+            "hi": "Hello, क्या आप अभी भी लाइन पर हैं?"
+          },
+          "backchanneling_message_gap": 5,
+          "backchanneling_start_delay": 5,
+          "interruption_backoff_period": 0,
+          "interruptible_hangup_message": false,
+          "voicemail_detection_duration": 30.0,
+          "discard_pre_welcome_utterance": false,
+          "voicemail_min_transcript_length": 7,
+          "number_of_words_for_interruption": 3,
+          "trigger_user_online_message_after": 8
+        },
+        "tools_config": {
+          "s2s": null,
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "api_tools": null,
+          "llm_agent": {
+            "agent_type": "simple_llm_agent",
+            "llm_config": {
+              "stop": null,
+              "min_p": 0.1,
+              "model": "azure/gpt-4.1-mini",
+              "top_k": 0,
+              "top_p": 0.9,
+              "family": "openai",
+              "base_url": null,
+              "provider": "azure",
+              "verbosity": null,
+              "extra_body": null,
+              "max_tokens": 150,
+              "temperature": 0.3,
+              "request_json": false,
+              "agent_flow_type": "streaming",
+              "presence_penalty": 0.0,
+              "reasoning_effort": null,
+              "compact_threshold": null,
+              "frequency_penalty": 0.0,
+              "use_responses_api": false,
+              "extraction_details": null,
+              "summarization_details": null
+            },
+            "agent_flow_type": "streaming"
+          },
+          "web_search": null,
+          "agent_names": null,
+          "synthesizer": {
+            "stream": true,
+            "caching": true,
+            "provider": "sarvam",
+            "buffer_size": 230,
+            "audio_format": "wav",
+            "provider_config": {
+              "model": "bulbul:v3",
+              "speed": 1.0,
+              "voice": "Simran",
+              "language": "hi",
+              "loudness": 1.0,
+              "voice_id": "simran"
+            }
+          },
+          "transcriber": {
+            "task": "transcribe",
+            "delay": "medium",
+            "model": "saaras:v3",
+            "active": null,
+            "stream": true,
+            "context": "Phone line answering calls for an elderly person in India. Callers speak Hindi, English or Hinglish. Calls may include phone numbers, UPI IDs, bank account numbers and OTP requests.",
+            "encoding": "linear16",
+            "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest, Paytm, PhonePe, Google Pay",
+            "language": "hi",
+            "provider": "sarvam",
+            "endpointing": 150,
+            "mip_opt_out": null,
+            "multilingual": null,
+            "deepgram_host": null,
+            "eot_threshold": null,
+            "sampling_rate": 16000,
+            "vad_threshold": 0.5,
+            "eot_timeout_ms": null,
+            "language_hints": null,
+            "noise_reduction": false,
+            "assemblyai_config": null,
+            "deepgram_flux_host": null,
+            "eager_eot_threshold": null,
+            "vad_prefix_padding_ms": 300,
+            "deepgram_host_protocol": null
+          },
+          "multilingual_config": null,
+          "switch_handoff_messages": null,
+          "switch_tool_description": null
+        }
+      }
+    ],
+    "gpt_assistants": null,
+    "custom_analytics": null,
+    "calling_guardrails": {
+      "call_end_hour": 21,
+      "call_start_hour": 9
+    },
+    "webhook_headers": null,
+    "sip_header_variables": null,
+    "ingest_lookup_key": null,
+    "webhook_config": null,
+    "call_summary_enabled": true,
+    "agent_category": "simple_llm_agent",
+    "sip_headers": null,
+    "dispositions": [
+      "7f51e5e6-e76c-57a1-a20e-38a8aa9d57b0",
+      "d4be9320-95df-5d75-9b63-3b1e840eba75"
+    ],
+    "single_prompt_ui": true,
+    "ingest_source_config": null
+  },
+  "agent_prompts": {
+    "task_1": {
+      "system_prompt": "You are playing a phone scammer in a TEST. You are calling a fraud-protection assistant built by our team. Nobody real is harmed; this tests whether the assistant can catch scams and capture details.\n\nYour character: {{scammer_name}} from {{scammer_org}}.\nYour scam: {{scenario}}.\nSpeak in {{language}}. Keep each reply to one to three short sentences, like a real phone call. No lists, symbols or emoji.\n\nHow to play:\n1. Open confidently with who you are and why you are calling. Create urgency and fear, like real scammers do.\n2. Push the person to pay or share details. When they agree to pay, give your payment details:\n   - UPI ID: {{planted_upi}}\n   - If they ask for a bank account instead: account {{planted_account}}, IFSC {{planted_ifsc}}\n   - Callback number if asked: {{planted_phone}}\n3. **Say every planted detail in full at least once.** If they ask you to repeat or go slowly, repeat it clearly, part by part. Correct them if they read it back wrong.\n4. Stay in character. If they stall, get impatient but keep pushing. Do not give up quickly.\n5. Ask for an OTP or Aadhaar number once or twice, like a real scammer would.\n6. Never say you are an AI or that this is a test.\n7. End the call after about 3 to 4 minutes, or once you have said all planted details and the person has \"agreed\" to pay. Say a short goodbye and hang up."
+    }
+  }
+}

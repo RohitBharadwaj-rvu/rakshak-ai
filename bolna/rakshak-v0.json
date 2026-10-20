@@ -1,0 +1,309 @@
+{
+  "agent_config": {
+    "agent_name": "rakshak-v0",
+    "agent_welcome_message": "हैलो जी?",
+    "agent_type": "other",
+    "webhook_url": "https://rakshak-ai-3ckj.onrender.com/webhook",
+    "tasks": [
+      {
+        "task_type": "conversation",
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "voicemail": true,
+          "use_fillers": false,
+          "dtmf_enabled": false,
+          "ambient_noise": false,
+          "inbound_limit": -1,
+          "backchanneling": false,
+          "call_terminate": 400,
+          "auto_reschedule": true,
+          "optimize_latency": true,
+          "incremental_delay": 600,
+          "ambient_noise_track": "coffee-shop",
+          "call_hangup_message": null,
+          "max_silence_repeats": null,
+          "check_if_user_online": true,
+          "hangup_after_LLMCall": true,
+          "hangup_after_silence": 20,
+          "welcome_message_delay": 1000,
+          "whitelist_phone_numbers": null,
+          "call_cancellation_prompt": "You decide whether a phone call is complete, based on the transcript. The assistant answers calls for an elderly person and works in two modes:\n\nScreening/genuine mode: a polite family member asking who is calling, or taking a message.\nHoneypot mode: after the caller is judged a scam, the assistant plays a confused elderly persona (glasses, wife, \"beta\") to keep the scammer talking.\nThe call is complete ONLY if one of these is true:\n\nThe caller clearly says goodbye or that they are ending the call, for example \"bye\", \"ok bye\", \"theek hai, rakhta hoon\", \"बस इतना ही\", \"ok thank you, bye\". This applies in both modes.\nGenuine mode only: the assistant has taken the message (name, number or reason), the caller has confirmed, and the caller has nothing more to add.\nThe caller has said nothing meaningful for several turns in a row.\nThe call is NOT complete if:\n\nThe assistant is in honeypot mode and the caller has not said goodbye. The assistant stalling, refusing, or saying \"ruk jao\" never ends the call.\nThe caller is still explaining who they are or what they want.\nThe caller is giving or repeating a number, UPI ID, account or link.\nThe assistant has not yet asked who is calling and why.\nOnly the assistant said goodbye or thank you.\nWhen in doubt, the call is NOT complete.",
+          "disallow_unknown_numbers": false,
+          "language_detection_turns": null,
+          "noise_cancellation_level": 70,
+          "voicemail_check_interval": 7.0,
+          "voicemail_detection_time": null,
+          "check_user_online_message": {
+            "en": "Hello, are you still there",
+            "hi": "Hello, क्या आप अभी भी लाइन पर हैं?"
+          },
+          "backchanneling_message_gap": 5,
+          "backchanneling_start_delay": 5,
+          "interruption_backoff_period": 0,
+          "interruptible_hangup_message": false,
+          "voicemail_detection_duration": 30.0,
+          "discard_pre_welcome_utterance": false,
+          "voicemail_min_transcript_length": 7,
+          "number_of_words_for_interruption": 3,
+          "trigger_user_online_message_after": 8
+        },
+        "tools_config": {
+          "s2s": null,
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "api_tools": {
+            "tools": [
+              {
+                "key": "custom_task",
+                "name": "switch_to_honeypot",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "language"
+                  ],
+                  "properties": {
+                    "language": {
+                      "enum": [
+                        "hi",
+                        "en",
+                        "hinglish"
+                      ],
+                      "type": "string",
+                      "description": "The language the caller is speaking: hi for Hindi, en for English, hinglish for mixed Hindi and English."
+                    }
+                  }
+                },
+                "description": "Call this immediately after classify_caller returns verdict scam, and never before. It returns the persona you must become (name, age, city, backstory, lines) and fake_bait: the only numbers you are allowed to say for the rest of the call.",
+                "pre_call_message": "Haan haan, ek minute."
+              },
+              {
+                "key": "custom_task",
+                "name": "log_intel",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "upi",
+                        "phone",
+                        "account",
+                        "ifsc",
+                        "link"
+                      ],
+                      "type": "string",
+                      "description": "What kind of detail the caller said."
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "The detail exactly as you heard it, for example 'verma dot cbi at okaxis' or '9 1 2 3 4 5 6 7 8 0'."
+                    }
+                  }
+                },
+                "description": "Only in honeypot mode. Call this every time the caller says a UPI ID, phone number, bank account number, IFSC code or link. Call it once per item, as soon as you hear it.",
+                "pre_call_message": "Haan, likh raha hoon."
+              },
+              {
+                "key": "custom_task",
+                "name": "classify_caller",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "caller_summary"
+                  ],
+                  "properties": {
+                    "caller_summary": {
+                      "type": "string",
+                      "description": "One to three sentences in English: who the caller claims to be, what they want, and any pressure, threats, urgency, or requests for OTP, money, Aadhaar or bank details."
+                    }
+                  }
+                },
+                "description": "Call this after you know who the caller claims to be and why they are calling (usually after 2-3 caller turns). It decides if the caller is a scam, genuine, or unsure. Call it again with an updated summary if the verdict was unsure and you learn more, at most 3 times per call.",
+                "pre_call_message": "Ek second, sun raha hoon."
+              }
+            ],
+            "tools_params": {
+              "log_intel": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/log_intel",
+                "nodes": null,
+                "param": {
+                  "type": "%(type)s",
+                  "value": "%(value)s",
+                  "call_id": "%(call_sid)s"
+                },
+                "scope": null,
+                "method": "POST",
+                "headers": {},
+                "api_token": null,
+                "pre_call_message": null,
+                "pre_call_webhook_url": null,
+                "pre_call_webhook_param": null
+              },
+              "classify_caller": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/classify_caller",
+                "nodes": null,
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "caller_number": "%(from_number)s",
+                  "caller_summary": "%(caller_summary)s"
+                },
+                "scope": null,
+                "method": "POST",
+                "headers": {},
+                "api_token": null,
+                "pre_call_message": null,
+                "pre_call_webhook_url": null,
+                "pre_call_webhook_param": null
+              },
+              "switch_to_honeypot": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/switch_to_honeypot",
+                "nodes": null,
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "language": "%(language)s"
+                },
+                "scope": null,
+                "method": "POST",
+                "headers": {},
+                "api_token": null,
+                "pre_call_message": null,
+                "pre_call_webhook_url": null,
+                "pre_call_webhook_param": null
+              }
+            }
+          },
+          "llm_agent": {
+            "agent_type": "simple_llm_agent",
+            "llm_config": {
+              "stop": null,
+              "min_p": 0.1,
+              "model": "gpt-4.1",
+              "top_k": 0,
+              "top_p": 0.9,
+              "family": "openai",
+              "base_url": null,
+              "provider": "openai",
+              "verbosity": null,
+              "extra_body": null,
+              "max_tokens": 150,
+              "temperature": 0.3,
+              "request_json": false,
+              "agent_flow_type": "streaming",
+              "presence_penalty": 0.0,
+              "reasoning_effort": null,
+              "compact_threshold": null,
+              "frequency_penalty": 0.0,
+              "use_responses_api": false,
+              "extraction_details": null,
+              "summarization_details": null
+            },
+            "agent_flow_type": "streaming"
+          },
+          "web_search": null,
+          "agent_names": null,
+          "synthesizer": {
+            "stream": true,
+            "caching": true,
+            "provider": "sarvam",
+            "buffer_size": 230,
+            "audio_format": "wav",
+            "provider_config": {
+              "model": "bulbul:v3",
+              "speed": 1.0,
+              "voice": "Simran",
+              "language": "hi",
+              "loudness": 1.0,
+              "voice_id": "simran"
+            }
+          },
+          "transcriber": {
+            "task": "transcribe",
+            "delay": "medium",
+            "model": "saaras:v3",
+            "active": null,
+            "stream": true,
+            "context": "Phone line answering calls for an elderly person in India. Callers speak Hindi, English or Hinglish. Calls may include phone numbers, UPI IDs, bank account numbers and OTP requests.",
+            "encoding": "linear16",
+            "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest, Paytm, PhonePe, Google Pay",
+            "language": "hi",
+            "provider": "sarvam",
+            "endpointing": 150,
+            "mip_opt_out": null,
+            "multilingual": null,
+            "deepgram_host": null,
+            "eot_threshold": null,
+            "sampling_rate": 16000,
+            "vad_threshold": 0.5,
+            "eot_timeout_ms": null,
+            "language_hints": null,
+            "noise_reduction": false,
+            "assemblyai_config": null,
+            "deepgram_flux_host": null,
+            "eager_eot_threshold": null,
+            "vad_prefix_padding_ms": 300,
+            "deepgram_host_protocol": null
+          },
+          "multilingual_config": null,
+          "switch_handoff_messages": null,
+          "switch_tool_description": null
+        }
+      }
+    ],
+    "gpt_assistants": null,
+    "custom_analytics": null,
+    "calling_guardrails": {
+      "call_end_hour": 21,
+      "call_start_hour": 9
+    },
+    "webhook_headers": {
+      "Authorization": "Bearer <BOLNA_WEBHOOK_SECRET>"
+    },
+    "sip_header_variables": null,
+    "ingest_lookup_key": null,
+    "webhook_config": {
+      "webhook_allowed_states": [
+        "completed"
+      ]
+    },
+    "call_summary_enabled": true,
+    "agent_category": "simple_llm_agent",
+    "sip_headers": null,
+    "dispositions": [
+      "018f4a66-4163-4a99-9613-ee89ea7a1f25",
+      "2dc6e911-dc44-4fdf-850f-473ee64492a4",
+      "3c4ce002-344a-4793-9039-b97242c138c4",
+      "78d28257-044a-4800-8bf4-20e02ad311bc",
+      "7f51e5e6-e76c-57a1-a20e-38a8aa9d57b0",
+      "859aa129-e910-4aa5-98ae-7e81fa1ff73b",
+      "bc7df531-41fc-4f94-a7af-07c6a90eff44",
+      "c115fa1b-cb8b-48d1-b1cd-88fb3d04e9a3",
+      "c399a4f6-2962-466c-9580-62bdf9151bfa",
+      "d4be9320-95df-5d75-9b63-3b1e840eba75"
+    ],
+    "single_prompt_ui": true,
+    "ingest_source_config": null
+  },
+  "agent_prompts": {
+    "task_1": {
+      "system_prompt": "You answer phone calls for an elderly person in India. You have two modes. You always start in Mode 1.\n## Language and speech (always)\n- Match the caller: Hindi → Hindi, English → English, Hinglish → Hinglish. In Hinglish keep common words in English: bank, account, OTP, KYC, call, number, parcel, police, sir, okay.\n- Reply in one or two short sentences, never more than 40 words.\n- No lists, symbols, emoji, markdown or links. You are speaking on a phone.\n- If you did not understand, say once \"Sorry, phir se bataiye?\" or ask a different simple question. Never repeat your last question word for word.\n## Mode 1 · Screening\nYou are a polite family member answering the phone.\n1. In your first two turns, ask who is calling and why, for example \"Aap kaun bol rahe hain, aur kis kaam se call kiya?\" Speak as yourself, never ask who *you* are.\n2. Ask one or two short follow-up questions: which company or office, what exactly they need.\n3. Then call the tool `classify_caller` with:\n  - `caller_summary`: one to three sentences in English. Who the caller claims to be, what they want, and any pressure, threats, urgency, or requests for OTP, money, Aadhaar or bank details. You must actually call the tool. Saying that you are checking or noting something is NOT the same as calling the tool. The system plays a filler line for you while the tool runs, so do not say one yourself.\n4. Act on the verdict:\n  - `scam` → call `switch_to_honeypot` right away with `language`: `hi`, `en` or `hinglish` (the caller's language), then continue in Mode 2.\n  - `genuine` → take a message: caller's name, callback number and reason. Read the number back to confirm, say you will pass it on, thank them and let them end the call.\n  - `unsure` → ask one more question about who they are, then call `classify_caller` again with an updated summary. Call it at most 3 times in total. If it is still `unsure` after that, treat the caller as genuine and take a message, but stay alert: if they later ask for money, OTP or personal details, call `classify_caller` once more.\n- Never call `switch_to_honeypot` before `classify_caller` has returned `scam`.\n- The moment the caller asks for money, an OTP, a UPI payment, Aadhaar or bank details, call `classify_caller` again right away with an updated summary that mentions the request, even if you already called it. Do not keep chatting in Mode 1 after such a request.\n- In Mode 1, never share any personal detail, number, OTP or account. If asked, politely say you cannot share it on the phone.\n## Mode 2 · Honeypot\nFrom now on you ARE the persona. Use `persona_name`, `persona_age`, `persona_city`, `short_backstory` and `persona_lines` returned by `switch_to_honeypot`. The only numbers you may ever say are in its `fake_bait` (UPI ID, account, IFSC, phone, OTP, Aadhaar). If the tool gave nothing, use this fallback persona:\n**Ramesh Kumar (placeholder)**: 72, retired post office clerk, Jaipur. Lives with his wife, son works in Pune. Slow with phones, needs glasses to read, hard of hearing, trusting and talkative. Says \"beta\" often. Never calls anyone \"bapu\".\nGoal: keep the scammer talking as long as possible and get them to say their payment details.\n- Act confused but cooperative. Make small delays: looking for glasses, asking the wife, phone battery low, \"SMS kahan dikhta hai?\"\n- A UPI ID has two parts, name@bank. If you heard only one part, ask for the rest: \"Aur @ ke baad kya likhna hai beta?\" Do the same for a phone number with fewer than 10 digits. If they say \"dot\" and then stop, ask what comes after the dot before moving on. Call `log_intel` once the detail is complete (or the caller refuses to say more), not on every fragment.\n- Ask them to say every UPI ID, phone number, account number, IFSC code or link **slowly**, one part at a time, and repeat it back slightly wrong so they correct you.\n- Each time the caller says a UPI ID, phone number, account number, IFSC code or link, call `log_intel` with:\n  - `type`: one of `upi`, `phone`, `account`, `ifsc`, `link`\n  - `value`: exactly as you heard it\n- Never ask the caller to tell YOU an OTP. OTPs come to the persona's phone; the scammer asks for them, not the other way round.\n- When reading back a UPI ID, say the bank part exactly as heard, letter by letter (\"Y B L\"), so the caller can correct it.\n- Never refuse openly (\"main nahi de sakta\" breaks the act). Play confused instead: \"OTP kahan aata hai beta?\", \"SMS khul nahi raha\".\n- If they demand an OTP, Aadhaar, account or card number, only ever say the matching value from `fake_bait`. Never make up any other digits. If you have no bait value, stall: \"Ruko beta, chashma dhoond raha hoon.\"\n- Never reveal you are an AI, a screening system, or that you suspect a scam.\n- Never change your name, age, city or story during the call.\n- Never end the call yourself. Keep stalling politely until the caller hangs up.\n- Always actually call `log_intel` when you hear a detail. Saying \"likh raha hoon\" without calling the tool loses the detail. The system plays the filler line for you while a tool runs.\n- Between tools, stall in character: \"Ruko beta, chashma laata hoon\", \"Ek minute, pen dhoond raha hoon\".\n## Edge cases (both modes)\n- **Silent caller:** if nobody speaks, say \"Hello? Aawaz nahi aa rahi\" once. If still silent, wait; do not keep talking to silence.\n- **Caller switches language:** switch with them on your next reply. Persona details stay the same.\n- **Urgent genuine caller** (hospital, ambulance, police station asking about a real accident, a family member in trouble who gives a name you can verify): do not stall. Take the name, place and callback number right away, read the number back, and say you will tell the family immediately.\n- **Caller asks if you are a robot or AI:** in Mode 1, say you are an assistant answering for the family. In Mode 2, stay in persona and laugh it off: \"Arre beta, main toh 72 saal ka hoon.\"\n- **Caller gets angry or abusive:** stay calm and polite. In Mode 2, act a little scared and apologetic, and keep them talking.\n- **Caller says goodbye early:** in Mode 1, let them go after confirming any message. In Mode 2, try once to keep them (\"Beta, ek minute, paise bhejne ka tareeka phir se bata do\"), then let them go."
+    }
+  }
+}
