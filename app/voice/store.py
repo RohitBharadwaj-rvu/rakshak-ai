@@ -175,6 +175,13 @@ def _restore_from_pg_if_needed(conn: sqlite3.Connection) -> None:
 _ADDED_COLUMNS = [
     ("stage2_ran", "INTEGER"),  # NULL = unknown (pending / pre-flag records)
     ("classifier_method", "TEXT DEFAULT ''"),
+    ("transcript_sha256", "TEXT DEFAULT NULL"),
+    ("recording_sha256", "TEXT DEFAULT NULL"),
+    ("recording_hash_error", "TEXT DEFAULT NULL"),
+    ("hashed_at", "TEXT DEFAULT NULL"),
+    ("money_lost", "INTEGER DEFAULT 0"),
+    ("evidence_status", "TEXT DEFAULT 'draft'"),
+    ("confirmed_at", "TEXT DEFAULT NULL"),
 ]
 
 
@@ -238,6 +245,7 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         if k not in intel:
             intel[k] = default_v
     transcript = json.loads(row["transcript_json"] or "[]")
+    row_keys = row.keys()
     return {
         "call_id": row["call_id"],
         "agent_id": row["agent_id"] or "bolna_agent_guardianline_v0",
@@ -258,6 +266,13 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         "status": row["status"] or "pending",
         "stage2_ran": None if row["stage2_ran"] is None else bool(row["stage2_ran"]),
         "classifier_method": row["classifier_method"] or "",
+        "transcript_sha256": row["transcript_sha256"] if "transcript_sha256" in row_keys else None,
+        "recording_sha256": row["recording_sha256"] if "recording_sha256" in row_keys else None,
+        "recording_hash_error": row["recording_hash_error"] if "recording_hash_error" in row_keys else None,
+        "hashed_at": row["hashed_at"] if "hashed_at" in row_keys else None,
+        "money_lost": bool(row["money_lost"]) if "money_lost" in row_keys and row["money_lost"] is not None else False,
+        "evidence_status": row["evidence_status"] if "evidence_status" in row_keys and row["evidence_status"] else "draft",
+        "confirmed_at": row["confirmed_at"] if "confirmed_at" in row_keys else None,
     }
 
 
@@ -780,6 +795,12 @@ def finalize_call_record_from_webhook(
             intel_json = json.dumps(extracted_intel, ensure_ascii=False)
             stage2_val = None if stage2_ran is None else int(bool(stage2_ran))
 
+            from app.voice.evidence import compute_canonical_transcript_hash, compute_recording_bytes_hash
+            t_sha256 = compute_canonical_transcript_hash(transcript)
+            r_sha256, r_hash_err = compute_recording_bytes_hash(recording_url)
+            hashed_at_val = now_iso
+            money_lost_val = 1 if bool(payload.get("money_lost") or metadata.get("money_lost")) else 0
+
             if row:
                 conn.execute(
                     """
@@ -802,6 +823,12 @@ def finalize_call_record_from_webhook(
                         status = ?,
                         stage2_ran = ?,
                         classifier_method = ?,
+                        transcript_sha256 = ?,
+                        recording_sha256 = ?,
+                        recording_hash_error = ?,
+                        hashed_at = ?,
+                        money_lost = ?,
+                        evidence_status = COALESCE(evidence_status, 'draft'),
                         finalized_fired = 1,
                         updated_at = ?
                     WHERE call_id = ?
@@ -825,6 +852,11 @@ def finalize_call_record_from_webhook(
                         status_value,
                         stage2_val,
                         classifier_method,
+                        t_sha256,
+                        r_sha256,
+                        r_hash_err,
+                        hashed_at_val,
+                        money_lost_val,
                         now_iso,
                         call_id,
                     ),
@@ -838,8 +870,10 @@ def finalize_call_record_from_webhook(
                         persona, language, call_recording_url, transcript_json,
                         extracted_intel_json, summary, report_link, status,
                         stage2_ran, classifier_method,
+                        transcript_sha256, recording_sha256, recording_hash_error,
+                        hashed_at, money_lost, evidence_status,
                         finalized_fired, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                     """,
                     (
                         call_id,
@@ -861,6 +895,12 @@ def finalize_call_record_from_webhook(
                         status_value,
                         stage2_val,
                         classifier_method,
+                        t_sha256,
+                        r_sha256,
+                        r_hash_err,
+                        hashed_at_val,
+                        money_lost_val,
+                        "draft",
                         now_iso,
                         now_iso,
                     ),
@@ -936,6 +976,43 @@ def save_post_call_enrichment_and_reflection(
             conn.execute(
                 "UPDATE call_records SET extracted_intel_json = ?, updated_at = ? WHERE call_id = ?",
                 (intel_json, now_iso, call_id),
+            )
+            conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
+            updated = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            return _row_to_record(updated)
+        finally:
+            conn.close()
+
+
+def confirm_call_evidence(call_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Transition evidence_status to 'confirmed_by_family' and record confirmed_at (UTC).
+    Does NOT auto-submit to any external portal.
+    """
+    init_db()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with _DB_LOCK:
+        conn = _get_conn()
+        try:
+            row = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            if not row:
+                return None
+            conn.execute(
+                """
+                UPDATE call_records
+                SET evidence_status = 'confirmed_by_family',
+                    confirmed_at = ?,
+                    updated_at = ?
+                WHERE call_id = ?
+                """,
+                (now_iso, now_iso, call_id),
             )
             conn.commit()
             _sync_sqlite_row_to_pg(conn, call_id)

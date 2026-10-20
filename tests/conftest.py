@@ -14,5 +14,6 @@ def clean_test_env(monkeypatch):
     unauthenticated requests with 401.
     """
     monkeypatch.setenv("BOLNA_WEBHOOK_SECRET", "")
+    monkeypatch.setenv("ALLOW_UNAUTHENTICATED_WEBHOOK", "true")
     monkeypatch.setenv("GROQ_API_KEY", "")
     monkeypatch.setenv("GEMINI_API_KEY", "")

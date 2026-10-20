@@ -319,13 +319,26 @@ def test_webhook_enforces_bolna_webhook_secret_when_set(client, monkeypatch):
     assert r_bolna_ok.status_code == 200
 
 
-def test_webhook_secret_unset_allows_unauthenticated(client, monkeypatch):
+def test_webhook_secret_unset_rejects_by_default_fail_closed(client, monkeypatch):
     monkeypatch.setenv("BOLNA_WEBHOOK_SECRET", "")
+    monkeypatch.setenv("ALLOW_UNAUTHENTICATED_WEBHOOK", "false")
     fpath = os.path.join(FIXTURES_DIR, "01_scam_digital_arrest.json")
     with open(fpath, "r", encoding="utf-8") as f:
         payload = json.load(f)
 
-    # When unset, unauthenticated post is allowed (local dev / test behavior)
+    # Fail-closed: When secret is unset and dev flag is not true, reject with 401
+    res = client.post("/webhook", json=payload)
+    assert res.status_code == 401
+
+
+def test_webhook_secret_unset_allows_when_dev_flag_set(client, monkeypatch):
+    monkeypatch.setenv("BOLNA_WEBHOOK_SECRET", "")
+    monkeypatch.setenv("ALLOW_UNAUTHENTICATED_WEBHOOK", "true")
+    fpath = os.path.join(FIXTURES_DIR, "01_scam_digital_arrest.json")
+    with open(fpath, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    # Allowed when ALLOW_UNAUTHENTICATED_WEBHOOK=true for local dev/testing
     res = client.post("/webhook", json=payload)
     assert res.status_code == 200
 

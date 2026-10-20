@@ -17,6 +17,7 @@ from app.voice.cleanup import cleanup_call_intel
 from app.voice.extractor import extract_from_transcript
 from app.voice.report import generate_1930_report
 from app.voice.store import (
+    confirm_call_evidence,
     export_all_raw_rows,
     export_call_records_to_csv_string,
     finalize_call_record_from_webhook,
@@ -116,8 +117,14 @@ def verify_webhook_secret(request: Request) -> Optional[JSONResponse]:
     """
     expected = get_expected_webhook_secret()
     if not expected:
-        # Unconfigured: allow requests (local dev / unauthenticated testing)
-        return None
+        allow_unauth = os.getenv("ALLOW_UNAUTHENTICATED_WEBHOOK", "").strip().lower() == "true"
+        if allow_unauth:
+            return None
+        logger.warning("Rejecting /webhook: BOLNA_WEBHOOK_SECRET is unset and ALLOW_UNAUTHENTICATED_WEBHOOK is not true")
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Missing or invalid webhook secret"},
+        )
 
     auth_header = (request.headers.get("authorization") or "").strip()
     provided: Optional[str] = None
@@ -601,23 +608,97 @@ async def api_verify_call_evidence(
     _token: str = Depends(require_api_token),
 ):
     """
-    Verify evidence integrity and retrieve Chakshu & Report Suspect packets (Addition 2).
-    Generates SHA-256 evidence integrity hash over transcript, caller number, and audio recording.
+    Verify evidence integrity by recomputing SHA-256 hashes against stored values (Addition 2).
+    Compares stored vs recomputed transcript_sha256 and recording_sha256.
+    Returns match true/false per item, plus Chakshu & Report Suspect packets.
+    Requires valid API token.
     """
-    from app.voice.evidence import build_chakshu_packet, build_report_suspect_packets
     record = get_call_record(call_id)
     if not record:
         raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")
+
+    from app.voice.evidence import (
+        build_1930_report,
+        build_chakshu_packet,
+        build_report_suspect_packets,
+        compute_canonical_transcript_hash,
+        compute_recording_bytes_hash,
+    )
+
+    stored_transcript_sha256 = record.get("transcript_sha256")
+    stored_recording_sha256 = record.get("recording_sha256")
+    stored_recording_err = record.get("recording_hash_error")
+
+    recomputed_transcript_sha256 = compute_canonical_transcript_hash(record.get("transcript") or [])
+    recording_url = str(record.get("call_recording_url") or "").strip()
+    recomputed_recording_sha256, recomputed_recording_err = compute_recording_bytes_hash(recording_url)
+
+    transcript_match = bool(stored_transcript_sha256 and stored_transcript_sha256 == recomputed_transcript_sha256)
+    if stored_recording_sha256:
+        recording_match = bool(recomputed_recording_sha256 and stored_recording_sha256 == recomputed_recording_sha256)
+    else:
+        recording_match = (recomputed_recording_sha256 is None)
+
     chakshu = build_chakshu_packet(record)
     suspect_packets = build_report_suspect_packets(record)
+    report_1930 = build_1930_report(record)
+
     return {
         "call_id": call_id,
-        "verification_status": chakshu.verification_status,
+        "transcript_match": transcript_match,
+        "recording_match": recording_match,
+        "matches": {
+            "transcript": transcript_match,
+            "recording": recording_match,
+        },
+        "transcript_sha256": {
+            "stored": stored_transcript_sha256,
+            "recomputed": recomputed_transcript_sha256,
+            "match": transcript_match,
+        },
+        "recording_sha256": {
+            "stored": stored_recording_sha256,
+            "recomputed": recomputed_recording_sha256,
+            "match": recording_match,
+            "reason": recomputed_recording_err or stored_recording_err,
+        },
+        "all_match": transcript_match and recording_match,
+        "hashed_at": record.get("hashed_at"),
+        "evidence_status": record.get("evidence_status", "draft"),
+        "confirmed_at": record.get("confirmed_at"),
+        "money_lost": bool(record.get("money_lost", False)),
+        "report_1930": report_1930,
+        "verification_status": "VERIFIED" if transcript_match and recording_match else "FAILED",
         "evidence_hash_sha256": chakshu.evidence_hash_sha256,
         "chakshu_packet": chakshu.model_dump() if hasattr(chakshu, "model_dump") else chakshu.dict(),
         "report_suspect_packets": [
-            p.model_dump() if hasattr(p, "model_dump") else p.dict()
+            p.to_dict() if hasattr(p, "to_dict") else (p.model_dump(exclude_none=True) if hasattr(p, "model_dump") else p.dict())
             for p in suspect_packets
         ],
     }
+
+
+@router.post("/api/calls/{call_id}/evidence/confirm")
+async def api_confirm_call_evidence(
+    call_id: str,
+    _token: str = Depends(require_api_token),
+):
+    """
+    Confirm evidence by family (Addition 2).
+    Transitions evidence_status from 'draft' to 'confirmed_by_family' and records confirmed_at.
+    Guarantees that nothing is auto-submitted to any portal.
+    Requires valid API token (same auth as /api/calls).
+    """
+    record = confirm_call_evidence(call_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")
+    return {
+        "call_id": call_id,
+        "evidence_status": record["evidence_status"],
+        "confirmed_at": record["confirmed_at"],
+        "auto_submitted": False,
+        "portal_submission": "manual_only",
+        "message": "Evidence confirmed by family. Not auto-submitted to any portal.",
+    }
+
 
