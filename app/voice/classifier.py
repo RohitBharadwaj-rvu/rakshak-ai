@@ -309,7 +309,8 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
     """Calls Google Gemini Flash via AI Studio REST API."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").replace("models/", "")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     headers = {
         "Content-Type": "application/json",
         "User-Agent": "GuardianLine/1.0 (Voice-Agent)",

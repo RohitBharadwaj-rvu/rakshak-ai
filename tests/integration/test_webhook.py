@@ -298,6 +298,10 @@ def test_webhook_enforces_bolna_webhook_secret_when_set(client, monkeypatch):
     r_ok = client.post(
         "/webhook",
         json=payload,
+        headers={"Authorization": "Bearer test-strong-webhook-secret-999"},
+    )
+    assert r_ok.status_code == 200
+
     # 4. Valid X-Webhook-Secret -> 200
     r_x_ok = client.post(
         "/webhook",

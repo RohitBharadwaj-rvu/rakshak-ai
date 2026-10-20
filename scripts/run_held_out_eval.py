@@ -208,13 +208,13 @@ def generate_markdown_report(metrics: Dict[str, Any], output_path: str) -> None:
     overall_verdict = "[PASS] HELD-OUT BARS MET" if (detection_pass and fp_pass) else "[WARN] BARS NOT MET"
 
     md = [
-        "# GuardianLine Blind Held-Out Evaluation Scorecard",
+        "# GuardianLine Agent-Written Evaluation Scorecard (not blind)",
         "",
         f"**Status**: `{overall_verdict}`",
         "",
         "> [!NOTE]",
-        "> **EVALUATION SCOPE:** This benchmark was executed on an independently authored, held-out test suite",
-        "> to verify generalized detection performance and guard against overfitting.",
+        "> **EVALUATION SCOPE:** This benchmark was executed on an agent-written evaluation set (not blind),",
+        "> authored during this session, to verify generalized detection performance.",
         "",
         "## 1. Primary Performance Metrics",
         "",
@@ -263,7 +263,7 @@ def generate_markdown_report(metrics: Dict[str, Any], output_path: str) -> None:
 def print_console_scorecard(metrics: Dict[str, Any]) -> None:
     """Prints a clear, high-visibility summary table to the console."""
     print("\n" + "=" * 70)
-    print("      GUARDIANLINE BLIND HELD-OUT EVALUATION SCORECARD")
+    print("  GUARDIANLINE AGENT-WRITTEN EVALUATION SCORECARD (NOT BLIND)")
     print("=" * 70)
     print(f"Total Evaluated Scenarios: {metrics['total_scenarios']}")
     print(f"Scam Calls: {metrics['scam_scenarios']}  |  Genuine Calls: {metrics['genuine_scenarios']}")

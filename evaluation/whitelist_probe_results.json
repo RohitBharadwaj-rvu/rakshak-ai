@@ -11,7 +11,7 @@
       "actual_verdict": "unsure",
       "confidence": 0.6,
       "method": "heuristic",
-      "latency_ms": 8.239507675170898,
+      "latency_ms": 17.20118522644043,
       "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
       "is_vulnerability": false,
       "risk_explanation": "Steals netbanking/login OTP under the guise of ecommerce delivery confirmation"
@@ -24,11 +24,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-<<<<<<< HEAD
-      "latency_ms": 0.05269050598144531,
-=======
-      "latency_ms": 0.0896453857421875,
->>>>>>> origin/lane-d
+      "latency_ms": 0.19121170043945312,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Extorts money/penalty while citing official police tenant verification"
@@ -41,11 +37,7 @@
       "actual_verdict": "scam",
       "confidence": 0.88,
       "method": "heuristic",
-<<<<<<< HEAD
-      "latency_ms": 0.10395050048828125,
-=======
-      "latency_ms": 0.1914501190185547,
->>>>>>> origin/lane-d
+      "latency_ms": 0.3294944763183594,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Exploits emergency emotional panic and fake hospital pre-admission advance"
@@ -58,11 +50,7 @@
       "actual_verdict": "unsure",
       "confidence": 0.6,
       "method": "heuristic",
-<<<<<<< HEAD
-      "latency_ms": 0.10251998901367188,
-=======
-      "latency_ms": 0.1857280731201172,
->>>>>>> origin/lane-d
+      "latency_ms": 0.3440380096435547,
       "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
       "is_vulnerability": false,
       "risk_explanation": "Relative impersonation exploiting familial trust and roadside emergency"
@@ -75,11 +63,7 @@
       "actual_verdict": "scam",
       "confidence": 0.88,
       "method": "heuristic",
-<<<<<<< HEAD
-      "latency_ms": 0.12993812561035156,
-=======
-      "latency_ms": 0.23937225341796875,
->>>>>>> origin/lane-d
+      "latency_ms": 0.3657341003417969,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Bypasses OTP warnings by asking for remote screen access software"
@@ -92,11 +76,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-<<<<<<< HEAD
-      "latency_ms": 0.027418136596679688,
-=======
-      "latency_ms": 0.05125999450683594,
->>>>>>> origin/lane-d
+      "latency_ms": 0.10180473327636719,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Impersonates traffic authority with immediate vehicle seizure threat"

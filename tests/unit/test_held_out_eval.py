@@ -120,7 +120,7 @@ def test_compute_held_out_metrics_and_markdown():
         generate_markdown_report(metrics, temp_md)
         with open(temp_md, "r", encoding="utf-8") as f:
             content = f.read()
-        assert "GuardianLine Blind Held-Out Evaluation Scorecard" in content
+        assert "GuardianLine Agent-Written Evaluation Scorecard (not blind)" in content
         assert "100.0%" in content
     finally:
         os.remove(temp_md)
