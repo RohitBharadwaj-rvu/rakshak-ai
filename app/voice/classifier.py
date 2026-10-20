@@ -30,6 +30,8 @@ class CallerClassificationResult:
     latency_ms: float
     method: str  # "heuristic" | "groq" | "gemini" | "offline_rules" | "timeout_fallback"
     pillars_detected: List[str] = field(default_factory=list)
+    action: str = "screen"  # "honeypot" | "screen" | "transfer" | "verify"
+    route_to_honeypot: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -40,6 +42,8 @@ class CallerClassificationResult:
             "latency_ms": round(self.latency_ms, 2),
             "method": self.method,
             "pillars_detected": self.pillars_detected,
+            "action": self.action,
+            "route_to_honeypot": self.route_to_honeypot,
         }
 
 
@@ -454,14 +458,30 @@ def classify_caller(
     heuristic_res = _evaluate_heuristics(formatted_text)
     if heuristic_res is not None:
         latency_ms = (time.time() - start_time) * 1000
+        h_verdict = heuristic_res["verdict"]
+        if h_verdict == "scam":
+            h_action = "honeypot"
+            h_route = True
+        elif h_verdict == "unsure" and has_critical_value_or_credential_demand(formatted_text):
+            h_action = "honeypot"
+            h_route = True
+        elif h_verdict == "genuine":
+            h_action = "transfer"
+            h_route = False
+        else:
+            h_action = "screen"
+            h_route = False
+
         return CallerClassificationResult(
             call_id=call_id,
-            verdict=heuristic_res["verdict"],
+            verdict=h_verdict,
             confidence=heuristic_res["confidence"],
             reason=heuristic_res["reason"],
             latency_ms=latency_ms,
             method="heuristic",
             pillars_detected=heuristic_res.get("pillars", []),
+            action=h_action,
+            route_to_honeypot=h_route,
         )
 
     # Stage 2: Fast LLM (Groq -> Gemini Flash -> Offline Semantic Rules)
@@ -520,6 +540,25 @@ def classify_caller(
         reason = f"General Safety Rule: Value/credential demand prevents genuine verdict (coerced to {verdict})"
     else:
         reason = llm_res.get("reason", "Classified based on conversational analysis")
+    # =========================================================================
+    # ROUTING RULE (LANE B):
+    # If verdict is scam -> honeypot
+    # If verdict is unsure and caller asked for money/OTP/Aadhaar/remote-app -> honeypot
+    # If verdict is genuine -> transfer
+    # Otherwise -> screen (continue questioning)
+    # =========================================================================
+    if verdict == "scam":
+        action = "honeypot"
+        route_to_honeypot = True
+    elif verdict == "unsure" and has_critical_value_or_credential_demand(formatted_text):
+        action = "honeypot"
+        route_to_honeypot = True
+    elif verdict == "genuine":
+        action = "transfer"
+        route_to_honeypot = False
+    else:
+        action = "screen"
+        route_to_honeypot = False
 
     latency_ms = (time.time() - start_time) * 1000
 
@@ -531,4 +570,6 @@ def classify_caller(
         latency_ms=latency_ms,
         method=method_used,
         pillars_detected=llm_res.get("pillars_detected", []),
+        action=action,
+        route_to_honeypot=route_to_honeypot,
     )

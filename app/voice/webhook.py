@@ -115,8 +115,7 @@ def verify_webhook_secret(request: Request) -> Optional[JSONResponse]:
     Returns a 401 JSONResponse if unauthorized, or None if authorized.
     """
     expected = get_expected_webhook_secret()
-    is_render = os.getenv("RENDER", "").lower() == "true"
-
+    is_render = bool(os.getenv("RENDER"))
     if not expected and not is_render:
         # Local/test mode with no BOLNA_WEBHOOK_SECRET set
         return None
@@ -597,3 +596,31 @@ async def api_get_call_report(
     if format == "json":
         return {"call_id": call_id, "report": report_text}
     return PlainTextResponse(content=report_text)
+
+
+@router.get("/api/calls/{call_id}/evidence/verify")
+async def api_verify_call_evidence(
+    call_id: str,
+    _token: str = Depends(require_api_token),
+):
+    """
+    Verify evidence integrity and retrieve Chakshu & Report Suspect packets (Addition 2).
+    Generates SHA-256 chain-of-custody hash over transcript, caller number, and audio recording.
+    """
+    from app.voice.evidence import build_chakshu_packet, build_report_suspect_packets
+    record = get_call_record(call_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"CallRecord '{call_id}' not found")
+    chakshu = build_chakshu_packet(record)
+    suspect_packets = build_report_suspect_packets(record)
+    return {
+        "call_id": call_id,
+        "verification_status": chakshu.verification_status,
+        "evidence_hash_sha256": chakshu.evidence_hash_sha256,
+        "chakshu_packet": chakshu.model_dump() if hasattr(chakshu, "model_dump") else chakshu.dict(),
+        "report_suspect_packets": [
+            p.model_dump() if hasattr(p, "model_dump") else p.dict()
+            for p in suspect_packets
+        ],
+    }
+

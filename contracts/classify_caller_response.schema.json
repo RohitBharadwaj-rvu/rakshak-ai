@@ -38,6 +38,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "action": {
+      "type": "string",
+      "enum": ["honeypot", "screen", "transfer", "verify"]
+    },
+    "route_to_honeypot": {
+      "type": "boolean"
     }
   },
   "additionalProperties": false

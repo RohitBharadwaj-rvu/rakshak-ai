@@ -58,6 +58,8 @@ class ClassifyCallerResponse(BaseModel):
     latency_ms: float = Field(description="Processing latency in milliseconds")
     method: str = Field(description="Resolution engine: heuristic, groq, gemini, or offline_rules")
     pillars_detected: List[str] = Field(default_factory=list, description="Active scam pillars detected")
+    action: str = Field(default="screen", description="Recommended action: honeypot, screen, transfer, or verify")
+    route_to_honeypot: bool = Field(default=False, description="Whether agent should engage honeypot mode immediately")
 
 
 @router.post("/classify_caller", response_model=ClassifyCallerResponse)
@@ -105,6 +107,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=round(result.latency_ms, 2),
             method=result.method,
             pillars_detected=result.pillars_detected,
+            action=result.action,
+            route_to_honeypot=result.route_to_honeypot,
         )
     except FuturesTimeoutError:
         return ClassifyCallerResponse(
@@ -115,6 +119,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=1500.0,
             method="timeout_fallback",
             pillars_detected=[],
+            action="screen",
+            route_to_honeypot=False,
         )
     except Exception as e:
         return ClassifyCallerResponse(
@@ -125,6 +131,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=0.0,
             method="error_fallback",
             pillars_detected=[],
+            action="screen",
+            route_to_honeypot=False,
         )
 
 
