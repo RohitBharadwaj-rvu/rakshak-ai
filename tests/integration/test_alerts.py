@@ -104,6 +104,9 @@ class TestAlertFormattingAndSegmentation:
         assert "token=master_sec123" not in msg
         # Expiring signature params MUST appear instead
         assert "exp=" in msg and "sig=" in msg
+        # Must include the signed Evidence Review link (/dashboard/calls/{call_id})
+        assert f"/dashboard/calls/{scam_record['call_id']}?exp=" in msg
+
 
     def test_scam_sms_gsm7_strictly_within_two_segments_budget(self, scam_record, alert_config):
         msg = format_alert_message(
@@ -184,7 +187,11 @@ class TestFamilyAlertDispatcher:
         mock_client = MagicMock()
         mock_client.messages.create.return_value.sid = "SM_mock_id_001"
 
-        single_config = alert_config.copy(update={"to_phone": "+919876500001"})
+        single_config = (
+            alert_config.model_copy(update={"to_phone": "+919876500001"})
+            if hasattr(alert_config, "model_copy")
+            else alert_config.copy(update={"to_phone": "+919876500001"})
+        )
         dispatcher1 = FamilyAlertDispatcher(config=single_config, twilio_client=mock_client, store=store1)
         res1 = dispatcher1.dispatch(scam_record)
         assert res1.status == AlertStatus.SENT
@@ -316,4 +323,51 @@ class TestCallFinalizedEventListener:
         sent_body = mock_client.messages.create.call_args_list[0].kwargs["body"]
         assert payload["metadata"]["planted_intel"]["upi_id"] in sent_body
         assert "token=master_sec123" not in sent_body
+
+    def test_render_yaml_includes_whatsapp_sandbox_and_alert_env_vars(self):
+        render_yaml_path = os.path.join(FIXTURES_DIR, "..", "..", "render.yaml")
+        with open(render_yaml_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        for required_key in (
+            "TWILIO_ACCOUNT_SID",
+            "TWILIO_AUTH_TOKEN",
+            "TWILIO_WHATSAPP_FROM",
+            "ALERT_CHANNEL",
+            "FAMILY_ALERT_TO",
+            "REPORT_BASE_URL",
+            "REPORT_SIGNING_SECRET",
+            "GUARDIAN_EVENTS_TOKEN",
+            "ALERT_DB_PATH",
+        ):
+            assert f"key: {required_key}" in content, f"Missing {required_key} in render.yaml"
+
+    def test_alert_delivery_proof_contract_and_script(self, alert_config, tmp_path):
+        from scripts.send_test_alert import deliver_and_record_proof
+
+        repo_proof_path = os.path.join(FIXTURES_DIR, "..", "..", "evaluation", "live_calls", "alert_delivery_proof.json")
+        assert os.path.exists(repo_proof_path), "evaluation/live_calls/alert_delivery_proof.json must exist"
+        with open(repo_proof_path, "r", encoding="utf-8") as f:
+            repo_proof = json.load(f)
+        assert repo_proof["status"] in ("NOT_VERIFIED", "VERIFIED")
+        if repo_proof["status"] == "NOT_VERIFIED":
+            assert repo_proof["twilio_message_sid"] is None
+
+        # Test recording a verified proof when Twilio returns a real SM... SID
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value.sid = "SM0123456789abcdef0123456789abcdef"
+        store = PersistentAlertStore(str(tmp_path / "proof_alerts.db"))
+        dispatcher = FamilyAlertDispatcher(config=alert_config, twilio_client=mock_client, store=store)
+
+        out_proof = tmp_path / "alert_delivery_proof.json"
+        proof = deliver_and_record_proof(
+            dispatcher=dispatcher,
+            proof_path=str(out_proof),
+            screenshot_path="evaluation/live_calls/whatsapp_alert_screenshot.png",
+        )
+        assert proof["status"] == "VERIFIED"
+        assert proof["twilio_message_sid"] == "SM0123456789abcdef0123456789abcdef"
+        assert proof["screenshot_path"] == "evaluation/live_calls/whatsapp_alert_screenshot.png"
+        assert out_proof.exists()
+
+
 

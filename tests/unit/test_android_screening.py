@@ -31,3 +31,20 @@ def test_screening_canonical_cases_file_exists_and_valid():
         assert "expected_reason" in case
         assert "contacts" in case
         assert isinstance(case["contacts"], list)
+
+
+def test_bolna_gateway_number_is_set_in_android_build_config():
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    gradle_props_path = os.path.join(repo_root, "android", "gradle.properties")
+    build_gradle_path = os.path.join(repo_root, "android", "app", "build.gradle.kts")
+
+    with open(gradle_props_path, "r", encoding="utf-8") as f:
+        gradle_props = f.read()
+    with open(build_gradle_path, "r", encoding="utf-8") as f:
+        build_gradle = f.read()
+
+    # BOLNA_GATEWAY_NUMBER must be configured in gradle.properties and not default to empty string
+    assert "BOLNA_GATEWAY_NUMBER=+91" in gradle_props
+    assert 'as String? ?: ""' not in build_gradle
+    assert 'buildConfigField("String", "BOLNA_GATEWAY_NUMBER"' in build_gradle
+

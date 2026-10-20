@@ -13,7 +13,7 @@ India is witnessing an epidemic of high-pressure telecom fraud—particularly **
 2. **Sub-Millisecond Scam Classification**: A real-time hybrid detection engine analyzes caller intent within 1–2 exchanges against scam behavioral invariants (*authority coercion, artificial urgency, and unscheduled value demands*).
 3. **Deceptive Honeypot Engagement**: The moment a scam is identified, the agent seamlessly assumes an elderly persona (*Ramesh*) that feigns confusion (*"Beta, wait let me find my glasses..."*), keeping the fraudster occupied and preventing them from dialing real victims.
 4. **Actionable Intel Extraction**: Coaxes the scammer to repeatedly dictate UPI IDs, bank account numbers, IFSC codes, and callback numbers.
-5. **Immediate Family Protection & Evidence**: Dispatches an instant WhatsApp/SMS alert to adult children with the call recording, extracted scammer accounts, and pre-formatted **Chakshu (DoT Sanchar Saathi)** and **Report Suspect** packets.
+5. **Immediate Family Protection, Evidence Review & Scam Intelligence**: Dispatches an instant WhatsApp/SMS alert to adult children with the call summary, extracted scammer accounts, and a signed link to the Family Dashboard. On the dashboard, family members inspect pre-formatted **Chakshu (DoT Sanchar Saathi)** and **Report Suspect** packets with one-click copy buttons, direct links to `sancharsaathi.gov.in` and `cybercrime.gov.in`, a mandatory human **Review and Confirm** step (`confirmed_by_family`), and a cross-call **Scam-Intelligence view** that links calls sharing the same UPI ID or bank account.
 
 ---
 
@@ -31,7 +31,7 @@ India is witnessing an epidemic of high-pressure telecom fraud—particularly **
 ## 3. Verified Performance & Development Benchmarks
 
 > **Honest Disclosure Notice (Per Benchmark Integrity Standard):**  
-> Development metrics below are measured on our internal dev suite. An internal 20-scenario agent-written evaluation set (not blind to classifier logic) recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure). A truly independent human held-out evaluation remains pending. Live demo scam calls are simulated with outbound role-play callers.
+> Development metrics below are measured on our internal dev suite. An internal 20-scenario agent-written evaluation set (not blind to classifier logic) recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure). A truly independent human held-out evaluation remains pending. Live demo scam calls use Basic Mode only (App Mode is cut from the live demo) and are simulated with outbound role-play callers. Carrier Test 1 on physical Indian SIMs is currently marked `NOT_VERIFIED` (`evaluation/carrier_results.json`), and the 3-participant elderly consent pilot is marked `NOT_DONE` (`evaluation/pilot_results.json`).
 
 | Metric | Measured Development Result | Production Target Bar | Status |
 | :--- | :--- | :--- | :--- |

@@ -200,3 +200,156 @@ class TestDashboardApiAndEmptyState:
         # NOT "&Lt;"
         assert "&Lt;" not in resp.text
         assert "Caller&lt;Admin&gt;" in resp.text
+
+
+class TestDashboardEvidenceSection:
+    def test_call_detail_renders_evidence_packets_copy_buttons_and_portal_links(self, client, monkeypatch):
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        resp = client.get(f"/dashboard/calls/call_scam_001?token={TEST_TOKEN}")
+        assert resp.status_code == 200
+        body = resp.text
+
+        # 1. Evidence section and packets (Chakshu + Report Suspect)
+        assert "Evidence" in body
+        assert "Chakshu" in body
+        assert "Report Suspect" in body
+        assert "Digital Arrest / Impersonation of Police or Law Enforcement" in body
+        assert "cbi.officer.verma@okaxis" in body
+
+        # 2. Copy buttons for packets/fields
+        assert "btn-copy" in body
+        assert "Copy" in body
+
+        # 3. Portal links to Chakshu (sancharsaathi.gov.in) and cybercrime.gov.in
+        assert "https://sancharsaathi.gov.in" in body
+        assert "https://cybercrime.gov.in" in body
+
+        # 4. Review and confirm step present on detail view
+        assert "/dashboard/calls/call_scam_001/confirm" in body
+        assert "Review" in body and "Confirm" in body
+
+    def test_review_and_confirm_step_transitions_status_via_signed_link_and_session(self, client, monkeypatch):
+        import time
+        from app.notify.alerts import generate_report_signature
+
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        call_id = "call_scam_001"
+
+        # 1. Unauthenticated confirm is rejected with 401
+        unauth = client.post(f"/dashboard/calls/{call_id}/confirm")
+        assert unauth.status_code == 401
+
+        # 2. Signed family link can confirm evidence and renders Confirmed by Family
+        exp = int(time.time()) + 3600
+        sig = generate_report_signature(call_id, exp, TEST_TOKEN)
+        confirm_resp = client.post(
+            f"/dashboard/calls/{call_id}/confirm?exp={exp}&sig={sig}",
+            follow_redirects=True,
+        )
+        assert confirm_resp.status_code == 200
+        assert "Confirmed by Family" in confirm_resp.text
+
+        # 3. JSON API response on confirm verifies manual-only guarantee
+        json_resp = client.post(
+            f"/dashboard/calls/{call_id}/confirm?token={TEST_TOKEN}",
+            headers={"Accept": "application/json"},
+        )
+        assert json_resp.status_code == 200
+        payload = json_resp.json()
+        assert payload["evidence_status"] == "confirmed_by_family"
+        assert payload["confirmed_at"] is not None
+        assert payload["auto_submitted"] is False
+
+
+class TestScamIntelligenceView:
+    def test_scam_intelligence_links_calls_sharing_same_upi_or_account(self, client, isolated_store, monkeypatch):
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+
+        # Add a second call sharing the same UPI ID (cbi.officer.verma@okaxis) and a mule bank account
+        isolated_store.add_call({
+            "call_id": "call_scam_002",
+            "caller_number": "+919111222333",
+            "verdict": "scam",
+            "duration": 210.0,
+            "created_at": "2026-10-18T03:00:00Z",
+            "summary": "Customs parcel scam demanding deposit to same UPI handle and mule account.",
+            "extracted_intel": {
+                "upi_ids": ["cbi.officer.verma@okaxis"],
+                "bank_accounts": ["987654321098"],
+                "ifsc_codes": ["SBIN0001234"],
+                "phone_numbers": [],
+            },
+            "transcript": [],
+        })
+
+        # Add a third call sharing the same bank account (987654321098)
+        isolated_store.add_call({
+            "call_id": "call_scam_003",
+            "caller_number": "+919444555666",
+            "verdict": "scam",
+            "duration": 145.0,
+            "created_at": "2026-10-19T04:00:00Z",
+            "summary": "Bank KYC freeze scam using the same mule bank account.",
+            "extracted_intel": {
+                "upi_ids": [],
+                "bank_accounts": ["987654321098"],
+                "ifsc_codes": ["SBIN0001234"],
+                "phone_numbers": [],
+            },
+            "transcript": [],
+        })
+
+        # 1. JSON API endpoint returns linked clusters for shared UPI and shared bank account
+        api_resp = client.get(
+            "/dashboard/api/intelligence",
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+        assert api_resp.status_code == 200
+        intel_data = api_resp.json()
+        clusters_by_key = {(c["kind"], c["identifier"]): c for c in intel_data["clusters"]}
+
+        assert ("upi", "cbi.officer.verma@okaxis") in clusters_by_key
+        upi_cluster = clusters_by_key[("upi", "cbi.officer.verma@okaxis")]
+        assert upi_cluster["call_count"] == 2
+        assert upi_cluster["linked_across_calls"] is True
+        assert set(upi_cluster["call_ids"]) == {"call_scam_001", "call_scam_002"}
+
+        assert ("account", "987654321098") in clusters_by_key
+        acc_cluster = clusters_by_key[("account", "987654321098")]
+        assert acc_cluster["call_count"] == 2
+        assert acc_cluster["linked_across_calls"] is True
+        assert set(acc_cluster["call_ids"]) == {"call_scam_002", "call_scam_003"}
+
+        # 2. Dedicated Scam-Intelligence HTML view renders shared UPI/account clusters and links to calls
+        html_resp = client.get(
+            "/dashboard/intelligence",
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+        assert html_resp.status_code == 200
+        page = html_resp.text
+        assert "Scam Intelligence" in page
+        assert "cbi.officer.verma@okaxis" in page
+        assert "987654321098" in page
+        assert "/dashboard/calls/call_scam_001" in page
+        assert "/dashboard/calls/call_scam_002" in page
+        assert "/dashboard/calls/call_scam_003" in page
+
+        # 3. Main dashboard and call detail view surface cross-linked calls sharing the same UPI/account
+        overview_resp = client.get(
+            "/dashboard",
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+        assert overview_resp.status_code == 200
+        assert "/dashboard/intelligence" in overview_resp.text
+        assert "cbi.officer.verma@okaxis" in overview_resp.text
+
+        detail_resp = client.get(
+            "/dashboard/calls/call_scam_002",
+            headers={"Authorization": f"Bearer {TEST_TOKEN}"},
+        )
+        assert detail_resp.status_code == 200
+        assert "/dashboard/calls/call_scam_001" in detail_resp.text
+        assert "/dashboard/calls/call_scam_003" in detail_resp.text
+
+
+

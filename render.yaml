@@ -20,8 +20,23 @@ services:
         sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: "+14155238886"
+      - key: ALERT_CHANNEL
+        value: whatsapp
+      - key: FAMILY_ALERT_TO
+        sync: false
+      - key: REPORT_BASE_URL
+        value: https://rakshak-ai-3ckj.onrender.com/dashboard/report
+      - key: REPORT_SIGNING_SECRET
+        sync: false
+      - key: GUARDIAN_EVENTS_TOKEN
+        sync: false
+      - key: ALERT_DB_PATH
+        value: /tmp/guardianline_alerts.db
       - key: GUARDIAN_DASHBOARD_TOKEN
         sync: false
+
       - key: BOLNA_WEBHOOK_SECRET
         sync: false
       - key: GUARDIANLINE_API_TOKEN

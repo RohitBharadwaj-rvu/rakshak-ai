@@ -17,6 +17,7 @@ Features:
 """
 
 import html
+import json
 import logging
 import os
 import secrets
@@ -29,6 +30,8 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.notify.alerts import get_report_signing_secret, verify_report_signature
+from app.voice.evidence import build_chakshu_packet, build_report_suspect_packets
+
 
 logger = logging.getLogger("guardianline.gui")
 
@@ -56,9 +59,18 @@ class BaseCallStore(ABC):
     def get_call(self, call_id: str) -> Optional[Dict[str, Any]]:
         pass
 
+    def confirm_call(self, call_id: str) -> Optional[Dict[str, Any]]:
+        record = self.get_call(call_id)
+        if not record:
+            return None
+        record["evidence_status"] = "confirmed_by_family"
+        record["confirmed_at"] = datetime.now(timezone.utc).isoformat()
+        return record
+
     @abstractmethod
     def clear(self) -> None:
         pass
+
 
 
 def _parse_timestamp(record: Dict[str, Any]) -> float:
@@ -111,9 +123,19 @@ class InMemoryCallStore(BaseCallStore):
         with self._lock:
             return self._calls.get(call_id)
 
+    def confirm_call(self, call_id: str) -> Optional[Dict[str, Any]]:
+        with self._lock:
+            rec = self._calls.get(call_id)
+            if not rec:
+                return None
+            rec["evidence_status"] = "confirmed_by_family"
+            rec["confirmed_at"] = datetime.now(timezone.utc).isoformat()
+            return dict(rec)
+
     def clear(self) -> None:
         with self._lock:
             self._calls.clear()
+
 
 
 _GLOBAL_STORE: BaseCallStore = InMemoryCallStore()
@@ -229,6 +251,122 @@ def _safe_duration(val: Any) -> float:
         return 0.0
 
 
+def _extract_call_upi_and_accounts(record: Dict[str, Any]) -> List[Tuple[str, str]]:
+    """
+    Extract normalized (kind, identifier) pairs for 'upi' and 'account' from a CallRecord.
+    """
+    intel = record.get("extracted_intel") or {}
+    if not isinstance(intel, dict):
+        intel = {}
+
+    found: List[Tuple[str, str]] = []
+    seen = set()
+
+    for upi in intel.get("upi_ids") or []:
+        val = str(upi).strip().lower()
+        if val and ("upi", val) not in seen:
+            seen.add(("upi", val))
+            found.append(("upi", val))
+
+    for field in ("bank_accounts", "account_numbers"):
+        for acc in intel.get(field) or []:
+            val = str(acc).strip()
+            if val and ("account", val) not in seen:
+                seen.add(("account", val))
+                found.append(("account", val))
+
+    for log_item in intel.get("mid_call_logs") or []:
+        if not isinstance(log_item, dict):
+            continue
+        k = str(log_item.get("type") or log_item.get("kind") or "").strip().lower()
+        raw_val = str(log_item.get("normalized_value") or log_item.get("value") or "").strip()
+        if not raw_val:
+            continue
+        if k == "upi":
+            val = raw_val.lower()
+            if ("upi", val) not in seen:
+                seen.add(("upi", val))
+                found.append(("upi", val))
+        elif k == "account":
+            if ("account", raw_val) not in seen:
+                seen.add(("account", raw_val))
+                found.append(("account", raw_val))
+
+    return found
+
+
+def build_scam_intelligence(calls: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Aggregates scam intelligence across CallRecords, linking calls that share the same
+    UPI ID or bank account number.
+    """
+    groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    for c in calls:
+        call_id = str(c.get("call_id") or "").strip()
+        if not call_id:
+            continue
+        for kind, ident in _extract_call_upi_and_accounts(c):
+            key = (kind, ident)
+            groups.setdefault(key, [])
+            if not any(existing.get("call_id") == call_id for existing in groups[key]):
+                groups[key].append(c)
+
+    clusters: List[Dict[str, Any]] = []
+    shared_by_call_id: Dict[str, List[Dict[str, Any]]] = {}
+
+    for (kind, ident), matched_calls in groups.items():
+        call_ids = [str(c.get("call_id")) for c in matched_calls]
+        caller_numbers = []
+        for c in matched_calls:
+            num = str(c.get("caller_number") or "Unknown")
+            if num not in caller_numbers:
+                caller_numbers.append(num)
+
+        call_summaries = [
+            {
+                "call_id": str(c.get("call_id") or ""),
+                "caller_number": str(c.get("caller_number") or "Unknown"),
+                "verdict": str(c.get("verdict") or "unsure"),
+                "duration": _safe_duration(c.get("duration")),
+                "summary": str(c.get("summary") or ""),
+                "start_time": str(c.get("start_time") or c.get("created_at") or ""),
+            }
+            for c in matched_calls
+        ]
+        cluster = {
+            "kind": kind,
+            "identifier": ident,
+            "call_count": len(matched_calls),
+            "linked_across_calls": len(matched_calls) >= 2,
+            "call_ids": call_ids,
+            "caller_numbers": caller_numbers,
+            "calls": call_summaries,
+        }
+        clusters.append(cluster)
+
+        if len(matched_calls) >= 2:
+            for cid in call_ids:
+                peers = [s for s in call_summaries if s["call_id"] != cid]
+                shared_by_call_id.setdefault(cid, []).append(
+                    {
+                        "kind": kind,
+                        "identifier": ident,
+                        "peer_calls": peers,
+                    }
+                )
+
+    clusters.sort(key=lambda item: (-item["call_count"], item["kind"], item["identifier"]))
+    linked_clusters = [c for c in clusters if c["linked_across_calls"]]
+    return {
+        "total_identifiers": len(clusters),
+        "linked_cluster_count": len(linked_clusters),
+        "clusters": clusters,
+        "linked_clusters": linked_clusters,
+        "shared_by_call_id": shared_by_call_id,
+    }
+
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 @router.get("/dashboard/", response_class=HTMLResponse)
 @router.get("/gui", response_class=HTMLResponse)
@@ -246,6 +384,45 @@ def render_dashboard(
         return _session_redirect(request, auth_token)
 
     calls, total_calls = store.get_calls(verdict=verdict, page=page, limit=limit)
+    all_calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+    scam_intel = build_scam_intelligence(all_calls)
+    linked_clusters = scam_intel["linked_clusters"]
+
+    if linked_clusters:
+        intel_rows = []
+        for cl in linked_clusters[:10]:
+            k_label = "UPI" if cl["kind"] == "upi" else "Bank A/C"
+            ident_esc = html.escape(cl["identifier"])
+            links_html = " · ".join(
+                f'<a href="/dashboard/calls/{html.escape(quote(cid, safe=""))}" class="intel-call-link">{html.escape(cid)}</a>'
+                for cid in cl["call_ids"]
+            )
+            intel_rows.append(
+                f'<div class="linked-intel-row">'
+                f'<span class="intel-tag {"upi" if cl["kind"] == "upi" else "acc"}">{k_label}: {ident_esc}</span> '
+                f'<span class="linked-count">Shared across {cl["call_count"]} calls:</span> {links_html}'
+                f'</div>'
+            )
+        intel_banner_html = f"""
+        <div class="intel-summary-card">
+            <div class="card-header">
+                <strong>🔗 Scam Intelligence · Linked UPI IDs &amp; Bank Accounts ({len(linked_clusters)})</strong>
+                <a href="/dashboard/intelligence" class="btn-detail">Open Scam Intelligence View →</a>
+            </div>
+            {"".join(intel_rows)}
+        </div>
+        """
+    else:
+        intel_banner_html = """
+        <div class="intel-summary-card">
+            <div class="card-header">
+                <strong>🔗 Scam Intelligence · Cross-Call UPI &amp; Account Linker</strong>
+                <a href="/dashboard/intelligence" class="btn-detail">Open Scam Intelligence View →</a>
+            </div>
+            <div class="text-muted">Links calls sharing the same attacker UPI ID or bank account across incidents.</div>
+        </div>
+        """
+
 
     total_pages = max(1, (total_calls + limit - 1) // limit) if total_calls > 0 else 1
     start_num = (page - 1) * limit + 1 if total_calls > 0 else 0
@@ -442,6 +619,24 @@ def render_dashboard(
         .empty-icon {{ font-size: 40px; margin-bottom: 12px; }}
         .empty-state h3 {{ font-size: 16px; margin-bottom: 8px; color: #e2e8f0; }}
         .empty-state p {{ font-size: 13px; color: #94a3b8; }}
+        .intel-summary-card {{
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-left: 4px solid #38bdf8;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }}
+        .linked-intel-row {{
+            font-size: 13px;
+            margin-top: 8px;
+            color: #cbd5e1;
+        }}
+        .linked-count {{ color: #fca5a5; font-weight: 600; margin-left: 6px; }}
+        .intel-call-link {{ color: #38bdf8; text-decoration: none; font-family: monospace; font-size: 12px; }}
+        .nav-links {{ margin-top: 10px; display: flex; gap: 12px; }}
+        .nav-links a {{ color: #38bdf8; text-decoration: none; font-size: 13px; font-weight: 600; }}
+
 
         @media (max-width: 360px) {{
             body {{ padding: 10px; }}
@@ -456,11 +651,17 @@ def render_dashboard(
         <header>
             <h1>🛡️ GuardianLine Shield</h1>
             <div class="subtitle">Calls handled by GuardianLine for your family</div>
+            <div class="nav-links">
+                <a href="/dashboard">Calls Overview</a>
+                <a href="/dashboard/intelligence">🔗 Scam Intelligence (Shared UPI / Accounts)</a>
+            </div>
         </header>
         <main>
+            {intel_banner_html}
             {cards_html}
             {pagination_html}
         </main>
+
     </div>
 </body>
 </html>
@@ -517,6 +718,92 @@ def render_call_detail(
 
     transcript_content = "\n".join(turns_html) if turns_html else "<div class='text-muted'>No dialogue turns recorded.</div>"
 
+    # Build Evidence Section (Chakshu Packet + Report Suspect Packets + Review & Confirm)
+    chakshu = build_chakshu_packet(record)
+    suspect_packets = build_report_suspect_packets(record)
+    chakshu_dict = chakshu.model_dump() if hasattr(chakshu, "model_dump") else chakshu.dict()
+    chakshu_json_escaped = html.escape(json.dumps(chakshu_dict, indent=2, ensure_ascii=False))
+    chakshu_summary_escaped = html.escape(chakshu.evidence_summary)
+    chakshu_category_escaped = html.escape(chakshu.category)
+    ev_hash_escaped = html.escape(chakshu.evidence_hash_sha256)
+
+    ev_status = str(record.get("evidence_status") or "draft")
+    confirmed_at = html.escape(str(record.get("confirmed_at") or ""))
+    safe_call_path = html.escape(quote(call_id, safe=""))
+    escaped_auth = html.escape(auth)
+
+    if ev_status == "confirmed_by_family":
+        status_badge_html = (
+            f'<div class="ev-status confirmed">✅ Confirmed by Family'
+            f'{f" · {confirmed_at}" if confirmed_at else ""} (Manual portal submission only · never auto-submitted)</div>'
+        )
+    else:
+        status_badge_html = (
+            '<div class="ev-status draft">⏳ Draft · Pending Family Review &amp; Confirmation '
+            '(Nothing is auto-submitted to any portal)</div>'
+        )
+
+    suspect_cards_html_list = []
+    for idx, pkt in enumerate(suspect_packets):
+        pkt_dict = pkt.to_dict()
+        pkt_json_esc = html.escape(json.dumps(pkt_dict, indent=2, ensure_ascii=False))
+        kind_esc = html.escape(pkt.kind.upper())
+        val_norm_esc = html.escape(pkt.value_normalized)
+        val_raw_esc = html.escape(pkt.value_raw)
+        quote_line = f'<div class="pkt-meta">Quote: "{html.escape(pkt.quote)}"</div>' if pkt.quote else ""
+        elicit_line = f'<div class="pkt-meta">Tactic: {html.escape(pkt.elicitation)}</div>' if pkt.elicitation else ""
+        suspect_cards_html_list.append(
+            f"""
+            <div class="packet-item">
+                <div class="packet-row">
+                    <span class="intel-tag upi">{kind_esc}: {val_norm_esc}</span>
+                    <div class="copy-group">
+                        <button type="button" class="btn-copy" data-copy-text="{val_norm_esc}" onclick="copyBtnText(this)">Copy {kind_esc}</button>
+                        <button type="button" class="btn-copy" data-copy-target="suspect-pkt-{idx}" onclick="copyFromTarget(this)">Copy Packet</button>
+                    </div>
+                </div>
+                <div class="pkt-meta">Spoken / Raw: {val_raw_esc} · Status: {html.escape(pkt.status)}</div>
+                {quote_line}
+                {elicit_line}
+                <pre id="suspect-pkt-{idx}" class="packet-pre">{pkt_json_esc}</pre>
+            </div>
+            """
+        )
+    suspect_packets_html = (
+        "\n".join(suspect_cards_html_list)
+        if suspect_cards_html_list
+        else "<div class='text-muted'>No suspect identifiers captured in this call.</div>"
+    )
+
+    # Cross-linked calls sharing the same UPI ID or bank account (shown for overview-authorized sessions)
+    linked_calls_card_html = ""
+    if not auth:
+        all_calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+        scam_intel = build_scam_intelligence(all_calls)
+        shared_links = scam_intel["shared_by_call_id"].get(call_id, [])
+        if shared_links:
+            shared_items_html = []
+            for item in shared_links:
+                k_label = "UPI ID" if item["kind"] == "upi" else "Bank Account"
+                ident_esc = html.escape(item["identifier"])
+                peer_links = ", ".join(
+                    f'<a href="/dashboard/calls/{html.escape(quote(p["call_id"], safe=""))}" style="color: #38bdf8; font-family: monospace;">{html.escape(p["call_id"])} ({html.escape(p["caller_number"])})</a>'
+                    for p in item["peer_calls"]
+                )
+                shared_items_html.append(
+                    f'<div class="pkt-meta" style="margin-bottom: 6px; color: #e2e8f0;">'
+                    f'<strong>Shared {k_label} <code>{ident_esc}</code>:</strong> also seen in {peer_links}'
+                    f'</div>'
+                )
+            linked_calls_card_html = f"""
+            <div class="card" id="linked-scam-intelligence">
+                <h2>🔗 Scam Intelligence · Linked Calls Sharing Same UPI / Account</h2>
+                {"".join(shared_items_html)}
+                <div style="margin-top: 8px;"><a href="/dashboard/intelligence" style="color: #38bdf8; font-size: 13px;">View full Scam Intelligence graph →</a></div>
+            </div>
+            """
+
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -533,10 +820,11 @@ def render_call_detail(
             max-width: 100%;
             overflow-x: hidden;
         }}
-        .container {{ max-width: 600px; margin: 0 auto; }}
+        .container {{ max-width: 640px; margin: 0 auto; }}
         .back-link {{ display: inline-block; color: #38bdf8; text-decoration: none; margin-bottom: 16px; font-size: 14px; }}
         .card {{ background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px; }}
         h2 {{ font-size: 18px; margin-bottom: 12px; color: #e2e8f0; }}
+        h3 {{ font-size: 15px; margin-top: 14px; margin-bottom: 8px; color: #38bdf8; }}
         .badge {{ font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }}
         .badge-scam {{ background: #7f1d1d; color: #fca5a5; }}
         .badge-genuine {{ background: #14532d; color: #86efac; }}
@@ -563,7 +851,86 @@ def render_call_detail(
             font-weight: 600;
             font-size: 14px;
         }}
+        .btn-portal {{
+            display: inline-block;
+            background: #0f766e;
+            color: #f0fdfa;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }}
+        .btn-confirm {{
+            background: #16a34a;
+            color: #ffffff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }}
+        .btn-copy {{
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }}
+        .copy-group {{ display: flex; gap: 6px; flex-wrap: wrap; }}
+        .packet-item {{
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }}
+        .packet-row {{ display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }}
+        .pkt-meta {{ font-size: 12px; color: #94a3b8; margin-bottom: 4px; }}
+        .packet-pre {{
+            font-family: monospace;
+            font-size: 11px;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background: #1e293b;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 6px;
+        }}
+        .ev-status {{ padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }}
+        .ev-status.draft {{ background: #422006; color: #fde68a; border: 1px solid #854d0e; }}
+        .ev-status.confirmed {{ background: #052e16; color: #86efac; border: 1px solid #166534; }}
+        .confirm-form {{ margin-top: 12px; margin-bottom: 12px; padding: 12px; background: #0f172a; border-radius: 8px; border: 1px solid #334155; }}
     </style>
+    <script>
+        function copyFromTarget(btn) {{
+            var targetId = btn.getAttribute("data-copy-target");
+            var el = document.getElementById(targetId);
+            if (!el) return;
+            var text = el.innerText || el.textContent;
+            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                navigator.clipboard.writeText(text);
+            }}
+            var orig = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(function() {{ btn.innerText = orig; }}, 1500);
+        }}
+        function copyBtnText(btn) {{
+            var text = btn.getAttribute("data-copy-text") || "";
+            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                navigator.clipboard.writeText(text);
+            }}
+            var orig = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(function() {{ btn.innerText = orig; }}, 1500);
+        }}
+    </script>
 </head>
 <body>
     <div class="container">
@@ -573,10 +940,41 @@ def render_call_detail(
             <div class="caller">{caller}</div>
             <div class="summary">{summary}</div>
             <div class="intel-box">{intel_html}</div>
-            <a href="/dashboard/report/{html.escape(quote(call_id, safe=''))}{html.escape(auth)}" class="btn-dossier" target="_blank">Download draft 1930 report</a>
+            <a href="/dashboard/report/{safe_call_path}{escaped_auth}" class="btn-dossier" target="_blank">Download draft 1930 report</a>
         </div>
+        <div class="card" id="evidence-section">
+            <h2>Evidence &amp; Citizen Reporting Packets</h2>
+            {status_badge_html}
+            <form method="post" action="/dashboard/calls/{safe_call_path}/confirm{escaped_auth}" class="confirm-form">
+                <p class="pkt-meta" style="margin-bottom: 8px;">
+                    Step 1: Review captured details with your parent. Step 2: Confirm below. Step 3: Copy a packet and file manually on Chakshu or cybercrime.gov.in.
+                </p>
+                <button type="submit" class="btn-confirm">Review and Confirm Evidence</button>
+            </form>
+            <div style="margin-bottom: 12px;">
+                <a href="https://sancharsaathi.gov.in/sfc/" class="btn-portal" target="_blank" rel="noopener noreferrer">Report on Chakshu (sancharsaathi.gov.in) ↗</a>
+                <a href="https://cybercrime.gov.in" class="btn-portal" target="_blank" rel="noopener noreferrer">National Cybercrime Portal (cybercrime.gov.in) ↗</a>
+            </div>
+            <h3>1. DoT Sanchar Saathi (Chakshu) Packet</h3>
+            <div class="packet-item">
+                <div class="packet-row">
+                    <strong>Category: {chakshu_category_escaped}</strong>
+                    <div class="copy-group">
+                        <button type="button" class="btn-copy" data-copy-target="chakshu-summary" onclick="copyFromTarget(this)">Copy Chakshu Summary</button>
+                        <button type="button" class="btn-copy" data-copy-target="chakshu-json" onclick="copyFromTarget(this)">Copy Chakshu Packet</button>
+                    </div>
+                </div>
+                <div class="pkt-meta">Integrity SHA-256: <code>{ev_hash_escaped}</code></div>
+                <pre id="chakshu-summary" class="packet-pre">{chakshu_summary_escaped}</pre>
+                <pre id="chakshu-json" class="packet-pre">{chakshu_json_escaped}</pre>
+            </div>
+            <h3>2. Report Suspect Packets ({len(suspect_packets)})</h3>
+            {suspect_packets_html}
+        </div>
+        {linked_calls_card_html}
         <div class="card">
             <h2>Call Transcript ({duration:.0f}s)</h2>
+
             {transcript_content}
         </div>
     </div>
@@ -586,7 +984,179 @@ def render_call_detail(
     return HTMLResponse(content=html_content)
 
 
+
+@router.post("/dashboard/calls/{call_id}/confirm")
+def confirm_call_evidence_ui(
+    request: Request,
+    call_id: str,
+    auth: str = Depends(verify_call_access),
+    store: BaseCallStore = Depends(get_dashboard_store),
+):
+    record = store.confirm_call(call_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Call record '{call_id}' not found",
+        )
+    accept = (request.headers.get("accept") or "").lower()
+    if "application/json" in accept and "text/html" not in accept:
+        return {
+            "call_id": call_id,
+            "evidence_status": record.get("evidence_status", "confirmed_by_family"),
+            "confirmed_at": record.get("confirmed_at"),
+            "auto_submitted": False,
+            "portal_submission": "manual_only",
+        }
+    safe_path = quote(call_id, safe="")
+    return RedirectResponse(
+        url=f"/dashboard/calls/{safe_path}{auth}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.get("/dashboard/api/intelligence", response_model=Dict[str, Any])
+def get_scam_intelligence_api(
+    auth_token: str = Depends(verify_overview_auth),
+    store: BaseCallStore = Depends(get_dashboard_store),
+):
+    calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+    return build_scam_intelligence(calls)
+
+
+@router.get("/dashboard/intelligence", response_class=HTMLResponse)
+@router.get("/gui/intelligence", response_class=HTMLResponse)
+def render_scam_intelligence_view(
+    request: Request,
+    auth_token: str = Depends(verify_overview_auth),
+    token: Optional[str] = Query(None),
+    store: BaseCallStore = Depends(get_dashboard_store),
+):
+    if token:
+        return _session_redirect(request, auth_token)
+
+    calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+    intel_report = build_scam_intelligence(calls)
+    clusters = intel_report["clusters"]
+
+    if not clusters:
+        clusters_html = """
+        <div class="card">
+            <div class="text-muted">No UPI IDs or bank accounts extracted yet.</div>
+        </div>
+        """
+    else:
+        cluster_cards = []
+        for cl in clusters:
+            kind_label = "UPI ID" if cl["kind"] == "upi" else "Bank Account"
+            ident_esc = html.escape(cl["identifier"])
+            badge = (
+                f'<span class="badge badge-scam">🔗 LINKED ACROSS {cl["call_count"]} CALLS</span>'
+                if cl["linked_across_calls"]
+                else '<span class="badge badge-unsure">1 CALL</span>'
+            )
+            call_rows = []
+            for c_item in cl["calls"]:
+                cid_esc = html.escape(c_item["call_id"])
+                cid_path = html.escape(quote(c_item["call_id"], safe=""))
+                cnum_esc = html.escape(c_item["caller_number"])
+                csum_esc = html.escape(c_item["summary"] or "No summary")
+                call_rows.append(
+                    f'<div class="call-row">'
+                    f'<a href="/dashboard/calls/{cid_path}" class="call-link">{cid_esc}</a> · '
+                    f'<strong>{cnum_esc}</strong> · <span class="summary-inline">{csum_esc}</span>'
+                    f'</div>'
+                )
+            cluster_cards.append(
+                f"""
+                <div class="card">
+                    <div class="cluster-header">
+                        <div>
+                            <span class="intel-tag {"upi" if cl["kind"] == "upi" else "acc"}">{kind_label}: {ident_esc}</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            {badge}
+                            <button type="button" class="btn-copy" data-copy-text="{ident_esc}" onclick="copyBtnText(this)">Copy {kind_label}</button>
+                        </div>
+                    </div>
+                    <div class="call-list">
+                        {"".join(call_rows)}
+                    </div>
+                </div>
+                """
+            )
+        clusters_html = "\n".join(cluster_cards)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scam Intelligence · GuardianLine</title>
+    <style>
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px;
+        }}
+        .container {{ max-width: 640px; margin: 0 auto; }}
+        .back-link {{ display: inline-block; color: #38bdf8; text-decoration: none; margin-bottom: 16px; font-size: 14px; }}
+        header {{ margin-bottom: 20px; border-bottom: 1px solid #1e293b; padding-bottom: 14px; }}
+        h1 {{ font-size: 20px; color: #38bdf8; }}
+        .subtitle {{ font-size: 13px; color: #94a3b8; margin-top: 4px; }}
+        .card {{ background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 14px; border: 1px solid #334155; }}
+        .cluster-header {{ display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }}
+        .intel-tag {{ font-size: 13px; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-weight: 700; }}
+        .intel-tag.upi {{ background: #312e81; color: #c7d2fe; }}
+        .intel-tag.acc {{ background: #064e3b; color: #a7f3d0; }}
+        .badge {{ font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }}
+        .badge-scam {{ background: #7f1d1d; color: #fca5a5; }}
+        .badge-unsure {{ background: #374151; color: #d1d5db; }}
+        .btn-copy {{
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }}
+        .call-row {{ padding: 8px 0; border-top: 1px solid #334155; font-size: 13px; color: #e2e8f0; }}
+        .call-link {{ color: #38bdf8; font-family: monospace; text-decoration: none; font-weight: 600; }}
+        .summary-inline {{ color: #94a3b8; }}
+        .text-muted {{ color: #64748b; font-size: 13px; }}
+    </style>
+    <script>
+        function copyBtnText(btn) {{
+            var text = btn.getAttribute("data-copy-text") || "";
+            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                navigator.clipboard.writeText(text);
+            }}
+            var orig = btn.innerText;
+            btn.innerText = "Copied!";
+            setTimeout(function() {{ btn.innerText = orig; }}, 1500);
+        }}
+    </script>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← Back to Overview</a>
+        <header>
+            <h1>🔗 Scam Intelligence View</h1>
+            <div class="subtitle">Cross-call correlation linking scam calls that share the same UPI ID or bank account</div>
+        </header>
+        {clusters_html}
+    </div>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html_content)
+
+
 @router.get("/dashboard/api/calls", response_model=List[Dict[str, Any]])
+
+
 def list_calls_api(
     auth_token: str = Depends(verify_overview_auth),
     verdict: Optional[str] = Query(None, pattern="^(scam|genuine|unsure)$", description="Filter: scam, genuine, unsure"),

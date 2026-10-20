@@ -20,6 +20,9 @@ def test_carrier_results_schema_structure():
     assert "template_version" in data
     assert "gate_1_decision" in data
     assert data["gate_1_decision"]["status"] in ["PENDING_FIELD_TESTS", "GO", "NO_GO"]
+    assert data["gate_1_decision"]["demo_mode"] == "basic_mode_only"
+    assert data["gate_1_decision"]["app_mode_in_demo"] is False
+    assert data.get("undo_forwarding_code") == "##002#"
 
     carriers = ["jio", "airtel", "vi"]
     for c in carriers:
@@ -27,6 +30,7 @@ def test_carrier_results_schema_structure():
         carrier_info = data["carriers"][c]
         assert "carrier_name" in carrier_info
         tests = carrier_info["tests"]
+        assert tests["test_1_manual_decline"]["status"] == "NOT_VERIFIED"
 
         for t_name in [
             "test_1_manual_decline",
@@ -39,7 +43,8 @@ def test_carrier_results_schema_structure():
             assert "required_attempts" in t_obj
             assert "attempts" in t_obj
             assert isinstance(t_obj["attempts"], list)
-            assert t_obj["status"] in ["NOT_RUN", "IN_PROGRESS", "PASS", "FAIL"]
+            assert t_obj["status"] in ["NOT_VERIFIED", "NOT_RUN", "IN_PROGRESS", "PASS", "FAIL"]
+
             # If attempts logged, ensure count matches length
             if t_obj["attempts"]:
                 for attempt in t_obj["attempts"]:

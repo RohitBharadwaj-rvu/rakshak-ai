@@ -1,47 +1,26 @@
-# GuardianLine App Mode Setup Guide (Android Call Screening)
+# GuardianLine app mode setup guide (Android CallScreeningService)
 
-**Intended Users:** Android smartphone users (Android 10 / API 29 or higher).  
-**Mechanism:** Native `CallScreeningService` + Conditional Busy Forwarding (`**67*`).  
-**Time to Complete:** $< 3$ minutes.
+> [!IMPORTANT]
+> **Demo cut notice:** App Mode is cut from the live demo per Gate 1 rules. The demo runs **Basic Mode only** (`docs/setup/basic_mode_guide.md`). The Android screening service (`BOLNA_GATEWAY_NUMBER` configured in `android/gradle.properties` and `android/app/build.gradle.kts`) is verified via emulator and unit test suites.
 
----
-
-## How App Mode Operates
-
-1. Inbound calls are evaluated silently on the elder's device before the ringer sounds:
-   - **Saved Contacts:** Handset rings immediately.
-   - **Emergency Services (112, 100, 108, 1930):** Handset rings immediately.
-   - **Unknown Numbers:** The app disallows and rejects the call in sub-second time.
-2. The carrier detects the call as rejected/busy and triggers conditional busy forward (`**67*`) to the GuardianLine voice assistant.
-3. *Design Target:* The voice receptionist aims to connect within 2 seconds of call redirection.
-
-> [!NOTE]
-> **Important Scope Note:**  
-> App Mode configures forward on busy (`**67*`). If a call from a saved contact is ignored or unanswered, it will ring out or go to normal carrier voicemail unless unanswered forwarding (`**61*`) is also configured.
+**Intended users:** Android smartphone users (Android 10 / API 29 or higher).  
+**Mechanism:** Native `CallScreeningService` + conditional busy forwarding (`**67*`).
 
 ---
 
-## Step-by-Step Installation
+## How app mode works (emulator and unit test scope)
 
-### Step 1: Install GuardianLine APK
-Install `GuardianLine.apk` onto the senior's phone.
-
-### Step 2: Grant Call Screening Role
-1. Open the **GuardianLine** app.
-2. Tap **1. Enable Screening Protection**.
-3. In the system prompt, choose **Set as default** Caller ID & spam app.
-4. Ensure Contact Access permission is granted so family members ring normally.
-
-### Step 3: Activate Carrier Busy Forwarding
-1. Tap **2. Activate Carrier Forwarding (**67*)**.
-2. The phone dialer opens with `**67*<gateway_number>#` pre-filled.
-3. Press **Call** to activate.
-4. Verify using `*#67#`.
+1. Inbound calls are evaluated by `GuardianCallScreeningService` (`CallScreeningLogic`):
+   - **Saved contacts:** Allowed to ring (`ALLOW` / `SAVED_CONTACT`).
+   - **Emergency numbers (`112`, `1930`, `100`, `108`):** Allowed to ring (`ALLOW` / `EMERGENCY_WHITELIST`).
+   - **Bolna gateway number (`BuildConfig.BOLNA_GATEWAY_NUMBER`):** Allowed to ring (`ALLOW` / `BOLNA_AGENT_PROXY`).
+   - **Unknown numbers:** Rejected (`SCREEN` / `UNKNOWN_CALLER_SCREEN`, `disallowCall=true, rejectCall=true`).
 
 ---
 
-## Deactivation / Undo
+## Undo forwarding
 
-1. In the Phone dialer, dial `##67#` (press Call) to cancel busy forwarding.
-2. In Android Settings $\rightarrow$ Default Apps $\rightarrow$ Caller ID & Spam $\rightarrow$ reset to Phone.
-3. Uninstall GuardianLine if no longer desired.
+To clear all carrier call forwarding rules on any handset after testing, dial:
+```text
+##002#
+```

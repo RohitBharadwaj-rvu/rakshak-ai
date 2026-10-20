@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.classifier_router import router as classifier_router
+from app.core.lane_c import install as install_lane_c
 from app.voice.store import init_db
 from app.voice.tools import router as tools_router
 from app.voice.webhook import router as webhook_router
@@ -56,6 +57,7 @@ app.add_middleware(
 app.include_router(classifier_router)
 app.include_router(tools_router)
 app.include_router(webhook_router)
+install_lane_c(app)
 
 
 @app.exception_handler(RequestValidationError)

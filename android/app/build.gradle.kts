@@ -16,9 +16,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Configurable gateway number via Gradle property or default placeholder
-        val gatewayNumber = project.findProperty("GUARDIAN_GATEWAY_NUMBER") as String? ?: ""
+        // Configurable gateway number via BOLNA_GATEWAY_NUMBER / GUARDIAN_GATEWAY_NUMBER property or env
+        val gatewayNumber = (project.findProperty("BOLNA_GATEWAY_NUMBER") as String?)
+            ?.takeIf { it.isNotBlank() }
+            ?: (project.findProperty("GUARDIAN_GATEWAY_NUMBER") as String?)?.takeIf { it.isNotBlank() }
+            ?: System.getenv("BOLNA_GATEWAY_NUMBER")?.takeIf { it.isNotBlank() }
+            ?: "+919988776655"
         buildConfigField("String", "BOLNA_GATEWAY_NUMBER", "\"$gatewayNumber\"")
+
     }
 
     buildFeatures {

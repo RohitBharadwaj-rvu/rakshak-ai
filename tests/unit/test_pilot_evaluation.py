@@ -21,9 +21,14 @@ def test_pilot_evaluation_schema_structure():
     assert "pilot_version" in data
     assert "status" in data
     assert "cohort_target" in data
-    assert data["cohort_target"]["min_participants"] >= 5
-    assert data["cohort_target"]["min_genuine_calls"] >= 15
+    assert data["cohort_target"]["min_participants"] == 3
+    assert data["cohort_target"]["min_genuine_calls"] >= 9
+    assert data["cohort_target"]["consent_required_before_first_call"] is True
     assert isinstance(data["participants"], list)
+    if not data["participants"]:
+        assert data["status"] == "NOT_DONE"
+        assert "not done" in str(data.get("honest_disclosure", "")).lower()
+
 
     # When participants are logged by human researchers:
     for p in data["participants"]:

@@ -1,0 +1,10 @@
+{
+  "status": "NOT_VERIFIED",
+  "channel": "whatsapp",
+  "twilio_whatsapp_from": "+14155238886",
+  "twilio_message_sid": null,
+  "screenshot_path": null,
+  "render_configured": false,
+  "sandbox_join_verified": false,
+  "honest_disclosure": "Live Twilio WhatsApp sandbox delivery has not been executed yet because TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and FAMILY_ALERT_TO are not configured in this environment. Run ./scripts/setup_lane_c_wizard.sh or python scripts/send_test_alert.py after joining the Twilio WhatsApp sandbox on each test phone to deliver a real alert and record the Twilio message SID (SM...) and screenshot path."
+}

@@ -1,6 +1,8 @@
 package ai.guardianline.screening
 
+import ai.guardianline.BuildConfig
 import com.google.gson.Gson
+
 import com.google.gson.reflect.TypeToken
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -136,4 +138,36 @@ class CallScreeningLogicTest {
         val bolnaDecision = screeningLogic.evaluateCall(bolnaProxyNumber, emptyContacts)
         assertEquals(ScreeningAction.ALLOW, bolnaDecision.action)
     }
+
+    @Test
+    fun testBuildConfigGatewayNumberIsConfiguredAndScreeningContractHolds() {
+        assertTrue(BuildConfig.BOLNA_GATEWAY_NUMBER.isNotBlank(), "BuildConfig.BOLNA_GATEWAY_NUMBER must not be blank")
+        val serviceLogic = CallScreeningLogic(BuildConfig.BOLNA_GATEWAY_NUMBER)
+        val contacts = setOf("+919876543210")
+
+        // 1. Saved contacts ring
+        val contactDecision = serviceLogic.evaluateCall("+91 98765 43210", contacts)
+        assertEquals(ScreeningAction.ALLOW, contactDecision.action)
+        assertEquals("SAVED_CONTACT", contactDecision.reason)
+
+        // 2. Unknown numbers are rejected / screened
+        val unknownDecision = serviceLogic.evaluateCall("+91 91111 22222", contacts)
+        assertEquals(ScreeningAction.SCREEN, unknownDecision.action)
+        assertEquals("UNKNOWN_CALLER_SCREEN", unknownDecision.reason)
+
+        // 3. 112 and 1930 ring
+        val decision112 = serviceLogic.evaluateCall("112", contacts)
+        assertEquals(ScreeningAction.ALLOW, decision112.action)
+        assertEquals("EMERGENCY_WHITELIST", decision112.reason)
+
+        val decision1930 = serviceLogic.evaluateCall("1930", contacts)
+        assertEquals(ScreeningAction.ALLOW, decision1930.action)
+        assertEquals("EMERGENCY_WHITELIST", decision1930.reason)
+
+        // 4. Configured BuildConfig.BOLNA_GATEWAY_NUMBER rings
+        val gatewayDecision = serviceLogic.evaluateCall(BuildConfig.BOLNA_GATEWAY_NUMBER, contacts)
+        assertEquals(ScreeningAction.ALLOW, gatewayDecision.action)
+        assertEquals("BOLNA_AGENT_PROXY", gatewayDecision.reason)
+    }
 }
+

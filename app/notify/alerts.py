@@ -197,15 +197,26 @@ def format_alert_message(
     verdict = str(call_record.get("verdict", "unsure")).lower()
     intel = call_record.get("extracted_intel", {}) or {}
 
-    # Build report link using expiring HMAC signature rather than raw master token
+    # Build report link and evidence review link using expiring HMAC signature rather than raw master token
     secret = signing_secret or dashboard_token
     safe_id = quote(call_id, safe="")
+    trimmed_base = base_report_url.rstrip("/")
+    if trimmed_base.endswith("/dashboard/report"):
+        review_base = trimmed_base[: -len("/report")] + "/calls"
+    elif trimmed_base.endswith("/report"):
+        review_base = trimmed_base[: -len("/report")] + "/dashboard/calls"
+    else:
+        review_base = trimmed_base + "/calls"
+
     if secret:
         exp = int(time.time()) + 7 * 86400  # 7-day validity for family inspection
         sig = generate_report_signature(call_id, exp, secret)
-        report_link = f"{base_report_url.rstrip('/')}/{safe_id}?exp={exp}&sig={sig}"
+        report_link = f"{trimmed_base}/{safe_id}?exp={exp}&sig={sig}"
+        review_link = f"{review_base}/{safe_id}?exp={exp}&sig={sig}"
     else:
-        report_link = f"{base_report_url.rstrip('/')}/{safe_id}"
+        report_link = f"{trimmed_base}/{safe_id}"
+        review_link = f"{review_base}/{safe_id}"
+
 
     upi_list: List[str] = intel.get("upi_ids", [])
     acc_list: List[str] = intel.get("bank_accounts", [])
@@ -257,9 +268,11 @@ def format_alert_message(
                 f"*Summary:* {summary}\n\n"
                 f"*Captured Attacker Intel:*\n"
                 f"{intel_block}\n\n"
+                f"🔍 *Review & Confirm Evidence (Chakshu / Suspect Packets):* {review_link}\n"
                 f"📄 *Draft 1930 report (check before filing):* {report_link}\n"
                 f"Call ID: `{call_id}`"
             )
+
 
     elif verdict == "genuine":
         message_body = call_record.get("message") or call_record.get("summary") or "Caller left a message."

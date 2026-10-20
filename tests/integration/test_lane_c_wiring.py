@@ -251,3 +251,61 @@ class TestSmsKeepsReportLink:
                                    signing_secret="s")
         assert count_septets(msg) <= 306
         assert "sig=" in self._link(msg)
+
+
+class TestProductionMainAppMountsLaneC:
+    def test_main_app_has_dashboard_routes_mounted_by_default(self, monkeypatch):
+        from app.main import app as main_app
+
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TOKEN)
+        monkeypatch.setenv("GUARDIAN_EVENTS_TOKEN", "events_secret")
+        client = TestClient(main_app)
+        assert client.get("/dashboard", headers={"Authorization": f"Bearer {TOKEN}"}).status_code == 200
+        assert client.post("/events/call_finalized", json={"event": "noop"}).status_code == 401
+
+
+    def test_main_app_mounts_dashboard_and_fires_alert_on_webhook(self, tmp_path, monkeypatch, mock_dispatcher):
+        from app.main import app as main_app
+        from app.voice import store as lane_b_store
+
+        db_file = str(tmp_path / "prod_main.db")
+        lane_b_store.set_db_path(db_file)
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TOKEN)
+        monkeypatch.setenv("ALLOW_UNAUTHENTICATED_WEBHOOK", "true")
+        listener.set_default_dispatcher(mock_dispatcher)
+
+        try:
+            lane_c.install(main_app)
+            client = TestClient(main_app)
+
+            dash_resp = client.get("/dashboard", headers={"Authorization": f"Bearer {TOKEN}"})
+            assert dash_resp.status_code == 200
+
+            webhook_payload = {
+                "call_id": "call_prod_main_001",
+                "agent_id": "agent-1",
+                "status": "completed",
+                "conversation_duration": 95.0,
+                "caller_number": "+919876543210",
+                "transcript": [
+                    {"role": "user", "content": "CBI officer speaking, transfer 50000 to verma.cbi@okaxis immediately"}
+                ],
+            }
+            wh_resp = client.post("/webhook", json=webhook_payload)
+            assert wh_resp.status_code == 200
+
+            from app.notify.alerts import _THREAD_POOL
+            _THREAD_POOL.submit(lambda: None).result(timeout=5)
+            for _ in range(50):
+                if mock_dispatcher.twilio_client.messages.create.called:
+                    break
+                time.sleep(0.05)
+            assert mock_dispatcher.twilio_client.messages.create.called
+
+            calls_resp = client.get("/dashboard/api/calls", headers={"Authorization": f"Bearer {TOKEN}"})
+            assert calls_resp.status_code == 200
+            call_ids = [c["call_id"] for c in calls_resp.json()]
+            assert "call_prod_main_001" in call_ids
+        finally:
+            lane_b_store.set_db_path(None)
+

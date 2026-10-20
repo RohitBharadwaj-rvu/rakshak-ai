@@ -60,14 +60,24 @@ class LaneBCallStore(gui.BaseCallStore):
     def get_call(self, call_id: str) -> Optional[Dict[str, Any]]:
         return self._store.get_call_record(call_id)
 
+    def confirm_call(self, call_id: str) -> Optional[Dict[str, Any]]:
+        if hasattr(self._store, "confirm_call_evidence"):
+            return self._store.confirm_call_evidence(call_id)
+        return super().confirm_call(call_id)
+
     def clear(self) -> None:
         raise NotImplementedError("CallRecords are owned by Lane B")
 
 
+
 def install(app: FastAPI) -> bool:
     """Mount Lane C routes and connect them to Lane B. Returns True if Lane B was found."""
-    app.include_router(gui.router)
-    app.include_router(listener.router)
+    if not getattr(app.state, "_lane_c_installed", False):
+        app.include_router(gui.router)
+        app.include_router(listener.router)
+        app.state._lane_c_installed = True
+
+
 
     try:
         from app.voice import store as lane_b_store
