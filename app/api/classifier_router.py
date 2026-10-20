@@ -39,9 +39,9 @@ class ClassifyCallerRequest(BaseModel):
     caller_number: Optional[str] = Field(default="", description="Inbound caller phone number")
     caller_summary: Optional[str] = Field(
         default=None,
-        description="1-3 sentence summary from Bolna screening mode describing who the caller claims to be and what they want",
+        description="Agent-written summary of caller statements (Bolna mid-call parameter)",
     )
-    conversation: List[ConversationTurn] = Field(
+    conversation: Optional[List[ConversationTurn]] = Field(
         default_factory=list, description="Ordered transcript turns of the conversation so far"
     )
     language: str = Field(default="hi", description="Primary conversation language (hi, en, hinglish)")
@@ -58,6 +58,8 @@ class ClassifyCallerResponse(BaseModel):
     latency_ms: float = Field(description="Processing latency in milliseconds")
     method: str = Field(description="Resolution engine: heuristic, groq, gemini, or offline_rules")
     pillars_detected: List[str] = Field(default_factory=list, description="Active scam pillars detected")
+    action: str = Field(default="screen", description="Recommended action: honeypot, screen, transfer, or verify")
+    route_to_honeypot: bool = Field(default=False, description="Whether agent should engage honeypot mode immediately")
 
 
 @router.post("/classify_caller", response_model=ClassifyCallerResponse)
@@ -69,10 +71,11 @@ async def api_classify_caller(req: ClassifyCallerRequest):
     """
     effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
     try:
-        conv_dicts = [
-            {"role": t.role, "content": t.get_text()}
-            for t in req.conversation
-        ]
+        conv_dicts = (
+            [{"role": t.role, "content": t.get_text()} for t in req.conversation]
+            if req.conversation
+            else []
+        )
         if req.caller_summary and req.caller_summary.strip():
             conv_dicts.append({"role": "caller", "content": req.caller_summary.strip()})
         budget = min(float(req.max_latency_budget_s or 1.4), HARD_TIMEOUT_SECONDS)
@@ -82,6 +85,7 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             call_id=effective_id,
             caller_number=req.caller_number or "",
             conversation=conv_dicts,
+            caller_summary=req.caller_summary,
             language=req.language,
             max_latency_budget_s=budget,
         )
@@ -103,6 +107,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=round(result.latency_ms, 2),
             method=result.method,
             pillars_detected=result.pillars_detected,
+            action=result.action,
+            route_to_honeypot=result.route_to_honeypot,
         )
     except FuturesTimeoutError:
         return ClassifyCallerResponse(
@@ -113,6 +119,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=1500.0,
             method="timeout_fallback",
             pillars_detected=[],
+            action="screen",
+            route_to_honeypot=False,
         )
     except Exception as e:
         return ClassifyCallerResponse(
@@ -123,6 +131,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             latency_ms=0.0,
             method="error_fallback",
             pillars_detected=[],
+            action="screen",
+            route_to_honeypot=False,
         )
 
 

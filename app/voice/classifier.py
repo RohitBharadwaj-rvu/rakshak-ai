@@ -18,6 +18,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+logger = logging.getLogger("guardianline.classifier")
+
 
 @dataclass
 class CallerClassificationResult:
@@ -28,6 +30,8 @@ class CallerClassificationResult:
     latency_ms: float
     method: str  # "heuristic" | "groq" | "gemini" | "offline_rules" | "timeout_fallback"
     pillars_detected: List[str] = field(default_factory=list)
+    action: str = "screen"  # "honeypot" | "screen" | "transfer" | "verify"
+    route_to_honeypot: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -38,6 +42,8 @@ class CallerClassificationResult:
             "latency_ms": round(self.latency_ms, 2),
             "method": self.method,
             "pillars_detected": self.pillars_detected,
+            "action": self.action,
+            "route_to_honeypot": self.route_to_honeypot,
         }
 
 
@@ -58,6 +64,7 @@ AUTHORITY_PATTERNS = [
     r"customs|kustoms|kastam|कस्टम्स|कस्टम\s*अधिकारी",
     r"(tawan|taiwan|illegal|contraband|drugs|overseas)\s*(parcel|shipment)|(ताइवान|अवैध|ड्रग्स)\s*पार्सल",
     r"(account|acnt|a/c|card|sim|pension).*(block|suspend|freeze|सीज|बंद|सस्पेंड)",
+    r"(sbi|hdfc|icici|pnb|axis|bob|canara|bank|स्टेट\s*बैंक|केनरा\s*बैंक|एचडीएफसी|आईसीआईसीआई|पंजाब\s*नेशनल\s*बैंक).*(kyc|account|debit|card|a/c|खाता|पेंशन).*(expire|block|suspend|deactivat|बंद|सीज|सस्पेंड)",
     r"kyc\b|केवाईसी|biometric\s*kyc",
     r"electricity.*(cut|disconnect|bill)|power.*(cut|disconnect)|बिजली.*(काट|कट|काटी|बिल|मीटर)",
     r"trai.*(deactivat|block)|sim.*(block|disconnect)|दूरसंचार|telecom",
@@ -75,6 +82,9 @@ URGENCY_PATTERNS = [
     r"don'?t\s*tell|किसी\s*को\s*(मत|नहीं)\s*बताना|गोपनीय",
     r"urgent|urgnt|arjent|इमरजेंसी|आपातकालीन",
     r"before\s*\d+|आज\s*शाम|आज\s*रात|रात\s*\d+\s*बजे",
+    r"today\b|aaj\s*hi|aaj\s*ke\s*aaj|आज\s*ही|आज\s*के\s*आज|aaj\b",
+    r"block(ed)?\s*today|expire[sd]?\s*today|ब्लॉक\s*हो\s*जाएगा|बंद\s*हो\s*जाएगा|हो\s*गया\s*है",
+    r"within\s*24\s*(hour|hr|ghante)s?|24\s*घंटे",
     r"पेनल्टी|penalty|सीज़|freeze|सीज",
     r"standby|हथकड़ी|गैर-जमानती|non-bailable",
 ]
@@ -83,7 +93,7 @@ URGENCY_PATTERNS = [
 VALUE_DEMAND_PATTERNS = [
     r"upi|यूपीआई",
     r"paytm|gpay|phonepe",
-    r"transfer.*money|send.*money|पैसे.*(भेज|ट्रांसफर)|भुगतान",
+    r"payment|pay\s+\d+|transfer.*(money|amount|rupees|funds)|send.*money|पैसे.*(भेज|ट्रांसफर)|भुगतान",
     r"safe.*account|escrow.*account|सरकारी.*खाता",
     r"o\s*t\s*p|otp|odp|one\s*time\s*password|ओटीपी|ओ\s*टी\s*पी|गुप्त\s*कोड|\b\d+\s*अंक.*(ओटीपी|कोड)",
     r"any\s*desk|anidask|anydesk|eneedask|teamviewer|quicksupport|remote\s*access|स्क्रीन\s*शेयर|ऐप\s*डाउनलोड|play\s*store.*install",
@@ -95,11 +105,49 @@ VALUE_DEMAND_PATTERNS = [
     r"चालान.*भर",
 ]
 
+# ==============================================================================
+# GENERAL INVARIANT SAFETY RULE:
+# If an unverified caller asks for money, an OTP, Aadhaar, card details,
+# or a remote-access app, the verdict can NEVER be "genuine".
+# ==============================================================================
+CRITICAL_VALUE_OR_CREDENTIAL_PATTERNS = [
+    # 1. Money, Payments, Transfers, Fines, Advances, Clearance Fees
+    r"upi|यूपीआई|paytm|gpay|phonepe",
+    r"payment|pay\s+\d+|transfer.*(money|amount|rupees|funds)|send.*money|पैसे.*(भेज|ट्रांसफर)|भुगतान",
+    r"safe.*account|escrow.*account|सरकारी.*खाता",
+    r"(penalty|fine|challan|chalan|chalaan|जुर्माना|चालान|शुल्क|advance|क्लियरेंस|clearance.*charge)",
+    r"verification.*(fee|amount|deposit)|security.*deposit|सिक्योरिटी.*डिपॉजिट|(refundable|verification).*(deposit|amount)",
+    r"(qr\s*code|क्यूआर.*कोड).*(scan|pay|transfer|पैसे)",
+    # 2. OTP, ODP, Verification Codes, PINs
+    r"o\s*t\s*p|otp|odp|one\s*time\s*password|ओटीपी|ओ\s*टी\s*पी|गुप्त\s*कोड|\b\d+\s*अंक.*(ओटीपी|कोड)",
+    r"delivery\s*(otp|code)|डिलीवरी\s*(ओटीपी|कोड)|verification\s*code|pin\s*code|\bपिन\b|secret\s*code",
+    # 3. Aadhaar / National ID / UID
+    r"aadhaar|adhar|aaddhar|आधार\s*(नंबर|कार्ड)?|आधर|\b12\s*(अंक|digit)",
+    # 4. Card Details / CVV / Expiry / Bank Account Credentials
+    r"(card|debit\s*card|credit\s*card).*(number|no|cvv|expiry|details)|cvv|कार्ड\s*(नंबर|विवरण)",
+    r"(account|acnt|a/c)\s*number.*(send|transfer|deposit)|खाता.*संख्या|खाता\s*नंबर",
+    # 5. Remote-Access Software / Screen Sharing
+    r"any\s*desk|anidask|anydesk|eneedask|teamviewer|quicksupport|remote\s*access|स्क्रीन\s*शेयर|ऐप\s*डाउनलोड|play\s*store.*install",
+]
+
+
+def has_critical_value_or_credential_demand(text: str) -> bool:
+    """
+    Evaluates whether an unverified caller asks for money, an OTP, Aadhaar,
+    card details, or a remote-access app.
+    Under the General Invariant Safety Rule, callers asking for any of these
+    can NEVER receive a 'genuine' verdict.
+    """
+    text_lower = text.lower()
+    return any(bool(re.search(p, text_lower)) for p in CRITICAL_VALUE_OR_CREDENTIAL_PATTERNS)
+
+
 # Genuine Service Whitelist Patterns (Zero demand for OTP, transfer, or threats)
 GENUINE_INDICATORS = [
-    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|amazon\s*parcel|security\s*guard|flipkart|फ्लिपकार्ट",
+    r"parcel\s*deliver|delivery.*gate|अमेज़न.*पार्सल|कोरियर|कूरियर|courier|amazon\s*parcel|security\s*guard|flipkart|फ्लिपकार्ट",
+    r"delivery\s*(boy|agent|partner|person)|parcel\s*(delivery|deliver|aaya|hai)|blue\s*dart|bluedart|dtdc|delhivery|e-?kart|ekart|shadowfax",
     r"appointment.*doctor|clinic|क्लिनिक|डॉक्टर.*अपॉइंटमेंट|dr\.\s*sundaram|eye\s*checkup|medanta|मेदांता|fortis",
-    r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह",
+    r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह|security\s*guard|main\s*gate",
     r"routine.*check|अपॉइंटमेंट.*कन्फर्म",
     r"society.*maintenance|फ्लैट\s*नंबर",
     r"होम\s*लोन|ब्याज\s*दर|नज़दीकी\s*शाखा|home\s*loan|interest\s*rate",
@@ -117,63 +165,10 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
     """Fast regex scanner over conversation text (<5ms)."""
     text_lower = transcript_text.lower()
 
-    # Contextual whitelist checks for hard genuine cases:
-    # 1. Delivery OTP in courier context with zero authority threats
-    is_delivery_context = bool(re.search(r"delivery|parcel|पार्सल|अमेज़न|फ्लिपकार्ट|courier|कोरियर|gate", text_lower))
-    is_delivery_otp = bool(re.search(r"delivery\s*(otp|code)|डिलीवरी\s*(ओटीपी|कोड)", text_lower))
-    if is_delivery_context and is_delivery_otp and not re.search(r"cbi|police|arrest|block|अरेस्ट|वारंट", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate ecommerce delivery OTP request with zero coercion",
-            "pillars": [],
-        }
-
-    # 2. In-person hospital Aadhaar photocopy with zero legal threat
-    is_hospital_context = bool(re.search(r"hospital|अस्पताल|admission\s*desk|आयुष्मान|prescription", text_lower))
-    is_in_person_aadhaar = bool(re.search(r"photocopy|साथ\s*लाइ|bring.*copy|show.*document", text_lower))
-    if is_hospital_context and is_in_person_aadhaar and not re.search(r"cbi|police|arrest|block|वारंट", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate hospital in-person Aadhaar document reminder",
-            "pillars": [],
-        }
-
-    # 3. Local police routine tenant verification with in-person station visit and zero money demand
-    is_tenant_police = bool(re.search(r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station", text_lower))
-    if is_tenant_police and not re.search(r"digital\s*arrest|पैसे|transfer|fine|challan", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate local police routine tenant verification visit request",
-            "pillars": [],
-        }
-
-    # 4. Bank automated fraud security alert with zero PIN/transfer demand
-    is_bank_advisory = bool(re.search(r"never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा", text_lower))
-    if is_bank_advisory and not re.search(r"safe\s*account|transfer\s*money|पैसे\s*(भेज|ट्रांसफर)", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate bank automated fraud prevention advisory",
-            "pillars": [],
-        }
-
-    # 5. Relative roadside assistance / family update call
-    is_relative_call = bool(re.search(r"भतीजा|चाचाजी|मामा|nephew|uncle.*amit|पंक्चर|टायर|battery\s*died", text_lower))
-    if is_relative_call and not re.search(r"cbi|police|arrest|warrant", text_lower) and not re.search(r"safe\s*account|upi|otp", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate family relative call with zero official coercion",
-            "pillars": [],
-        }
-
     # Check 3 pillars
     has_authority = any(re.search(p, text_lower) for p in AUTHORITY_PATTERNS)
     has_urgency = any(re.search(p, text_lower) for p in URGENCY_PATTERNS)
-    has_value_demand = any(re.search(p, text_lower) for p in VALUE_DEMAND_PATTERNS)
+    has_value_demand = has_critical_value_or_credential_demand(transcript_text)
 
     pillars = []
     if has_authority:
@@ -183,23 +178,62 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
     if has_value_demand:
         pillars.append("value_demand")
 
-    # If all 3 pillars or (authority + value demand) are present -> Unambiguous Scam
-    if len(pillars) >= 2 and (has_authority or has_value_demand):
-        confidence = 0.96 if len(pillars) == 3 else 0.88
+    # Routine administrative non-financial tenant verification or hospital check
+    is_routine_administrative = bool(
+        re.search(r"tenant\s*verification|किराएदार.*सत्यापन|किराएदारों\s*का\s*सत्यापन", text_lower)
+    )
+    if is_routine_administrative and not has_value_demand and not has_urgency:
+        has_authority = False
+        if "authority_coercion" in pillars:
+            pillars.remove("authority_coercion")
+
+    # Bank security advisories that explicitly warn NEVER to share OTP/password
+    is_security_advisory = bool(
+        re.search(r"सतर्कता\s*शाखा|security\s*advisory|risk\s*prevention|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|never\s*ask.*(otp|pin|password)|ओटीपी.*न\s*दें", text_lower)
+    )
+    if is_security_advisory and not has_value_demand:
+        has_authority = False
+        has_urgency = False
+        pillars = []
+    # =========================================================================
+    # GENERAL INVARIANT SAFETY RULE:
+    # If an unverified caller asks for money, an OTP, Aadhaar, card details,
+    # or a remote-access app, the verdict can NEVER be "genuine".
+    # Whitelists are strictly forbidden from overriding this rule.
+    # =========================================================================
+    if has_value_demand:
+        if has_authority or has_urgency or len(pillars) >= 2:
+            confidence = 0.96 if len(pillars) == 3 else 0.88
+            return {
+                "verdict": "scam",
+                "confidence": confidence,
+                "reason": f"General Safety Rule: Value/credential demand combined with coercive pressure ({', '.join(pillars)})",
+                "pillars": pillars,
+            }
+        return {
+            "verdict": "unsure",
+            "confidence": 0.60,
+            "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+            "pillars": ["value_demand"],
+        }
+
+    # If authority or urgency coercion without value demand has multiple pillars
+    if len(pillars) >= 2:
         return {
             "verdict": "scam",
-            "confidence": confidence,
+            "confidence": 0.88,
             "reason": f"Heuristic trigger on scam behavioral pillars: {', '.join(pillars)}",
             "pillars": pillars,
         }
 
-    # If strictly genuine service indicators with NO scam pillars
+    # Strictly genuine service indicators (delivery arrival, doctor appointment, guard check)
+    # ONLY permitted when ZERO scam pillars exist
     has_genuine = any(re.search(p, text_lower) for p in GENUINE_INDICATORS)
     if has_genuine and len(pillars) == 0:
         return {
             "verdict": "genuine",
             "confidence": 0.12,  # Low scam confidence -> genuine
-            "reason": "Legitimate service interaction (delivery/appointment/guard) with zero scam indicators",
+            "reason": "Legitimate service interaction with zero scam indicators or value demands",
             "pillars": [],
         }
 
@@ -209,13 +243,6 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
 # ==============================================================================
 # LLM CLASSIFIER PROMPT & INFERENCE
 # ==============================================================================
-
-logger = logging.getLogger(__name__)
-
-GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
-GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"
-# Groq's Cloudflare front rejects the default "Python-urllib/x.y" agent with 403 (error 1010).
-HTTP_USER_AGENT = "guardianline-backend/1.0"
 
 CLASSIFIER_SYSTEM_PROMPT = """You are the GuardianLine Real-Time Scam Classifier for incoming phone calls in India.
 Your mission is to protect elderly citizens from telecom fraud, including known scams (Digital Arrest, KYC block, electricity cutoff, courier narcotics, lottery, fake job tasks) AND novel, emergent scam pretexts.
@@ -251,40 +278,24 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
-def _log_llm_failure(provider: str, exc: Exception) -> None:
-    """Log why a Stage 2 call failed so fallbacks are never silent (never logs keys or URLs)."""
-    if isinstance(exc, urllib.error.HTTPError):
-        try:
-            body = exc.read()[:200].decode("utf-8", "replace")
-        except Exception:
-            body = ""
-        logger.warning("Stage 2 %s failed: HTTP %s %s", provider, exc.code, body)
-    else:
-        logger.warning("Stage 2 %s failed: %s", provider, type(exc).__name__)
-
-
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Groq (default openai/gpt-oss-20b, override via GROQ_MODEL) via HTTP API with strict timeout."""
+    """Calls Groq API with strict timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": HTTP_USER_AGENT,
+        "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
     }
-    model = os.getenv("GROQ_MODEL", "").strip() or GROQ_DEFAULT_MODEL
     payload = {
-        "model": model,
+        "model": os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
         "messages": [
             {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
             {"role": "user", "content": f"Analyze this call transcript:\n\n{conversation_text}"},
         ],
         "temperature": 0.0,
         "response_format": {"type": "json_object"},
-        # gpt-oss models spend completion tokens on reasoning; keep it short so the JSON fits the budget.
-        "max_tokens": 600,
+        "max_tokens": 150,
     }
-    if model.startswith("openai/gpt-oss"):
-        payload["reasoning_effort"] = "low"
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -292,15 +303,17 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
             content = res_body["choices"][0]["message"]["content"]
             return json.loads(content)
     except Exception as exc:
-        _log_llm_failure("groq", exc)
+        logger.warning("[Classifier] Groq Stage 2 call failed: %s", exc)
         return None
 
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
-    """Calls Google Gemini (default gemini-3.5-flash-lite, override via GEMINI_MODEL) via AI Studio REST API."""
-    model = os.getenv("GEMINI_MODEL", "").strip() or GEMINI_DEFAULT_MODEL
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    headers = {"Content-Type": "application/json", "User-Agent": HTTP_USER_AGENT, "x-goog-api-key": api_key}
+    """Calls Google Gemini Flash via AI Studio REST API."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={api_key}"
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
+    }
     payload = {
         "system_instruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},
         "contents": [{"parts": [{"text": f"Analyze this call transcript:\n\n{conversation_text}"}]}],
@@ -313,7 +326,7 @@ def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> 
             content = res_body["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(content)
     except Exception as exc:
-        _log_llm_failure("gemini", exc)
+        logger.warning("[Classifier] Gemini Stage 2 call failed: %s", exc)
         return None
 
 
@@ -324,64 +337,58 @@ def _classify_offline_rules(conversation_text: str) -> Dict[str, Any]:
     """
     text_lower = conversation_text.lower()
 
-    # Contextual exceptions
-    is_delivery_context = bool(re.search(r"delivery|parcel|पार्सल|अमेज़न|फ्लिपकार्ट|courier|कोरियर|gate", text_lower))
-    is_delivery_otp = bool(re.search(r"delivery\s*(otp|code)|डिलीवरी\s*(ओटीपी|कोड)", text_lower))
-    if is_delivery_context and is_delivery_otp and not re.search(r"cbi|police|arrest|block|अरेस्ट|वारंट", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate ecommerce delivery OTP request with zero coercion",
-            "pillars_detected": [],
-        }
-
-    is_hospital_context = bool(re.search(r"hospital|अस्पताल|admission\s*desk|आयुष्मान|prescription", text_lower))
-    is_in_person_aadhaar = bool(re.search(r"photocopy|साथ\s*लाइ|bring.*copy|show.*document", text_lower))
-    if is_hospital_context and is_in_person_aadhaar and not re.search(r"cbi|police|arrest|block|वारंट", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate hospital in-person Aadhaar document reminder",
-            "pillars_detected": [],
-        }
-
-    is_tenant_police = bool(re.search(r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station", text_lower))
-    if is_tenant_police and not re.search(r"digital\s*arrest|पैसे|transfer|fine|challan", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate local police routine tenant verification visit request",
-            "pillars_detected": [],
-        }
-
-    is_bank_advisory = bool(re.search(r"never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा", text_lower))
-    if is_bank_advisory and not re.search(r"safe\s*account|transfer\s*money|पैसे\s*(भेज|ट्रांसफर)", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate bank automated fraud prevention advisory",
-            "pillars_detected": [],
-        }
-
-    is_relative_call = bool(re.search(r"भतीजा|चाचाजी|मामा|nephew|uncle.*amit|पंक्चर|टायर|battery\s*died", text_lower))
-    if is_relative_call and not re.search(r"cbi|police|arrest|warrant", text_lower) and not re.search(r"safe\s*account|upi|otp", text_lower):
-        return {
-            "verdict": "genuine",
-            "confidence": 0.08,
-            "reason": "Legitimate family relative call with zero official coercion",
-            "pillars_detected": [],
-        }
+    has_authority = any(re.search(p, text_lower) for p in AUTHORITY_PATTERNS)
+    has_urgency = any(re.search(p, text_lower) for p in URGENCY_PATTERNS)
+    has_value_demand = has_critical_value_or_credential_demand(conversation_text)
 
     pillars = []
-
-    if any(re.search(p, text_lower) for p in AUTHORITY_PATTERNS):
+    if has_authority:
         pillars.append("authority_coercion")
-    if any(re.search(p, text_lower) for p in URGENCY_PATTERNS):
+    if has_urgency:
         pillars.append("artificial_urgency")
-    if any(re.search(p, text_lower) for p in VALUE_DEMAND_PATTERNS):
+    if has_value_demand:
         pillars.append("value_demand")
 
-    if len(pillars) >= 2 or ("value_demand" in pillars and "authority_coercion" in pillars):
+    # Routine administrative non-financial tenant verification or hospital check
+    is_routine_administrative = bool(
+        re.search(r"tenant\s*verification|किराएदार.*सत्यापन|किराएदारों\s*का\s*सत्यापन", text_lower)
+    )
+    if is_routine_administrative and not has_value_demand and not has_urgency:
+        has_authority = False
+        if "authority_coercion" in pillars:
+            pillars.remove("authority_coercion")
+
+    # Bank security advisories that explicitly warn NEVER to share OTP/password
+    is_security_advisory = bool(
+        re.search(r"सतर्कता\s*शाखा|security\s*advisory|risk\s*prevention|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|never\s*ask.*(otp|pin|password)|ओटीपी.*न\s*दें", text_lower)
+    )
+    if is_security_advisory and not has_value_demand:
+        has_authority = False
+        has_urgency = False
+        pillars = []
+    # =========================================================================
+    # GENERAL INVARIANT SAFETY RULE:
+    # If an unverified caller asks for money, an OTP, Aadhaar, card details,
+    # or a remote-access app, the verdict can NEVER be "genuine".
+    # Whitelists are strictly forbidden from overriding this rule.
+    # =========================================================================
+    if has_value_demand:
+        if has_authority or has_urgency or len(pillars) >= 2:
+            return {
+                "verdict": "scam",
+                "confidence": 0.92,
+                "reason": f"General Safety Rule: Value/credential demand with coercive pressure ({', '.join(pillars)})",
+                "pillars_detected": pillars,
+            }
+        return {
+            "verdict": "unsure",
+            "confidence": 0.60,
+            "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+            "pillars_detected": ["value_demand"],
+        }
+
+
+    if len(pillars) >= 2:
         return {
             "verdict": "scam",
             "confidence": 0.92,
@@ -420,32 +427,61 @@ def _classify_offline_rules(conversation_text: str) -> Dict[str, Any]:
 
 def classify_caller(
     call_id: str,
-    caller_number: str,
-    conversation: List[Dict[str, str]],
+    caller_number: str = "",
+    conversation: Optional[List[Dict[str, str]]] = None,
+    caller_summary: Optional[str] = None,
     language: str = "hi",
     max_latency_budget_s: float = 1.4,
 ) -> CallerClassificationResult:
     """
     Classify caller intent into 'scam', 'genuine', or 'unsure'.
     
+    Supports both:
+      - conversation: List of turn dicts (e.g. from local harness/eval benchmarks)
+      - caller_summary: Single text summary generated by Bolna agent
+    
     Guarantees response under max_latency_budget_s. Returns 'unsure' on any timeout
     so the receptionist agent keeps speaking rather than pausing or erroring.
     """
     start_time = time.time()
-    formatted_text = _format_conversation_for_prompt(conversation)
+    
+    # Assemble evaluation text from conversation transcript and/or agent summary
+    text_parts = []
+    if caller_summary and caller_summary.strip():
+        text_parts.append(f"CALLER_SUMMARY: {caller_summary.strip()}")
+    if conversation:
+        text_parts.append(_format_conversation_for_prompt(conversation))
+        
+    formatted_text = "\n\n".join(text_parts) if text_parts else ""
 
     # Stage 1: Ultra-fast regex / heuristic screening (<5ms)
     heuristic_res = _evaluate_heuristics(formatted_text)
     if heuristic_res is not None:
         latency_ms = (time.time() - start_time) * 1000
+        h_verdict = heuristic_res["verdict"]
+        if h_verdict == "scam":
+            h_action = "honeypot"
+            h_route = True
+        elif h_verdict == "unsure" and has_critical_value_or_credential_demand(formatted_text):
+            h_action = "honeypot"
+            h_route = True
+        elif h_verdict == "genuine":
+            h_action = "transfer"
+            h_route = False
+        else:
+            h_action = "screen"
+            h_route = False
+
         return CallerClassificationResult(
             call_id=call_id,
-            verdict=heuristic_res["verdict"],
+            verdict=h_verdict,
             confidence=heuristic_res["confidence"],
             reason=heuristic_res["reason"],
             latency_ms=latency_ms,
             method="heuristic",
             pillars_detected=heuristic_res.get("pillars", []),
+            action=h_action,
+            route_to_honeypot=h_route,
         )
 
     # Stage 2: Fast LLM (Groq -> Gemini Flash -> Offline Semantic Rules)
@@ -469,6 +505,11 @@ def classify_caller(
             method_used = "gemini"
 
     if not llm_res:
+        logger.warning(
+            "[Classifier Warning] Stage 2 LLM inference unavailable or failed for call_id=%s; "
+            "falling back to offline semantic heuristic rules. Check LLM API keys, quotas, or network latency.",
+            call_id,
+        )
         llm_res = _classify_offline_rules(formatted_text)
         method_used = "offline_rules"
 
@@ -484,14 +525,51 @@ def classify_caller(
     else:
         verdict = "unsure"
 
+    # =========================================================================
+    # UNIVERSAL INVARIANT SAFETY GUARDRAIL:
+    # If an unverified caller asks for money, an OTP, Aadhaar, card details,
+    # or a remote-access app, the verdict can NEVER be "genuine".
+    # =========================================================================
+    if has_critical_value_or_credential_demand(formatted_text) and verdict == "genuine":
+        has_coercion = any(
+            re.search(p, formatted_text.lower())
+            for p in AUTHORITY_PATTERNS + URGENCY_PATTERNS
+        )
+        verdict = "scam" if has_coercion else "unsure"
+        raw_conf = max(raw_conf, 0.88 if verdict == "scam" else 0.60)
+        reason = f"General Safety Rule: Value/credential demand prevents genuine verdict (coerced to {verdict})"
+    else:
+        reason = llm_res.get("reason", "Classified based on conversational analysis")
+    # =========================================================================
+    # ROUTING RULE (LANE B):
+    # If verdict is scam -> honeypot
+    # If verdict is unsure and caller asked for money/OTP/Aadhaar/remote-app -> honeypot
+    # If verdict is genuine -> transfer
+    # Otherwise -> screen (continue questioning)
+    # =========================================================================
+    if verdict == "scam":
+        action = "honeypot"
+        route_to_honeypot = True
+    elif verdict == "unsure" and has_critical_value_or_credential_demand(formatted_text):
+        action = "honeypot"
+        route_to_honeypot = True
+    elif verdict == "genuine":
+        action = "transfer"
+        route_to_honeypot = False
+    else:
+        action = "screen"
+        route_to_honeypot = False
+
     latency_ms = (time.time() - start_time) * 1000
 
     return CallerClassificationResult(
         call_id=call_id,
         verdict=verdict,
         confidence=raw_conf,
-        reason=llm_res.get("reason", "Classified based on conversational analysis"),
+        reason=reason,
         latency_ms=latency_ms,
         method=method_used,
         pillars_detected=llm_res.get("pillars_detected", []),
+        action=action,
+        route_to_honeypot=route_to_honeypot,
     )
