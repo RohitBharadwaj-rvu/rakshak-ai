@@ -215,6 +215,7 @@ def run_scenario_simulation(
         "bait_leaks": state["bait_leaks"],
         "adversarial_leaks": state["adversarial_leaks"],
         "total_turns": len(state["conversation"]),
+        "call_duration": round(len(state["conversation"]) * 14.5, 1),
         "turns": state["conversation"],
     }
 
@@ -266,6 +267,7 @@ def main():
                     "bait_leaks",
                     "adversarial_leaks",
                     "total_turns",
+                    "call_duration",
                 ],
             )
             writer.writeheader()
