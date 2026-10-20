@@ -222,19 +222,19 @@ def main():
     if has_groq and "median_p50_ms" in results["groq"]:
         print(f"3. Stage 2 (Groq Llama 3.3 70B):  Median: {results['groq']['median_p50_ms']}ms | p95: {results['groq']['p95_ms']}ms (LIVE MEASURED)")
     else:
-        print(f"3. Stage 2 (Groq Llama 3.3 70B):  Median: ~480ms | p95: ~920ms (Empirical; currently falling back to offline_rules)")
+        print(f"3. Stage 2 (Groq Llama 3.3 70B):  [UNMEASURED] Live key unavailable/failed; currently falling back to offline_rules")
 
     if has_gemini and "median_p50_ms" in results["gemini"]:
         print(f"4. Stage 2 (Gemini 2.0 Flash):   Median: {results['gemini']['median_p50_ms']}ms | p95: {results['gemini']['p95_ms']}ms (LIVE MEASURED)")
     else:
-        print(f"4. Stage 2 (Gemini 2.0 Flash):   Median: ~680ms | p95: ~1350ms (Empirical; currently falling back to offline_rules)")
+        print(f"4. Stage 2 (Gemini 2.0 Flash):   [UNMEASURED] Live key unavailable/failed; currently falling back to offline_rules")
 
     print("=" * 75)
     print("CRITICAL FINDING FOR LANE A:")
-    print("  Stage 2 LLM inference takes 450ms - 950ms on Groq, and 650ms - 1350ms on Gemini.")
+    print("  Stage 2 LLM inference is subject to variable network latency.")
     print("  RECOMMENDATION: Lane A receptionist agent MUST fill the conversational space")
     print("  with an acknowledgment token (e.g. 'Ek second rukiye...', 'Ji, sun raha hoon')")
-    print("  rather than going silent for 500ms - 1.2s while awaiting classify_caller.")
+    print("  rather than going silent while awaiting classify_caller.")
     print("=" * 75 + "\n")
 
     report_path = os.path.join(ROOT_DIR, "evaluation", "stage2_latency_profile.json")

@@ -69,9 +69,9 @@ Empirically measured round-trip latencies:
 | Classification Tier | Median (p50) | 95th Percentile (p95) | Notes |
 | :--- | :--- | :--- | :--- |
 | **Stage 1 (Regex / Heuristic)** | **~0.8 ms** | **~2.5 ms** | Sub-millisecond instant return |
-| **Stage 2 (Groq Llama 3.3 70B)** | **~480 ms** | **~920 ms** | Live LLM inference over network |
-| **Stage 2 (Gemini 2.0 Flash)** | **~680 ms** | **~1350 ms** | REST API fallback tier |
-| **Stage 2 (Offline Backup)** | **~0.3 ms** | **~2.6 ms** | Triggers when API keys are unset |
+| **Stage 2 (Groq Llama 3.3 70B)** | **Pending live profiling** | **Pending live profiling** | Network LLM tier; falls back to offline rules if unavailable |
+| **Stage 2 (Gemini 2.0 Flash)** | **Pending live profiling** | **Pending live profiling** | REST API fallback tier; falls back to offline rules if unavailable |
+| **Stage 2 (Offline Backup)** | **~0.3 ms** | **~2.6 ms** | Triggers when API keys are unset or network fails |
 
 > [!IMPORTANT]
 > **Actionable for Lane A Agent Prompts:**  

@@ -11,9 +11,9 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
 **GuardianLine** serves as an intelligent shield:
 1. **Screening & Reception**: Unrecognized callers are screened in natural languages (**Hindi**, **English**, and Hinglish, with regional expansion) using an ultra-low-latency voice AI receptionist.
 2. **Real-time Scam Classification**: A fast mid-call language model classifies the caller intent within the first few conversational exchanges.
-3. **Deceptive Honeypot Engagement**: When a scam is identified, the agent transitions seamlessly to an elderly persona (e.g., *Ramesh*, *Sunita*, *Prof. Iyer*) that plays along, acts technologically hesitant (*"Beta, wait let me find my reading glasses..."*), and keeps scammers occupied.
+3. **Deceptive Honeypot Engagement**: When a scam is identified, the agent transitions seamlessly to an elderly persona (*Ramesh*) that plays along, acts technologically hesitant (*"Beta, wait let me find my reading glasses..."*), and keeps scammers occupied.
 4. **Actionable Intel Extraction**: The agent coaxes scammers to repeat payment addresses (UPI handles), bank account numbers, IFSC codes, and callback numbers.
-5. **Immediate Family Protection & Reporting**: Family members receive immediate WhatsApp/SMS notifications with captured attacker intel and an auto-generated pre-filled **1930 Cybercrime Reporting Portal** dossier.
+5. **Immediate Family Protection & Reporting**: Family members receive immediate WhatsApp/SMS notifications with captured attacker intel and pre-formatted **Chakshu (DoT Sanchar Saathi)** and **Report Suspect** packets (with National Cybercrime 1930 escalation when money has been lost).
 
 ---
 
@@ -38,7 +38,7 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
                                   ├── Spoken-Number Normalizer
                                   ├── Rule & LLM Extraction Cleanup
                                   ├── Family Alerts (WhatsApp / SMS)
-                                  └── Pre-filled 1930 Cybercrime Dossier
+                                  └── Chakshu and Report Suspect Packets
 ```
 
 ---
@@ -63,7 +63,7 @@ India faces an unprecedented wave of sophisticated phone fraud—notably **Digit
 Development is organized into four decoupled parallel tracks:
 
 - **Lane A (`prompts/`, `bolna/`)**: Voice Agent, Prompts, Hindi/English Personas, Scammer Simulation.
-- **Lane B (`app/`, `contracts/`)**: Backend Server, Tool Endpoints, Normalizer, Intel Extraction, 1930 Reports.
+- **Lane B (`app/`, `contracts/`)**: Backend Server, Tool Endpoints, Normalizer, Intel Extraction, Chakshu and Report Suspect Packets.
 - **Lane C (`android/`, `docs/setup/`)**: Android Screening Service, USSD Guides, Family Alerts & Dashboard.
 - **Lane D (`evaluation/`, `tests/`, `scripts/`)**: Detection Classifier, Scenarios, Harness, Metrics & Benchmarks.
 
@@ -107,7 +107,7 @@ python scripts/mock_bolna.py --fixture tests/fixtures/01_scam_digital_arrest.jso
 - **Sprint 0 (Oct 16–17)**: Unblock, API contracts freeze, fixture creation & mock harness.
 - **Sprint 1 (Oct 18–20)**: Walking skeleton end-to-end call test & **Gate 1** (App vs Basic mode).
 - **Sprint 2 (Oct 21–23)**: Hindi & English personas (with Hinglish), normalizer v2, post-call cleanup.
-- **Sprint 3 (Oct 24–26)**: 1930 complaint generation, edge case hardening, **Feature Freeze**.
+- **Sprint 3 (Oct 24–26)**: Chakshu and Report Suspect packet generation, edge case hardening, **Feature Freeze**.
 - **Sprint 4 (Oct 27–29)**: Measured benchmarks, elderly user pilot, and demo recording.
 - **Submission (Oct 30)**: Final claims audit & release.
 
@@ -119,6 +119,7 @@ For full sprint details and test suite designs, see [guardianline-sprint-plan.md
 
 > [!IMPORTANT]
 > **Benchmarking Integrity Notice:**
-> - Development metrics currently reporting 100% scam detection and 0% false positives are measured strictly against an internal **synthetic dev set, not held-out**.
-> - An independently authored, blind **held-out evaluation set** (`evaluation/held_out_scenarios.json`) is being authored by collaborators without access to internal classification rules to establish unbiased real-world detection metrics.
+> - Development metrics are measured strictly against an internal synthetic dev set.
+> - An independently authored, blind 20-scenario **held-out evaluation set** (`evaluation/held_out_scenarios.json`) authored by Rohit Bharadwaj outside Lane D recorded 50.0% direct detection with 0.0% false negatives (remaining scams held in defensive verify/unsure).
+> - Whitelist loophole probe (`scripts/probe_whitelist_holes.py`) verifies 0/6 exploits bypass the classifier after enforcing the general invariant safety rule (`f48301c`).
 > - Telephony audio checks (`scripts/run_audio_format_check.py`) verify 8kHz mono PCM telephony codec formatting and manifest turn logic; they do not benchmark acoustic speech-to-text (STT) accuracy.

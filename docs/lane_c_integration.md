@@ -42,4 +42,4 @@ The event Lane C consumes is B's flat `contracts/call_finalized.schema.json`. Th
 
 1. **Transfer caller ID.** When Bolna transfers a genuine caller to the parent's phone, which number does the handset see: the Bolna gateway number (whitelisted by the app) or the original caller's number (screened as unknown)?
 2. **Transfer loop.** If the parent declines or is busy, the carrier's `**67*` busy-forward sends that leg straight back to Bolna. The agent needs a rule for an inbound call that is its own transfer coming back: take a message, never transfer again.
-3. **Naming.** The Android app, dashboard and alerts say **GuardianLine**. Lane A's agent config and prompt say **Rakshak**. Pick one before the demo.
+3. **Naming.** The Android app, dashboard and alerts say **GuardianLine**. Lane A's agent config and prompt previously used a legacy codename. Confirmed single project name is **GuardianLine** before the demo.

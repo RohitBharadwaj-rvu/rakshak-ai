@@ -111,7 +111,7 @@ By Saturday night, every outside dependency is requested and every interface is 
 
 **D · Detection and eval**
 
-- [ ] Remove the AMD Slingshot references from the README.
+- [x] Remove legacy hackathon references from the README.
 - [ ] Write 6 fixture webhook payloads in Bolna's documented shape: a digital-arrest scam with a UPI ID, a KYC scam with a spoken account number, a courier and a clinic (both genuine), a scam with garbled digits, and an early hang-up.
 - [ ] Write `scripts/mock_bolna.py` to replay the fixtures into the webhook, so B and C can build before real calls exist.
 - [ ] Draft the digital-arrest scenario in `evaluation/scenarios/`.
@@ -309,7 +309,7 @@ This sprint produces measured numbers and a recorded demo, with no new features.
 We submit on the evening of Oct 30, 2026. Saturday is for emergencies only.
 
 - [ ] Whole team: check the submission text, README and video against the Sprint 3 claims list. Every number must come from Sprint 4.
-- [ ] D: confirm the README no longer names AMD Slingshot before the repo link is shared.
+- [x] D: confirm the README no longer names legacy hackathons before the repo link is shared.
 - [ ] D: submit Friday evening and post the confirmation in the team chat.
 
 **Exit test (every line passes before we press submit):**
