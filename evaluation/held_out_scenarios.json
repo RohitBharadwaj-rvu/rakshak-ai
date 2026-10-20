@@ -1,0 +1,428 @@
+{
+  "version": "1.0-agent-written",
+  "author": "GuardianLine Agent (agent-written, not blind)",
+  "created_at": "2026-10-20T10:30:00Z",
+  "description": "Agent-written evaluation scenarios (not blind; authored during development session) for internal validation.",
+  "scenarios": [
+    {
+      "id": "heldout_01_courier_stealth_otp",
+      "category": "courier",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Fake courier asking for delivery OTP to drain bank account",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Bhaiya Amazon delivery se bol raha hoon, aapka parcel lekar aaya hoon."
+        },
+        {
+          "role": "assistant",
+          "content": "Haan beta, kaun sa parcel? Maine toh kuch order nahi kiya."
+        },
+        {
+          "role": "caller",
+          "content": "Aapke bete ne bheja hoga. Agar cancel karna hai toh phone par ek 6 digit cancellation code aaya hoga, bata dijiye cancel ho jayega."
+        }
+      ]
+    },
+    {
+      "id": "heldout_02_routine_doctor_appointment",
+      "category": "medical",
+      "expected_verdict": "genuine",
+      "language": "en",
+      "context": "Routine clinic appointment confirmation with zero payment demand",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Good morning Mrs. Sharma, calling from Dr. Mehta's clinic."
+        },
+        {
+          "role": "assistant",
+          "content": "Good morning. Is my appointment confirmed for 5 PM today?"
+        },
+        {
+          "role": "caller",
+          "content": "Yes ma'am, doctor is on schedule. Please carry your previous blood test reports and reach 10 minutes early."
+        }
+      ]
+    },
+    {
+      "id": "heldout_03_fake_police_cyber_cell",
+      "category": "police",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Fake cyber crime police officer demanding instant penalty transfer under arrest threat",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Main Inspector Vikram Singh, Delhi Police Cyber Crime Cell se bol raha hoon."
+        },
+        {
+          "role": "assistant",
+          "content": "Haan sir, kya hua? Maine kya kiya?"
+        },
+        {
+          "role": "caller",
+          "content": "Aapka Aadhaar card illegal money laundering case me paya gaya hai. Turant arrest warrant jari ho raha hai. Agar bchna hai toh 25000 rupaye court security fine abhi transfer karo."
+        }
+      ]
+    },
+    {
+      "id": "heldout_04_genuine_delivery_gate",
+      "category": "courier",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Real delivery agent calling from society main gate",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Namaste sir, BlueDart courier se bol raha hoon. Gate par hoon."
+        },
+        {
+          "role": "assistant",
+          "content": "Haan bhaiya, flat 302 par le aao."
+        },
+        {
+          "role": "caller",
+          "content": "Theek hai sir, lift se upar aa raha hoon, door bell bajata hoon."
+        }
+      ]
+    },
+    {
+      "id": "heldout_05_nephew_road_accident_upi",
+      "category": "relative",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Impersonator claiming to be nephew who met with accident demanding money",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Chachaji pranam! Main Rahul bol raha hoon, emergency hai bahut badi."
+        },
+        {
+          "role": "assistant",
+          "content": "Rahul beta? Yeh naya number kiska hai? Kya hua?"
+        },
+        {
+          "role": "caller",
+          "content": "Chachaji mera phone toot gaya expressway par accident ho gaya hai. Gaadi wale ko abhi 15000 rupaye dene hain warna police case kar raha hai. Mechanic ke UPI number par turant paise bhej do please!"
+        }
+      ]
+    },
+    {
+      "id": "heldout_06_genuine_bank_advisory",
+      "category": "bank",
+      "expected_verdict": "genuine",
+      "language": "en",
+      "context": "Automated bank fraud advisory warning never to share OTP",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "This is an automated security advisory from HDFC Bank. An unusual international transaction attempt was blocked on your card ending in 4102."
+        },
+        {
+          "role": "assistant",
+          "content": "Oh, what should I do?"
+        },
+        {
+          "role": "caller",
+          "content": "Remember, bank officials never ask for your OTP, PIN, or password. If you did not authorize this, please visit your nearest branch or use the official mobile app to lock your card."
+        }
+      ]
+    },
+    {
+      "id": "heldout_07_electricity_disconnection_night",
+      "category": "utilities",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Fake electricity board officer threatening power cutoff at 9 PM",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Bijli vibhag head office se officer Sharma bol raha hoon. Aapke meter ka pichhla bill update nahi hua hai."
+        },
+        {
+          "role": "assistant",
+          "content": "Maine toh pichhle hafte hi bijli bill bhara tha."
+        },
+        {
+          "role": "caller",
+          "content": "System me pending dikha raha hai. Aaj raat 9 baje connection cut ho jayega. Turant is link par 10 rupaye pay karke update karo warna line kat jayegi."
+        }
+      ]
+    },
+    {
+      "id": "heldout_08_genuine_beat_constable_tenant",
+      "category": "police",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Real police station constable asking landlord to drop tenant form",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Namaste Sharma ji, Indiranagar thane se beat constable Ramesh bol raha hoon."
+        },
+        {
+          "role": "assistant",
+          "content": "Haan Ramesh ji, batayein, sab theek hai?"
+        },
+        {
+          "role": "caller",
+          "content": "Haan sir, aapke naye kirayedar ka verification form thane me submit karna hai. Jab bhi time mile subah 10 se 5 ke beech aakar counter par jama kar dijiye."
+        }
+      ]
+    },
+    {
+      "id": "heldout_09_bank_tech_support_anydesk",
+      "category": "bank",
+      "expected_verdict": "scam",
+      "language": "en",
+      "context": "Fake bank representative directing victim to install remote screen sharing software",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Good afternoon, I am calling from SBI card security department. Your net banking access has been suspended due to pending PAN re-KYC."
+        },
+        {
+          "role": "assistant",
+          "content": "How do I unblock it? I need to make a medicine payment."
+        },
+        {
+          "role": "caller",
+          "content": "Do not worry sir. Open Google Play Store immediately and install QuickSupport app. Then read out the 9-digit code displayed on your screen so our executive can verify your account."
+        }
+      ]
+    },
+    {
+      "id": "heldout_10_genuine_daughter_checkin",
+      "category": "relative",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Family daughter checking in on elderly parent health",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Papa pranam, kaise hain aap? Tabiyat kaisi hai?"
+        },
+        {
+          "role": "assistant",
+          "content": "Main bilkul theek hoon beta, tum kaisi ho? Bachhe theek hain?"
+        },
+        {
+          "role": "caller",
+          "content": "Haan papa sab badhiya. Subah blood pressure wali dawai le li thi na aapne? Hum log Sunday ko lunch par aa rahe hain ghar."
+        }
+      ]
+    },
+    {
+      "id": "heldout_11_hospital_icu_emergency_deposit",
+      "category": "medical",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Fake hospital doctor demanding urgent ICU advance transfer",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Emergency! Fortis hospital emergency ward se Dr. Gupta bol raha hoon. Aapki beti ka accident hua hai, behosh hai."
+        },
+        {
+          "role": "assistant",
+          "content": "Hey bhagwan! Meri Priya? Kahan hai woh? Main abhi aa raha hoon!"
+        },
+        {
+          "role": "caller",
+          "content": "Aane me waqt lagega, unka blood loss bahut jyada hai. Operation theatre shuru karne ke liye turant 30,000 rupaye ICU advance hospital ke QR code par transfer karo jaldi!"
+        }
+      ]
+    },
+    {
+      "id": "heldout_12_genuine_society_maintenance_notice",
+      "category": "society",
+      "expected_verdict": "genuine",
+      "language": "en",
+      "context": "Apartment association notice regarding water tank cleaning and AGM",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Good evening Mr. Iyer, calling from Palm Meadows Resident Welfare Association."
+        },
+        {
+          "role": "assistant",
+          "content": "Yes, good evening. Anything urgent?"
+        },
+        {
+          "role": "caller",
+          "content": "Just a reminder that society overhead water tanks will be cleaned on Thursday between 10 AM and 2 PM, so please store necessary water in advance."
+        }
+      ]
+    },
+    {
+      "id": "heldout_13_sim_card_block_trai_ekyc",
+      "category": "telecom",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Scammer posing as telecom department threatening SIM block without instant payment",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Telecom Regulatory Authority TRAI se call hai. Aapka mobile number agle 2 ghante me permanently band kiya ja raha hai."
+        },
+        {
+          "role": "assistant",
+          "content": "Kyun band hoga? Mera toh postpaid connection regular chalta hai."
+        },
+        {
+          "role": "caller",
+          "content": "Aapke number se illegal harassing SMS bheje gaye hain. Verification ke liye online biometric update fee 500 rupaye abhi GPay par bhejiye warna number deactivate hoga."
+        }
+      ]
+    },
+    {
+      "id": "heldout_14_genuine_gas_meter_reading",
+      "category": "utilities",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Routine piped natural gas physical meter reading visit",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Namaste madam, IGL piped gas se technician bol raha hoon."
+        },
+        {
+          "role": "assistant",
+          "content": "Haan ji, boliye."
+        },
+        {
+          "role": "caller",
+          "content": "Kal dopahar 2 se 4 baje aapke block me routine gas pipe leakage check aur meter reading ke liye aana tha. Ghar par koi rahega?"
+        }
+      ]
+    },
+    {
+      "id": "heldout_15_digital_arrest_customs_drugs",
+      "category": "police",
+      "expected_verdict": "scam",
+      "language": "en",
+      "context": "Customs digital arrest threat demanding fund transfer to RBI escrow",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "This is Officer Rajesh Patil from Mumbai International Airport Customs Narcotics Department."
+        },
+        {
+          "role": "assistant",
+          "content": "Yes officer, why are you calling me?"
+        },
+        {
+          "role": "caller",
+          "content": "A courier parcel sent in your name to Malaysia contains 5 passports and 150 grams of MDMA drugs. You are placed under digital arrest. Transfer your bank funds to the RBI verification safety escrow account immediately to clear your name."
+        }
+      ]
+    },
+    {
+      "id": "heldout_16_genuine_pension_life_certificate",
+      "category": "government",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Post office reminder about annual life certificate window opening",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Pranam Verma ji, head post office pension branch se bol rahe hain."
+        },
+        {
+          "role": "assistant",
+          "content": "Pranam, batayein bhaiya."
+        },
+        {
+          "role": "caller",
+          "content": "Sir agle mahine November me annual Jeevan Pramaan digital life certificate submit karne ka time shuru ho raha hai. Aap aaram se branch aakar ya postman ke madhyam se karwa lijiyega."
+        }
+      ]
+    },
+    {
+      "id": "heldout_17_lottery_kbc_processing_fee",
+      "category": "lottery",
+      "expected_verdict": "scam",
+      "language": "hi",
+      "context": "Fake lottery award demanding tax deposit before payout",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Badhai ho sir! Main KBC Mumbai head office se bol raha hoon, aapke mobile number par 25 lakh rupaye ki lottery nikli hai!"
+        },
+        {
+          "role": "assistant",
+          "content": "Maine toh koi lottery ticket nahi khareedi."
+        },
+        {
+          "role": "caller",
+          "content": "Yeh All India SIM lucky draw hai sir. Cheque dispatch karne ke liye 12,500 rupaye government processing tax abhi diye gaye account me deposit karwaiye."
+        }
+      ]
+    },
+    {
+      "id": "heldout_18_genuine_pathology_lab_report",
+      "category": "medical",
+      "expected_verdict": "genuine",
+      "language": "en",
+      "context": "Diagnostic lab confirming test reports sent to doctor",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Hello, calling from Dr. Lal PathLabs customer care regarding your routine health package."
+        },
+        {
+          "role": "assistant",
+          "content": "Hello. Are my blood test results ready?"
+        },
+        {
+          "role": "caller",
+          "content": "Yes sir, your thyroid and HbA1c reports are ready and have been emailed to your registered address and Dr. Kapoor."
+        }
+      ]
+    },
+    {
+      "id": "heldout_19_part_time_job_telegram_task",
+      "category": "job",
+      "expected_verdict": "scam",
+      "language": "en",
+      "context": "Fake part-time online job asking for security advance on Telegram",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Hi! We have a work-from-home part-time opportunity reviewing YouTube videos for Rs 3000 daily payout."
+        },
+        {
+          "role": "assistant",
+          "content": "How does this work?"
+        },
+        {
+          "role": "caller",
+          "content": "Very simple. Join our official Telegram channel and send a refundable security deposit of Rs 5000 via UPI to unlock your prepaid merchant task."
+        }
+      ]
+    },
+    {
+      "id": "heldout_20_genuine_temple_trust_prasad",
+      "category": "society",
+      "expected_verdict": "genuine",
+      "language": "hi",
+      "context": "Temple trust informing devotee about festive prasad distribution",
+      "turns": [
+        {
+          "role": "caller",
+          "content": "Jai Shri Ram Joshi ji, Hanuman Mandir trust committee se bol rahe hain."
+        },
+        {
+          "role": "assistant",
+          "content": "Jai Shri Ram Pandit ji, aadesh karein."
+        },
+        {
+          "role": "caller",
+          "content": "Navratri ke pawan avsar par sabhi bhakton ke liye prasad packet taiyar hai. Jab bhi mandir aayein, office se prasad lete jayiyega."
+        }
+      ]
+    }
+  ]
+}

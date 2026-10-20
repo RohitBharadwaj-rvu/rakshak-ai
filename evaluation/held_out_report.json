@@ -1,0 +1,423 @@
+{
+  "dataset_scope": "agent_written_evaluation_set_not_blind",
+  "author": "GuardianLine Agent (agent-written, not blind)",
+  "total_scenarios": 20,
+  "scam_scenarios": 10,
+  "genuine_scenarios": 10,
+  "scam_detection_rate_pct": 50.0,
+  "false_positive_rate_pct": 10.0,
+  "false_negative_rate_pct": 0.0,
+  "genuine_accuracy_pct": 20.0,
+  "overall_accuracy_pct": 35.0,
+  "unsure_breakdown": {
+    "scams_marked_unsure": 5,
+    "genuines_marked_unsure": 7
+  },
+  "latency_stats": {
+    "min_ms": 0.18,
+    "median_p50_ms": 2.55,
+    "p95_ms": 1478.08,
+    "max_ms": 1478.08,
+    "mean_ms": 488.0
+  },
+  "category_breakdown": {
+    "courier": {
+      "total": 2,
+      "correct": 0,
+      "scam": 1,
+      "genuine": 1
+    },
+    "medical": {
+      "total": 3,
+      "correct": 1,
+      "scam": 1,
+      "genuine": 2
+    },
+    "police": {
+      "total": 3,
+      "correct": 2,
+      "scam": 2,
+      "genuine": 1
+    },
+    "relative": {
+      "total": 2,
+      "correct": 1,
+      "scam": 1,
+      "genuine": 1
+    },
+    "bank": {
+      "total": 2,
+      "correct": 1,
+      "scam": 1,
+      "genuine": 1
+    },
+    "utilities": {
+      "total": 2,
+      "correct": 1,
+      "scam": 1,
+      "genuine": 1
+    },
+    "society": {
+      "total": 2,
+      "correct": 0,
+      "scam": 0,
+      "genuine": 2
+    },
+    "telecom": {
+      "total": 1,
+      "correct": 1,
+      "scam": 1,
+      "genuine": 0
+    },
+    "government": {
+      "total": 1,
+      "correct": 0,
+      "scam": 0,
+      "genuine": 1
+    },
+    "lottery": {
+      "total": 1,
+      "correct": 0,
+      "scam": 1,
+      "genuine": 0
+    },
+    "job": {
+      "total": 1,
+      "correct": 0,
+      "scam": 1,
+      "genuine": 0
+    }
+  },
+  "sprint_bar_verdict": {
+    "detection_rate": "FAIL",
+    "false_positive_rate": "FAIL"
+  },
+  "scenario_results": [
+    {
+      "id": "heldout_01_courier_stealth_otp",
+      "category": "courier",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1468.44,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_02_routine_doctor_appointment",
+      "category": "medical",
+      "language": "en",
+      "expected_verdict": "genuine",
+      "actual_verdict": "genuine",
+      "confidence": 0.12,
+      "latency_ms": 0.8,
+      "method": "heuristic",
+      "reason": "Legitimate service interaction with zero scam indicators or value demands",
+      "pillars_detected": [],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_03_fake_police_cyber_cell",
+      "category": "police",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.24,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
+      "pillars_detected": [
+        "authority_coercion",
+        "value_demand"
+      ],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_04_genuine_delivery_gate",
+      "category": "courier",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1457.45,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_05_nephew_road_accident_upi",
+      "category": "relative",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.26,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
+      "pillars_detected": [
+        "authority_coercion",
+        "value_demand"
+      ],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_06_genuine_bank_advisory",
+      "category": "bank",
+      "language": "en",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.6,
+      "latency_ms": 0.61,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+      "pillars_detected": [
+        "value_demand"
+      ],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_07_electricity_disconnection_night",
+      "category": "utilities",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1464.1,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_08_genuine_beat_constable_tenant",
+      "category": "police",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1466.12,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_09_bank_tech_support_anydesk",
+      "category": "bank",
+      "language": "en",
+      "expected_verdict": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.96,
+      "latency_ms": 0.36,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
+      "pillars_detected": [
+        "authority_coercion",
+        "artificial_urgency",
+        "value_demand"
+      ],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_10_genuine_daughter_checkin",
+      "category": "relative",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1093.65,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_11_hospital_icu_emergency_deposit",
+      "category": "medical",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "unsure",
+      "confidence": 0.6,
+      "latency_ms": 0.74,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+      "pillars_detected": [
+        "value_demand"
+      ],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_12_genuine_society_maintenance_notice",
+      "category": "society",
+      "language": "en",
+      "expected_verdict": "genuine",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.73,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
+      "pillars_detected": [
+        "artificial_urgency",
+        "value_demand"
+      ],
+      "is_correct": false,
+      "is_false_positive": true,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_13_sim_card_block_trai_ekyc",
+      "category": "telecom",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.66,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
+      "pillars_detected": [
+        "authority_coercion",
+        "value_demand"
+      ],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_14_genuine_gas_meter_reading",
+      "category": "utilities",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "genuine",
+      "confidence": 0.12,
+      "latency_ms": 2.55,
+      "method": "heuristic",
+      "reason": "Legitimate service interaction with zero scam indicators or value demands",
+      "pillars_detected": [],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_15_digital_arrest_customs_drugs",
+      "category": "police",
+      "language": "en",
+      "expected_verdict": "scam",
+      "actual_verdict": "scam",
+      "confidence": 0.96,
+      "latency_ms": 0.18,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
+      "pillars_detected": [
+        "authority_coercion",
+        "artificial_urgency",
+        "value_demand"
+      ],
+      "is_correct": true,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_16_genuine_pension_life_certificate",
+      "category": "government",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 1478.08,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_17_lottery_kbc_processing_fee",
+      "category": "lottery",
+      "language": "hi",
+      "expected_verdict": "scam",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 467.79,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_18_genuine_pathology_lab_report",
+      "category": "medical",
+      "language": "en",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 406.68,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_19_part_time_job_telegram_task",
+      "category": "job",
+      "language": "en",
+      "expected_verdict": "scam",
+      "actual_verdict": "unsure",
+      "confidence": 0.6,
+      "latency_ms": 0.29,
+      "method": "heuristic",
+      "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+      "pillars_detected": [
+        "value_demand"
+      ],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    },
+    {
+      "id": "heldout_20_genuine_temple_trust_prasad",
+      "category": "society",
+      "language": "hi",
+      "expected_verdict": "genuine",
+      "actual_verdict": "unsure",
+      "confidence": 0.4,
+      "latency_ms": 450.22,
+      "method": "offline_rules",
+      "reason": "Insufficient conversational context to determine caller intent",
+      "pillars_detected": [],
+      "is_correct": false,
+      "is_false_positive": false,
+      "is_false_negative": false
+    }
+  ]
+}
