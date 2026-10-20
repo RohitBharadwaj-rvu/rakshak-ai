@@ -4,7 +4,7 @@ app/voice/evidence.py - Citizen Telecom Fraud Evidence Packets (Addition 2).
 Generates standardized citizen reporting packets for:
   1. DoT Sanchar Saathi / Chakshu Portal (Citizen Fraud Communication Reporting)
   2. National Cybercrime Reporting Portal / Bank Suspect Reports
-Includes SHA-256 evidence integrity hashing for chain of custody.
+Includes SHA-256 evidence integrity hashing.
 """
 
 import hashlib

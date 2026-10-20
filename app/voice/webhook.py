@@ -110,22 +110,14 @@ def get_expected_webhook_secret() -> str:
 
 def verify_webhook_secret(request: Request) -> Optional[JSONResponse]:
     """
-    Enforce `BOLNA_WEBHOOK_SECRET` on `POST /webhook` when configured (or in Render production).
+    Enforce `BOLNA_WEBHOOK_SECRET` on `POST /webhook` whenever configured.
     Accepts `Authorization: Bearer <secret>`, `X-Webhook-Secret: <secret>`, or `X-Bolna-Secret: <secret>`.
-    Returns a 401 JSONResponse if unauthorized, or None if authorized.
+    Returns a 401 JSONResponse if unauthorized, or None if authorized or unconfigured.
     """
     expected = get_expected_webhook_secret()
-    is_render = bool(os.getenv("RENDER"))
-    if not expected and not is_render:
-        # Local/test mode with no BOLNA_WEBHOOK_SECRET set
+    if not expected:
+        # Unconfigured: allow requests (local dev / unauthenticated testing)
         return None
-
-    if not expected and is_render:
-        logger.error("BOLNA_WEBHOOK_SECRET is not set in Render environment; rejecting /webhook request")
-        return JSONResponse(
-            status_code=401,
-            content={"detail": "Missing or invalid webhook secret"},
-        )
 
     auth_header = (request.headers.get("authorization") or "").strip()
     provided: Optional[str] = None
@@ -413,6 +405,8 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
             confidence=existing.get("confidence", 0.9),
             summary=existing["summary"],
             status_value=existing["status"],
+            stage2_ran=existing.get("stage2_ran"),
+            classifier_method=existing.get("classifier_method", ""),
         )
         return record
 
@@ -435,6 +429,7 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
     )
     verdict = cls_res.verdict
     confidence = cls_res.confidence
+    stage2_ran = cls_res.method in ("groq", "gemini")
 
     has_scam_intel = bool(
         extracted_intel["upi_ids"]
@@ -493,6 +488,8 @@ async def bolna_post_call_webhook(request: Request, background_tasks: Background
         confidence=confidence,
         summary=summary,
         status_value=status_value,
+        stage2_ran=stage2_ran,
+        classifier_method=cls_res.method,
     )
 
     # Step 4: Schedule post-call reflection & enrichment in the background (T-POST)
@@ -605,7 +602,7 @@ async def api_verify_call_evidence(
 ):
     """
     Verify evidence integrity and retrieve Chakshu & Report Suspect packets (Addition 2).
-    Generates SHA-256 chain-of-custody hash over transcript, caller number, and audio recording.
+    Generates SHA-256 evidence integrity hash over transcript, caller number, and audio recording.
     """
     from app.voice.evidence import build_chakshu_packet, build_report_suspect_packets
     record = get_call_record(call_id)

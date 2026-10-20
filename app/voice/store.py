@@ -171,6 +171,13 @@ def _restore_from_pg_if_needed(conn: sqlite3.Connection) -> None:
             pass
 
 
+# Columns added after the original schema; ALTERed onto existing databases in init_db().
+_ADDED_COLUMNS = [
+    ("stage2_ran", "INTEGER"),  # NULL = unknown (pending / pre-flag records)
+    ("classifier_method", "TEXT DEFAULT ''"),
+]
+
+
 def init_db(db_path: Optional[str] = None) -> None:
     with _DB_LOCK:
         conn = _get_conn(db_path)
@@ -202,6 +209,10 @@ def init_db(db_path: Optional[str] = None) -> None:
                 )
                 """
             )
+            existing_cols = {r[1] for r in conn.execute("PRAGMA table_info(call_records)").fetchall()}
+            for col, ddl in _ADDED_COLUMNS:
+                if col not in existing_cols:
+                    conn.execute(f"ALTER TABLE call_records ADD COLUMN {col} {ddl}")
             conn.commit()
             _restore_from_pg_if_needed(conn)
         finally:
@@ -245,6 +256,8 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         "summary": row["summary"] or "",
         "report_link": row["report_link"] or f"/api/calls/{row['call_id']}/report",
         "status": row["status"] or "pending",
+        "stage2_ran": None if row["stage2_ran"] is None else bool(row["stage2_ran"]),
+        "classifier_method": row["classifier_method"] or "",
     }
 
 
@@ -385,6 +398,9 @@ def _adopt_or_merge_pending_row(conn: sqlite3.Connection, target_call_id: str, s
     _sync_sqlite_row_to_pg(conn, target_call_id)
 
 
+SMOKE_CALL_ID_PREFIX = "smoke_"
+
+
 def resolve_and_merge_pending_mid_call_record(
     call_id: str,
     provider_call_id: Optional[str] = None,
@@ -436,6 +452,9 @@ def resolve_and_merge_pending_mid_call_record(
                 ).fetchall()
                 active_pending = []
                 for p_row in pending_rows:
+                    # Smoke-test records (scripts/smoke.sh) must never be guessed into a real call.
+                    if str(p_row["call_id"]).startswith(SMOKE_CALL_ID_PREFIX):
+                        continue
                     ts_str = p_row["updated_at"] or p_row["created_at"] or ""
                     try:
                         ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
@@ -699,6 +718,8 @@ def finalize_call_record_from_webhook(
     confidence: float,
     summary: str,
     status_value: str = "finalized",
+    stage2_ran: Optional[bool] = None,
+    classifier_method: str = "",
 ) -> Dict[str, Any]:
     """
     Create or update the CallRecord from the post-call webhook payload, merging any
@@ -757,6 +778,7 @@ def finalize_call_record_from_webhook(
             report_link = f"/api/calls/{call_id}/report"
             transcript_json = json.dumps(transcript, ensure_ascii=False)
             intel_json = json.dumps(extracted_intel, ensure_ascii=False)
+            stage2_val = None if stage2_ran is None else int(bool(stage2_ran))
 
             if row:
                 conn.execute(
@@ -778,6 +800,8 @@ def finalize_call_record_from_webhook(
                         summary = ?,
                         report_link = ?,
                         status = ?,
+                        stage2_ran = ?,
+                        classifier_method = ?,
                         finalized_fired = 1,
                         updated_at = ?
                     WHERE call_id = ?
@@ -799,6 +823,8 @@ def finalize_call_record_from_webhook(
                         summary,
                         report_link,
                         status_value,
+                        stage2_val,
+                        classifier_method,
                         now_iso,
                         call_id,
                     ),
@@ -811,8 +837,9 @@ def finalize_call_record_from_webhook(
                         start_time, duration, verdict, confidence, honeypot_switch_time,
                         persona, language, call_recording_url, transcript_json,
                         extracted_intel_json, summary, report_link, status,
+                        stage2_ran, classifier_method,
                         finalized_fired, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                     """,
                     (
                         call_id,
@@ -832,6 +859,8 @@ def finalize_call_record_from_webhook(
                         summary,
                         report_link,
                         status_value,
+                        stage2_val,
+                        classifier_method,
                         now_iso,
                         now_iso,
                     ),
