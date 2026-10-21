@@ -85,6 +85,15 @@
                       ],
                       "type": "string",
                       "description": "The language the caller is speaking: hi for Hindi, en for English, hinglish for mixed Hindi and English."
+                    },
+                    "persona_id": {
+                      "enum": [
+                        "ramesh",
+                        "sunita",
+                        "iyer"
+                      ],
+                      "type": "string",
+                      "description": "Optional persona: ramesh (elderly grandfather), sunita (elderly grandmother), or iyer (retired professor)."
                     }
                   }
                 },
@@ -178,7 +187,8 @@
                 "nodes": null,
                 "param": {
                   "call_id": "%(call_sid)s",
-                  "language": "%(language)s"
+                  "language": "%(language)s",
+                  "persona_id": "%(persona_id)s"
                 },
                 "scope": null,
                 "method": "POST",
@@ -227,11 +237,11 @@
             "audio_format": "wav",
             "provider_config": {
               "model": "bulbul:v3",
-              "speed": 1.0,
-              "voice": "Simran",
+              "speed": 0.95,
+              "voice": "ratan",
               "language": "hi",
               "loudness": 1.0,
-              "voice_id": "simran"
+              "voice_id": "ratan"
             }
           },
           "transcriber": {

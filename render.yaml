@@ -9,7 +9,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: guardianline-postgres
+          property: connectionString
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
@@ -41,3 +43,10 @@ services:
         sync: false
       - key: GUARDIANLINE_API_TOKEN
         sync: false
+
+databases:
+  - name: guardianline-postgres
+    plan: free
+    databaseName: guardianline
+    user: guardianline_user
+
