@@ -42,7 +42,7 @@ from app.voice.webhook import (
 )
 
 FIXTURES_DIR = os.path.join(ROOT_DIR, "tests", "fixtures")
-AUTH_HEADERS = {"Authorization": "Bearer local_api_token_123"}
+AUTH_HEADERS = {"Authorization": "Bearer test_api_token_not_secret"}
 
 
 @pytest.fixture()

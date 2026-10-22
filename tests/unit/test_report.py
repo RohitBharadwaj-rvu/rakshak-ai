@@ -28,7 +28,7 @@ from app.voice.store import clear_call_finalized_events, set_db_path
 
 FIXTURES_DIR = os.path.join(ROOT_DIR, "tests", "fixtures")
 GOLDEN_DIR = os.path.join(ROOT_DIR, "tests", "golden")
-AUTH_HEADERS = {"Authorization": "Bearer local_api_token_123"}
+AUTH_HEADERS = {"Authorization": "Bearer test_api_token_not_secret"}
 
 
 @pytest.fixture()

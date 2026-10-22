@@ -102,7 +102,8 @@ import secrets
 
 
 def get_expected_api_token() -> str:
-    return os.getenv("GUARDIANLINE_API_TOKEN", "local_api_token_123")
+    # No built-in default: the old default leaked in public git history (c4417cc).
+    return os.getenv("GUARDIANLINE_API_TOKEN", "").strip()
 
 
 def get_expected_webhook_secret() -> str:
@@ -156,6 +157,9 @@ def require_api_token(
     Returns HTTP 401 on missing or invalid token (T-API, T-PRIV).
     """
     expected = get_expected_api_token()
+    if not expected:
+        logger.error("Rejecting read API request: GUARDIANLINE_API_TOKEN is unset")
+        raise HTTPException(status_code=503, detail="API token is not configured on the server")
     provided: Optional[str] = None
     if authorization and authorization.lower().startswith("bearer "):
         provided = authorization[7:].strip()
