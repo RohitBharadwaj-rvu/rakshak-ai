@@ -177,3 +177,28 @@ def test_fields_survive_webhook_into_suspect_packets(client):
     assert pkt.elicitation == "payment_failed"
     assert pkt.quote.startswith("payment fail hua?")
     assert pkt.seconds_from_start == 95.0
+
+
+def test_relogging_on_pre_addition1_record_does_not_crash(client):
+    # Records created before Addition 1 hold legacy 4-key mid_call_logs entries.
+    import json as _json
+    from app.voice.store import _get_conn, append_mid_call_intel
+
+    append_mid_call_intel("a1_old", "upi", "cbi dot officer at the rate ok axis", "cbi.officer@okaxis", False)
+    conn = _get_conn()
+    try:
+        row = conn.execute("SELECT extracted_intel_json FROM call_records WHERE call_id = 'a1_old'").fetchone()
+        intel = _json.loads(row["extracted_intel_json"])
+        intel["mid_call_logs"] = [
+            {"type": "upi", "value_as_heard": "cbi dot officer at the rate ok axis",
+             "normalized_value": "cbi.officer@okaxis", "unparseable": False}
+        ]
+        conn.execute("UPDATE call_records SET extracted_intel_json = ? WHERE call_id = 'a1_old'", (_json.dumps(intel),))
+        conn.commit()
+    finally:
+        conn.close()
+
+    d = _log(client, call_id="a1_old", type="upi", value_as_heard="cbi dot officer at the rate ok axis")
+    assert d["duplicate"] is True and d["times_logged"] == 2
+    assert d["kind"] == "upi" and d["value_raw"] == "cbi dot officer at the rate ok axis"
+    assert d["identifier_status"] == "suspected" and d["is_bait"] is False
