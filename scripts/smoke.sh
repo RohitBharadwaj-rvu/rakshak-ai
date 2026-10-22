@@ -12,10 +12,17 @@ curl -fsS "${BASE_URL}/health" | grep -q '"status":"ok"'
 echo "      PASS"
 
 echo "[2/4] Checking POST /tools/classify_caller ..."
+# 2a: authority + value demand (2 pillars) must be a scam.
+curl -fsS -X POST "${BASE_URL}/tools/classify_caller" \
+  -H "Content-Type: application/json" \
+  -d '{"call_id":"smoke_call_001","caller_number":"+919876543210","language":"hi","conversation":[{"role":"caller","content":"Main CBI se bol raha hoon, aap digital arrest par hain. Abhi turant 50000 rupaye UPI se security deposit bhejo, warna giraftaar honge."}]}' \
+  | grep -q '"verdict":"scam"'
+# 2b: one pillar alone is ambiguous by design (verdict may be unsure), but it must reach
+# the Stage 2 LLM; this fails if the Groq/Gemini keys are dead or missing.
 curl -fsS -X POST "${BASE_URL}/tools/classify_caller" \
   -H "Content-Type: application/json" \
   -d '{"call_id":"smoke_call_001","caller_number":"+919876543210","language":"hi","conversation":[{"role":"caller","content":"Main CBI se bol raha hoon, aap digital arrest par hain."}]}' \
-  | grep -q '"verdict":"scam"'
+  | grep -Eq '"method":"(groq|gemini)"'
 echo "      PASS"
 
 echo "[3/4] Checking POST /tools/switch_to_honeypot ..."
