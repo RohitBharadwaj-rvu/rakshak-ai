@@ -1,12 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogIntelRequest",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "object",
-  "required": ["call_id", "type"],
-  "anyOf": [
-    {"required": ["value"]},
-    {"required": ["value_as_heard"]}
+  "required": [
+    "call_id"
   ],
   "properties": {
     "call_id": {
@@ -15,13 +13,24 @@
       "description": "Unique identifier for the active call (e.g., %(call_sid)s)"
     },
     "execution_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Optional Bolna execution ID (e.g., %(execution_id)s)"
     },
     "type": {
       "type": "string",
-      "enum": ["upi", "phone", "account", "ifsc", "link", "pan", "other"],
-      "description": "Category of intelligence heard mid-call"
+      "enum": [
+        "upi",
+        "phone",
+        "account",
+        "ifsc",
+        "link",
+        "pan",
+        "other"
+      ],
+      "description": "Legacy name for `kind`"
     },
     "value": {
       "type": "string",
@@ -32,7 +41,95 @@
       "type": "string",
       "minLength": 1,
       "description": "Raw utterance or string heard by the agent"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "upi",
+        "phone",
+        "account",
+        "ifsc",
+        "link",
+        "pan",
+        "other"
+      ],
+      "description": "Category of identifier heard mid-call (Addition 1)"
+    },
+    "value_raw": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier exactly as heard (Addition 1; legacy: value / value_as_heard)"
+    },
+    "value_normalized": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional agent-side canonical form; used only if the server normalizer cannot parse value_raw and it passes the same validator"
+    },
+    "elicitation": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Playbook tactic that drew it out: initial_ask, payment_failed, name_mismatch, ifsc_request, callback, repeat_back, volunteered, other (free text accepted)"
+    },
+    "quote": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Caller's words around the identifier; truncated to 120 chars"
+    },
+    "turn_index": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "seconds_from_start": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    {
+      "anyOf": [
+        {
+          "required": [
+            "value_raw"
+          ]
+        },
+        {
+          "required": [
+            "value_as_heard"
+          ]
+        },
+        {
+          "required": [
+            "value"
+          ]
+        }
+      ]
+    }
+  ]
 }

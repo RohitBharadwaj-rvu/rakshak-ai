@@ -232,6 +232,9 @@ def _extract_suspect_identifiers(call_record: Dict[str, Any]) -> List[SuspectIde
     for log in mid_logs:
         if not isinstance(log, dict):
             continue
+        if log.get("is_bait"):
+            # Our own persona bait (e.g. the agent logged it back by mistake) is never a suspect.
+            continue
         kind = str(log.get("type") or log.get("kind") or "identifier").lower()
         val_norm = str(log.get("normalized_value") or log.get("value") or "").strip()
         val_raw = str(log.get("value_as_heard") or log.get("value_raw") or val_norm).strip()
