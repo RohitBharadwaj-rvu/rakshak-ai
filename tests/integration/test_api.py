@@ -24,7 +24,7 @@ from app.main import app
 from app.voice.store import clear_call_finalized_events, set_db_path
 
 SCHEMA_PATH = os.path.join(ROOT_DIR, "contracts", "call_record.schema.json")
-AUTH_HEADERS = {"Authorization": "Bearer local_api_token_123"}
+AUTH_HEADERS = {"Authorization": "Bearer test_api_token_not_secret"}
 
 
 @pytest.fixture(scope="module")
@@ -125,3 +125,16 @@ def test_list_newest_first_50_per_page_verdict_filter_and_schema(client, call_re
     detail = res_detail.json()
     assert detail["call_id"] == "api_call_001"
     validate(instance=detail, schema=call_record_schema)
+
+
+def test_read_api_refuses_when_token_unset(client, monkeypatch):
+    # The old built-in default leaked in public git history; an unset token must not fall back to it.
+    monkeypatch.delenv("GUARDIANLINE_API_TOKEN", raising=False)
+    for headers in ({}, {"Authorization": "Bearer local_api_token_123"}):
+        res = client.get("/api/calls", headers=headers)
+        assert res.status_code == 503
+
+
+def test_read_api_rejects_leaked_default_token(client):
+    res = client.get("/api/calls", headers={"Authorization": "Bearer local_api_token_123"})
+    assert res.status_code == 401

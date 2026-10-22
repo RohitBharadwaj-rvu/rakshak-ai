@@ -278,6 +278,12 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
     return "\n".join(lines)
 
 
+# Measured 2026-10-18: gpt-oss-20b gave scam 0.90-0.92 on the CBI smoke line every time in ~740 ms;
+# qwen/qwen3.8-27b with max_tokens=150 flip-flopped between unsure and scam on the same input.
+GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
+GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"
+
+
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
     """Calls Groq API with strict timeout."""
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -286,16 +292,20 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
         "Authorization": f"Bearer {api_key}",
         "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
     }
+    model = os.getenv("GROQ_MODEL", "").strip() or GROQ_DEFAULT_MODEL
     payload = {
-        "model": os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
+        "model": model,
         "messages": [
             {"role": "system", "content": CLASSIFIER_SYSTEM_PROMPT},
             {"role": "user", "content": f"Analyze this call transcript:\n\n{conversation_text}"},
         ],
         "temperature": 0.0,
         "response_format": {"type": "json_object"},
-        "max_tokens": 150,
+        # Reasoning models spend completion tokens thinking; 150 truncated the JSON answer.
+        "max_tokens": 600,
     }
+    if model.startswith("openai/gpt-oss"):
+        payload["reasoning_effort"] = "low"
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
@@ -309,11 +319,13 @@ def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Op
 
 def _call_gemini(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
     """Calls Google Gemini Flash via AI Studio REST API."""
-    model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").replace("models/", "")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    model = (os.getenv("GEMINI_MODEL", "").strip() or GEMINI_DEFAULT_MODEL).replace("models/", "")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     headers = {
         "Content-Type": "application/json",
         "User-Agent": "GuardianLine/1.0 (Voice-Agent)",
+        # Key in a header, not the URL, so it never lands in logs or exception messages.
+        "x-goog-api-key": api_key,
     }
     payload = {
         "system_instruction": {"parts": [{"text": CLASSIFIER_SYSTEM_PROMPT}]},

@@ -133,3 +133,49 @@ def test_classify_caller_novel_scam_detected_by_llm_stage(monkeypatch):
     assert "authority_coercion" in res.pillars_detected
     assert "value_demand" in res.pillars_detected
 
+
+
+def test_groq_payload_uses_low_reasoning_gpt_oss_and_room_for_json(monkeypatch):
+    import json as _json
+    import app.voice.classifier as cm
+
+    captured = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return _json.dumps({"choices": [{"message": {"content": '{"verdict":"scam","confidence":0.9}'}}]}).encode()
+
+    def fake_urlopen(req, timeout=None):
+        captured["body"] = _json.loads(req.data.decode())
+        captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+        return _Resp()
+
+    monkeypatch.delenv("GROQ_MODEL", raising=False)
+    monkeypatch.setattr(cm.urllib.request, "urlopen", fake_urlopen)
+    assert cm._call_groq("CALLER: hi", "k")["verdict"] == "scam"
+    assert captured["body"]["model"] == "openai/gpt-oss-20b"
+    assert captured["body"]["reasoning_effort"] == "low"
+    assert captured["body"]["max_tokens"] >= 600
+    assert "user-agent" in captured["headers"]
+
+
+def test_gemini_key_sent_in_header_not_url(monkeypatch):
+    import app.voice.classifier as cm
+
+    captured = {}
+
+    def fake_urlopen(req, timeout=None):
+        captured["url"] = req.full_url
+        captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+        raise OSError("stop")
+
+    monkeypatch.setattr(cm.urllib.request, "urlopen", fake_urlopen)
+    assert cm._call_gemini("CALLER: hi", "secret-key") is None
+    assert "secret-key" not in captured["url"]
+    assert captured["headers"]["x-goog-api-key"] == "secret-key"

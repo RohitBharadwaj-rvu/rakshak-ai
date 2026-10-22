@@ -47,7 +47,7 @@ from app.voice.store import (
     set_db_path,
 )
 
-AUTH_HEADERS = {"Authorization": "Bearer local_api_token_123"}
+AUTH_HEADERS = {"Authorization": "Bearer test_api_token_not_secret"}
 
 
 @pytest.fixture
