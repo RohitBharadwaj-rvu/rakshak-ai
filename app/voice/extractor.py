@@ -194,17 +194,28 @@ def extract_from_transcript(
     # Merge mid-call log_intel captures if present and parseable
     cleaned_mid_logs: List[Dict[str, Any]] = []
     for item in mid_call_logs or []:
-        itype = str(item.get("type", "other")).lower()
-        val_heard = str(item.get("value_as_heard", ""))
+        itype = str(item.get("type") or item.get("kind") or "other").lower()
+        val_heard = str(item.get("value_as_heard") or item.get("value_raw") or "")
         norm_val, unparseable = normalize_and_validate_single_intel(itype, val_heard)
-        log_entry = {
-            "type": itype,
-            "value_as_heard": val_heard,
-            "normalized_value": norm_val,
-            "unparseable": unparseable,
-        }
+        if unparseable and item.get("normalized_value") and not item.get("unparseable"):
+            # log_intel already validated this (e.g. via the agent's value_normalized hint).
+            norm_val, unparseable = str(item["normalized_value"]), False
+        # Keep every Addition 1 field (elicitation, quote, turn_index, times_logged, ...) so
+        # evidence packets built after the webhook still see them.
+        log_entry = dict(item)
+        log_entry.update(
+            {
+                "type": itype,
+                "kind": itype,
+                "value_as_heard": val_heard,
+                "value_raw": val_heard,
+                "normalized_value": norm_val,
+                "value_normalized": norm_val,
+                "unparseable": unparseable,
+            }
+        )
         cleaned_mid_logs.append(log_entry)
-        if not unparseable and norm_val and not _is_bait(norm_val, bait_set):
+        if not unparseable and norm_val and not item.get("is_bait") and not _is_bait(norm_val, bait_set):
             if itype == "upi" and norm_val not in upi_list:
                 _record(upi_list, norm_val, 1)
             elif itype == "phone" and norm_val not in phone_list:

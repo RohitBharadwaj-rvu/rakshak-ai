@@ -630,24 +630,61 @@ def get_or_assign_honeypot_persona(
             conn.close()
 
 
+_MID_CALL_OPTIONAL_FIELDS = ("elicitation", "quote", "turn_index", "seconds_from_start")
+
+
+def _mid_call_dedup_key(entry: Dict[str, Any]) -> tuple:
+    kind = str(entry.get("kind") or entry.get("type") or "other").lower()
+    if not entry.get("unparseable") and entry.get("normalized_value"):
+        return (kind, str(entry["normalized_value"]).lower())
+    # Unparseable captures dedupe on what was heard, whitespace/case-insensitively.
+    return (kind, "raw:" + " ".join(str(entry.get("value_as_heard") or "").lower().split()))
+
+
 def append_mid_call_intel(
     call_id: str,
     intel_type: str,
     value_as_heard: str,
     normalized_value: str,
     unparseable: bool,
+    elicitation: Optional[str] = None,
+    quote: Optional[str] = None,
+    turn_index: Optional[int] = None,
+    seconds_from_start: Optional[float] = None,
 ) -> Dict[str, Any]:
     """
     Append a mid-call `log_intel` capture to the CallRecord for `call_id`.
     Creates a `pending` CallRecord if one does not exist yet.
+
+    A call may log many distinct identifiers (mule rotation: a second UPI after "payment failed").
+    Re-logging the same identifier (e.g. a repeat-back) does not add a new entry: it bumps
+    `times_logged`, fills any context fields the first capture lacked, and records the new tactic
+    in `elicitations`. Persona bait values are kept for audit with `is_bait=True` but never enter
+    the identifier buckets.
     """
+    from app.core.rules import APPROVED_BAIT_VALUES
+
     init_db()
     now_iso = datetime.now(timezone.utc).isoformat()
-    log_entry = {
+    is_bait = bool(normalized_value) and normalized_value.lower().strip() in APPROVED_BAIT_VALUES
+    log_entry: Dict[str, Any] = {
         "type": intel_type,
+        "kind": intel_type,
         "value_as_heard": value_as_heard,
+        "value_raw": value_as_heard,
         "normalized_value": normalized_value,
+        "value_normalized": normalized_value,
         "unparseable": unparseable,
+        "status": "suspected",
+        "is_bait": is_bait,
+        "elicitation": elicitation,
+        "elicitations": [elicitation] if elicitation else [],
+        "quote": quote,
+        "turn_index": turn_index,
+        "seconds_from_start": seconds_from_start,
+        "times_logged": 1,
+        "first_logged_at": now_iso,
+        "last_logged_at": now_iso,
     }
     with _DB_LOCK:
         conn = _get_conn()
@@ -664,8 +701,27 @@ def append_mid_call_intel(
             else:
                 intel = _empty_intel()
 
-            intel["mid_call_logs"].append(log_entry)
-            if not unparseable and normalized_value:
+            key = _mid_call_dedup_key(log_entry)
+            existing = next(
+                (e for e in intel["mid_call_logs"] if isinstance(e, dict) and _mid_call_dedup_key(e) == key),
+                None,
+            )
+            duplicate = existing is not None
+            if existing is not None:
+                existing["times_logged"] = int(existing.get("times_logged") or 1) + 1
+                existing["last_logged_at"] = now_iso
+                for f in _MID_CALL_OPTIONAL_FIELDS:
+                    if existing.get(f) is None and log_entry[f] is not None:
+                        existing[f] = log_entry[f]
+                tactics = existing.setdefault(
+                    "elicitations", [existing["elicitation"]] if existing.get("elicitation") else []
+                )
+                if elicitation and elicitation not in tactics:
+                    tactics.append(elicitation)
+                log_entry = existing
+            else:
+                intel["mid_call_logs"].append(log_entry)
+            if not unparseable and normalized_value and not is_bait:
                 bucket_map = {
                     "upi": "upi_ids",
                     "phone": "phone_numbers",
@@ -721,7 +777,12 @@ def append_mid_call_intel(
                 )
             conn.commit()
             _sync_sqlite_row_to_pg(conn, call_id)
-            return log_entry
+            result = dict(log_entry)
+            result["duplicate"] = duplicate
+            result["identifiers_logged"] = len(
+                {_mid_call_dedup_key(e) for e in intel["mid_call_logs"] if isinstance(e, dict) and not e.get("is_bait")}
+            )
+            return result
         finally:
             conn.close()
 

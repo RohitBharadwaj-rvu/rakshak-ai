@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "LogIntelResponse",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "object",
   "required": [
     "status",
@@ -14,7 +14,9 @@
   "properties": {
     "status": {
       "type": "string",
-      "enum": ["logged"]
+      "enum": [
+        "logged"
+      ]
     },
     "call_id": {
       "type": "string",
@@ -22,7 +24,15 @@
     },
     "type": {
       "type": "string",
-      "enum": ["upi", "phone", "account", "ifsc", "link", "pan", "other"]
+      "enum": [
+        "upi",
+        "phone",
+        "account",
+        "ifsc",
+        "link",
+        "pan",
+        "other"
+      ]
     },
     "value": {
       "type": "string"
@@ -36,6 +46,73 @@
     "unparseable": {
       "type": "boolean",
       "description": "True if value could not be validated into canonical form, stored with flag so no evidence is lost"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "upi",
+        "phone",
+        "account",
+        "ifsc",
+        "link",
+        "pan",
+        "other"
+      ]
+    },
+    "value_raw": {
+      "type": "string"
+    },
+    "value_normalized": {
+      "type": "string"
+    },
+    "elicitation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quote": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 120
+    },
+    "turn_index": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "seconds_from_start": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "identifier_status": {
+      "type": "string",
+      "enum": [
+        "suspected"
+      ],
+      "description": "Mid-call identifiers are always suspected; confirmation happens via /api/calls/{id}/evidence/confirm"
+    },
+    "is_bait": {
+      "type": "boolean",
+      "description": "True if the value is one of our own persona bait values; kept for audit, never treated as scammer intel"
+    },
+    "duplicate": {
+      "type": "boolean",
+      "description": "True if this identifier was already logged for the call (e.g. repeat-back)"
+    },
+    "times_logged": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "identifiers_logged": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Distinct non-bait identifiers logged for this call so far"
     }
   },
   "additionalProperties": false

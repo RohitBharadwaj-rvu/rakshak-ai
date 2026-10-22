@@ -102,25 +102,39 @@ Every producer and consumer across Lanes A, B, C, and D is tested against the JS
 
 ---
 
-## 4. Mid-Call Tool 3: `log_intel` (Bolna $\rightarrow$ Backend, Owner: B)
+## 4. Mid-Call Tool 3: `log_intel` (Bolna $ightarrow$ Backend, Owner: B)
 
 - **Endpoint:** `POST /tools/log_intel`
-- **Schemas:**
+- **Schemas (v1.1, Addition 1):**
   - Request: `contracts/log_intel_request.schema.json`
   - Response: `contracts/log_intel_response.schema.json`
+- **Request fields:**
+  - `call_id` (required), `execution_id` (optional) — send `%(call_sid)s` and `%(execution_id)s`.
+  - `kind` (required; legacy name `type`): `upi`, `phone`, `account`, `ifsc`, `link`, `pan`, `other`.
+  - `value_raw` (required; legacy names `value`, `value_as_heard`): the identifier exactly as heard.
+  - `value_normalized` (optional): the agent's own canonical form. Used only if the server normalizer cannot parse `value_raw` **and** it passes the same validator.
+  - `elicitation` (optional): the playbook tactic that drew it out — `initial_ask`, `payment_failed`, `name_mismatch`, `ifsc_request`, `callback`, `repeat_back`, `volunteered`, `other`. Known labels are canonicalised (`"Payment Failed"` → `payment_failed`); other text is kept (max 64 chars).
+  - `quote` (optional): the caller's words around the identifier, truncated to 120 chars.
+  - `turn_index` (optional, ≥ 0), `seconds_from_start` (optional, ≥ 0).
 - **Behavior:**
-  - Captures mid-call intelligence (`upi`, `phone`, `account`, `ifsc`, `link`, `pan`, `other`) as heard by the voice agent.
-  - Runs the deterministic spoken-number normalizer (`app/voice/normalizer.py`) on `value_as_heard` and stores both `value_as_heard` and `normalized_value`.
-  - **Never rejects unparseable values:** If `value_as_heard` cannot be validated into canonical format, it is stored with `"unparseable": true` so no evidence is ever lost mid-call.
-  - **Pending record creation:** If `log_intel` arrives for a `call_id` that has not yet received its post-call webhook, a pending `CallRecord` is created in SQLite and merged when the webhook arrives.
-  - Missing required fields (`call_id`, `type`, `value_as_heard`) return HTTP `422` naming the field.
+  - Runs the deterministic spoken-number normalizer (`app/voice/normalizer.py`) and stores both raw and normalized forms.
+  - **Never rejects unparseable values:** they are stored with `"unparseable": true` so no evidence is lost.
+  - **Several identifiers per call:** every distinct identifier is kept (mule rotation, e.g. a second UPI after "payment failed"). `identifiers_logged` in the response is the distinct count so far.
+  - **Deduplication:** re-logging the same identifier (same `kind` + normalized value, or the same heard text if unparseable) does not add an entry. It returns `duplicate: true`, increments `times_logged`, fills context fields the first capture lacked, and appends the new tactic to `elicitations`.
+  - **Bait guard:** if the value is one of our own persona bait values, it is stored with `is_bait: true` for audit but never enters the identifier buckets or evidence packets.
+  - Every mid-call identifier has `identifier_status: "suspected"`; confirmation only happens through `/api/calls/{id}/evidence/confirm`.
+  - **Pending record creation:** if `log_intel` arrives before the post-call webhook, a pending `CallRecord` is created and merged when the webhook arrives. All Addition 1 fields survive that merge into the Report Suspect packets.
+  - Missing required fields return HTTP `422` naming the field.
 
 ### Request Example
 ```json
 {
-  "call_id": "call_live_9872",
-  "type": "upi",
-  "value_as_heard": "cbi dot officer dot verma at the rate ok axis"
+  "call_id": "%(call_sid)s",
+  "execution_id": "%(execution_id)s",
+  "kind": "upi",
+  "value_raw": "cbi dot officer dot verma at the rate ok axis",
+  "elicitation": "payment_failed",
+  "quote": "payment fail hua? toh cbi dot officer dot verma at the rate ok axis pe bhejo"
 }
 ```
 
@@ -129,10 +143,23 @@ Every producer and consumer across Lanes A, B, C, and D is tested against the JS
 {
   "status": "logged",
   "call_id": "call_live_9872",
+  "kind": "upi",
   "type": "upi",
+  "value": "cbi dot officer dot verma at the rate ok axis",
+  "value_raw": "cbi dot officer dot verma at the rate ok axis",
   "value_as_heard": "cbi dot officer dot verma at the rate ok axis",
+  "value_normalized": "cbi.officer.verma@okaxis",
   "normalized_value": "cbi.officer.verma@okaxis",
-  "unparseable": false
+  "unparseable": false,
+  "elicitation": "payment_failed",
+  "quote": "payment fail hua? toh cbi dot officer dot verma at the rate ok axis pe bhejo",
+  "turn_index": null,
+  "seconds_from_start": null,
+  "identifier_status": "suspected",
+  "is_bait": false,
+  "duplicate": false,
+  "times_logged": 1,
+  "identifiers_logged": 2
 }
 ```
 
