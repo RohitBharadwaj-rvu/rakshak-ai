@@ -708,6 +708,14 @@ def append_mid_call_intel(
             )
             duplicate = existing is not None
             if existing is not None:
+                # Entries written before Addition 1 lack the new keys; backfill them so the
+                # response (and evidence packets) never hit a KeyError on old records.
+                for k, v in log_entry.items():
+                    if k not in existing:
+                        existing[k] = v
+                existing["kind"] = existing.get("kind") or existing.get("type") or intel_type
+                existing["value_raw"] = existing.get("value_raw") or existing.get("value_as_heard") or value_as_heard
+                existing["value_normalized"] = existing.get("value_normalized") or existing.get("normalized_value") or ""
                 existing["times_logged"] = int(existing.get("times_logged") or 1) + 1
                 existing["last_logged_at"] = now_iso
                 for f in _MID_CALL_OPTIONAL_FIELDS:
