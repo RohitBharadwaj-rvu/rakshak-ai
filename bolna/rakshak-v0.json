@@ -105,7 +105,7 @@
                     }
                   }
                 },
-                "description": "Call this immediately after classify_caller returns verdict scam, and never before. It returns the persona you must become (name, age, city, backstory, lines) and fake_bait: the only numbers you are allowed to say for the rest of the call.",
+                "description": "Call this when classify_caller returns verdict scam OR verdict unsure with active demand for OTP/UPI/money/personal details/screen-share. Use immediately to protect elder.",
                 "pre_call_message": "Haan haan, ek minute."
               },
               {

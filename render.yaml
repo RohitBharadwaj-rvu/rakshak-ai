@@ -41,6 +41,8 @@ services:
 
       - key: BOLNA_WEBHOOK_SECRET
         sync: false
+      - key: BOLNA_AGENT_ID
+        sync: false
       - key: GUARDIANLINE_API_TOKEN
         sync: false
 

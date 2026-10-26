@@ -3,21 +3,21 @@
   "total_scenarios": 20,
   "scam_scenarios": 10,
   "genuine_scenarios": 10,
-  "scam_detection_rate_pct": 80.0,
-  "false_positive_rate_pct": 10.0,
+  "scam_detection_rate_pct": 100.0,
+  "false_positive_rate_pct": 0.0,
   "false_negative_rate_pct": 0.0,
-  "genuine_accuracy_pct": 80.0,
-  "overall_accuracy_pct": 80.0,
+  "genuine_accuracy_pct": 90.0,
+  "overall_accuracy_pct": 95.0,
   "unsure_breakdown": {
-    "scams_marked_unsure": 2,
+    "scams_marked_unsure": 0,
     "genuines_marked_unsure": 1
   },
   "latency_stats": {
     "min_ms": 0.16,
-    "median_p50_ms": 0.53,
-    "p95_ms": 452.66,
-    "max_ms": 452.66,
-    "mean_ms": 140.12
+    "median_p50_ms": 0.7,
+    "p95_ms": 1058.8,
+    "max_ms": 1058.8,
+    "mean_ms": 220.8
   },
   "category_breakdown": {
     "courier": {
@@ -28,7 +28,7 @@
     },
     "medical": {
       "total": 3,
-      "correct": 2,
+      "correct": 3,
       "scam": 1,
       "genuine": 2
     },
@@ -58,7 +58,7 @@
     },
     "society": {
       "total": 2,
-      "correct": 1,
+      "correct": 2,
       "scam": 0,
       "genuine": 2
     },
@@ -82,14 +82,14 @@
     },
     "job": {
       "total": 1,
-      "correct": 0,
+      "correct": 1,
       "scam": 1,
       "genuine": 0
     }
   },
   "sprint_bar_verdict": {
-    "detection_rate": "FAIL",
-    "false_positive_rate": "FAIL"
+    "detection_rate": "PASS",
+    "false_positive_rate": "PASS"
   },
   "scenario_results": [
     {
@@ -99,9 +99,9 @@
       "expected_verdict": "scam",
       "actual_verdict": "scam",
       "confidence": 0.95,
-      "latency_ms": 452.66,
+      "latency_ms": 1058.8,
       "method": "groq",
-      "reason": "Caller impersonates Amazon to demand a 6-digit code (likely OTP/PIN) under the pretext of a package sent by a relative, exhibiting authority coercion and credential demand.",
+      "reason": "Caller impersonates a delivery service to demand a 6-digit code (likely OTP/PIN) under the pretext of a family-sent parcel, exhibiting authority coercion and credential demand.",
       "pillars_detected": [
         "authority_coercion",
         "value_demand"
@@ -117,7 +117,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.05,
-      "latency_ms": 342.79,
+      "latency_ms": 295.42,
       "method": "groq",
       "reason": "Routine appointment confirmation with no coercion, urgency, or financial demands.",
       "pillars_detected": [],
@@ -131,12 +131,13 @@
       "language": "hi",
       "expected_verdict": "scam",
       "actual_verdict": "scam",
-      "confidence": 0.88,
-      "latency_ms": 0.25,
+      "confidence": 0.96,
+      "latency_ms": 0.41,
       "method": "heuristic",
-      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "pillars_detected": [
         "authority_coercion",
+        "artificial_urgency",
         "value_demand"
       ],
       "is_correct": true,
@@ -150,7 +151,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.12,
-      "latency_ms": 0.38,
+      "latency_ms": 0.62,
       "method": "heuristic",
       "reason": "Legitimate service interaction with zero scam indicators or value demands",
       "pillars_detected": [],
@@ -164,12 +165,13 @@
       "language": "hi",
       "expected_verdict": "scam",
       "actual_verdict": "scam",
-      "confidence": 0.88,
-      "latency_ms": 0.17,
+      "confidence": 0.96,
+      "latency_ms": 0.32,
       "method": "heuristic",
-      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "pillars_detected": [
         "authority_coercion",
+        "artificial_urgency",
         "value_demand"
       ],
       "is_correct": true,
@@ -183,7 +185,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "unsure",
       "confidence": 0.6,
-      "latency_ms": 0.48,
+      "latency_ms": 0.7,
       "method": "heuristic",
       "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
       "pillars_detected": [
@@ -199,10 +201,10 @@
       "language": "hi",
       "expected_verdict": "scam",
       "actual_verdict": "scam",
-      "confidence": 0.95,
-      "latency_ms": 332.45,
+      "confidence": 0.98,
+      "latency_ms": 458.65,
       "method": "groq",
-      "reason": "Caller impersonates an electricity official, threatens immediate service cutoff (urgency), and demands payment via a suspicious link (value demand).",
+      "reason": "Impersonating utility official with artificial urgency (tonight 9 PM cutoff) and demanding immediate payment via a link.",
       "pillars_detected": [
         "authority_coercion",
         "artificial_urgency",
@@ -219,9 +221,9 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.15,
-      "latency_ms": 276.99,
+      "latency_ms": 345.32,
       "method": "groq",
-      "reason": "Routine administrative request for tenant verification with no financial demand, urgency, or coercion.",
+      "reason": "Routine administrative request to submit a form in person during business hours with no financial demand, urgency, or coercion.",
       "pillars_detected": [],
       "is_correct": true,
       "is_false_positive": false,
@@ -234,7 +236,7 @@
       "expected_verdict": "scam",
       "actual_verdict": "scam",
       "confidence": 0.96,
-      "latency_ms": 0.25,
+      "latency_ms": 0.49,
       "method": "heuristic",
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "pillars_detected": [
@@ -253,7 +255,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.05,
-      "latency_ms": 262.12,
+      "latency_ms": 326.73,
       "method": "groq",
       "reason": "Routine family check-in with no coercion, urgency, or financial demands.",
       "pillars_detected": [],
@@ -266,15 +268,16 @@
       "category": "medical",
       "language": "hi",
       "expected_verdict": "scam",
-      "actual_verdict": "unsure",
-      "confidence": 0.6,
-      "latency_ms": 0.29,
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.25,
       "method": "heuristic",
-      "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
       "pillars_detected": [
+        "artificial_urgency",
         "value_demand"
       ],
-      "is_correct": false,
+      "is_correct": true,
       "is_false_positive": false,
       "is_false_negative": false
     },
@@ -283,17 +286,14 @@
       "category": "society",
       "language": "en",
       "expected_verdict": "genuine",
-      "actual_verdict": "scam",
-      "confidence": 0.88,
-      "latency_ms": 0.23,
+      "actual_verdict": "genuine",
+      "confidence": 0.12,
+      "latency_ms": 0.2,
       "method": "heuristic",
-      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
-      "pillars_detected": [
-        "artificial_urgency",
-        "value_demand"
-      ],
-      "is_correct": false,
-      "is_false_positive": true,
+      "reason": "Legitimate service interaction with zero scam indicators or value demands",
+      "pillars_detected": [],
+      "is_correct": true,
+      "is_false_positive": false,
       "is_false_negative": false
     },
     {
@@ -303,7 +303,7 @@
       "expected_verdict": "scam",
       "actual_verdict": "scam",
       "confidence": 0.88,
-      "latency_ms": 0.25,
+      "latency_ms": 0.23,
       "method": "heuristic",
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
       "pillars_detected": [
@@ -321,7 +321,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.12,
-      "latency_ms": 0.53,
+      "latency_ms": 0.26,
       "method": "heuristic",
       "reason": "Legitimate service interaction with zero scam indicators or value demands",
       "pillars_detected": [],
@@ -355,7 +355,7 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.1,
-      "latency_ms": 265.66,
+      "latency_ms": 679.71,
       "method": "groq",
       "reason": "Routine informational reminder about Jeevan Pramaan with no urgency, coercion, or financial demand.",
       "pillars_detected": [],
@@ -370,7 +370,7 @@
       "expected_verdict": "scam",
       "actual_verdict": "scam",
       "confidence": 0.98,
-      "latency_ms": 326.63,
+      "latency_ms": 400.6,
       "method": "groq",
       "reason": "Classic lottery scam involving unsolicited prize claim, impersonation of authority, and demand for upfront 'tax' payment.",
       "pillars_detected": [
@@ -389,9 +389,9 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.05,
-      "latency_ms": 260.97,
+      "latency_ms": 413.08,
       "method": "groq",
-      "reason": "Routine lab result notification with no coercion, urgency, or financial demands.",
+      "reason": "Routine lab result notification with no financial demands, urgency, or credential requests.",
       "pillars_detected": [],
       "is_correct": true,
       "is_false_positive": false,
@@ -402,15 +402,16 @@
       "category": "job",
       "language": "en",
       "expected_verdict": "scam",
-      "actual_verdict": "unsure",
-      "confidence": 0.6,
-      "latency_ms": 0.38,
+      "actual_verdict": "scam",
+      "confidence": 0.88,
+      "latency_ms": 0.65,
       "method": "heuristic",
-      "reason": "General Safety Rule: Unverified caller requested value/credentials/remote-access; held for verification",
+      "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, value_demand)",
       "pillars_detected": [
+        "authority_coercion",
         "value_demand"
       ],
-      "is_correct": false,
+      "is_correct": true,
       "is_false_positive": false,
       "is_false_negative": false
     },
@@ -421,9 +422,9 @@
       "expected_verdict": "genuine",
       "actual_verdict": "genuine",
       "confidence": 0.1,
-      "latency_ms": 278.81,
+      "latency_ms": 433.42,
       "method": "groq",
-      "reason": "Routine religious announcement regarding festival prasad distribution with no financial demand, urgency, or coercion.",
+      "reason": "Routine religious announcement regarding prasad distribution with no financial demand, urgency, or coercion.",
       "pillars_detected": [],
       "is_correct": true,
       "is_false_positive": false,

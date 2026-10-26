@@ -61,7 +61,7 @@ except ImportError:
 
 logger = logging.getLogger("guardianline.notify")
 
-WHATSAPP_FALLBACK_TWILIO_CODES = (63015, 21211, 21614)
+WHATSAPP_FALLBACK_TWILIO_CODES = (63015, 21211, 21614, 63007)
 
 # GSM 03.38 character sets
 BASIC_GSM7 = set(
@@ -731,8 +731,8 @@ class FamilyAlertDispatcher:
                 last_error = e
                 if getattr(e, "code", None) in WHATSAPP_FALLBACK_TWILIO_CODES and self.config.channel == AlertChannel.WHATSAPP:
                     logger.warning(
-                        "WhatsApp dispatch failed with TwilioRestException code %s for call %s to %s; falling back to SMS via _fit_sms",
-                        e.code,
+                        "WhatsApp failed code %s, falling back to SMS for call %s to %s",
+                        getattr(e, "code", "unknown"),
                         call_id,
                         masked_recip,
                     )
@@ -762,8 +762,8 @@ class FamilyAlertDispatcher:
                 last_error = e
                 if getattr(e, "code", None) in WHATSAPP_FALLBACK_TWILIO_CODES and self.config.channel == AlertChannel.WHATSAPP:
                     logger.warning(
-                        "WhatsApp dispatch failed with Twilio code %s for call %s to %s; falling back to SMS via _fit_sms",
-                        getattr(e, "code", None),
+                        "WhatsApp failed code %s, falling back to SMS for call %s to %s",
+                        getattr(e, "code", "unknown"),
                         call_id,
                         masked_recip,
                     )
@@ -849,3 +849,12 @@ def build_dispatcher_from_env() -> FamilyAlertDispatcher:
 
     store = PersistentAlertStore(db_path=db_path)
     return FamilyAlertDispatcher(config=config, twilio_client=twilio_client, store=store)
+
+
+def dispatch_family_alert(
+    call_record: Dict[str, Any],
+    dispatcher: Optional[FamilyAlertDispatcher] = None,
+) -> AlertResult:
+    """Dispatches a family alert using the provided or environment-configured FamilyAlertDispatcher."""
+    disp = dispatcher or build_dispatcher_from_env()
+    return disp.dispatch(call_record)

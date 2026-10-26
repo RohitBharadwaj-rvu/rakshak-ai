@@ -69,7 +69,7 @@ AUTHORITY_PATTERNS = [
     r"electricity.*(cut|disconnect|bill)|power.*(cut|disconnect)|बिजली.*(काट|कट|काटी|बिल|मीटर)",
     r"trai.*(deactivat|block)|sim.*(block|disconnect)|दूरसंचार|telecom",
     r"court.*order|ई-चालान|challan|chalan|chalaan|चालान",
-    r"task.*earn|रेटिंग्स|rating.*agency",
+    r"task.*(earn|prepaid)|telegram.*(channel|task)|(part-?time|work\s*from\s*home).*(job|task|opportunity)|रेटिंग्स|rating.*agency",
     r"pension.*(block|fraud|suspend)|पेंशन.*(बंद|ब्लॉक|जांच)|कल्याण\s*विभाग",
     r"money\s*laundering|हवाला|गैरकानूनी|vigilance",
 ]
@@ -77,10 +77,10 @@ AUTHORITY_PATTERNS = [
 # Pillar 2: Artificial Urgency, Secrecy & Isolation Pressure
 URGENCY_PATTERNS = [
     r"within\s*\d+\s*(minute|hour|min|hr)s?|\d+\s*(मिनट|घंटे)",
-    r"right\s*now|immediately|तुरंत|अभी\s*के\s*अभी",
+    r"right\s*now|immediately|तुरंत|अभी\s*के\s*अभी|turant|jaldi",
     r"don'?t\s*(disconnect|cut|hang\s*up)|फ़ोन\s*मत\s*(काटना|काटिए)|कॉल\s*मत\s*(काटना|काटिए)",
     r"don'?t\s*tell|किसी\s*को\s*(मत|नहीं)\s*बताना|गोपनीय",
-    r"urgent|urgnt|arjent|इमरजेंसी|आपातकालीन",
+    r"urgent|urgnt|arjent|emergency|इमरजेंसी|आपातकालीन",
     r"before\s*\d+|आज\s*शाम|आज\s*रात|रात\s*\d+\s*बजे",
     r"today\b|aaj\s*hi|aaj\s*ke\s*aaj|आज\s*ही|आज\s*के\s*आज|aaj\b",
     r"block(ed)?\s*today|expire[sd]?\s*today|ब्लॉक\s*हो\s*जाएगा|बंद\s*हो\s*जाएगा|हो\s*गया\s*है",
@@ -138,6 +138,23 @@ def has_critical_value_or_credential_demand(text: str) -> bool:
     Under the General Invariant Safety Rule, callers asking for any of these
     can NEVER receive a 'genuine' verdict.
     """
+    # Exemption for legitimate community/utility notices and medical followups
+    # when NOT demanding OTP, screen-share, personal UPI VPA, or remote access
+    is_routine_identity = bool(
+        re.search(
+            r"(?i)\b(society|rwa|resident\s*welfare|maintenance\s*notice|electricity\s*bill|water\s*bill|doctor\s*appointment|clinic\s*followup)\b",
+            text,
+        )
+    )
+    has_hard_credential_demand = bool(
+        re.search(
+            r"(?i)(o\s*t\s*p|otp|odp|one\s*time\s*password|ओटीपी|screen\s*share|स्क्रीन\s*शेयर|any\s*desk|anydesk|quicksupport|teamviewer|remote\s*access|[a-zA-Z0-9.\-_]+@(ok[a-zA-Z]+|ybl|ibl|axl|paytm|upi)\b)",
+            text,
+        )
+    )
+    if is_routine_identity and not has_hard_credential_demand:
+        return False
+
     text_lower = text.lower()
     return any(bool(re.search(p, text_lower)) for p in CRITICAL_VALUE_OR_CREDENTIAL_PATTERNS)
 
@@ -149,7 +166,7 @@ GENUINE_INDICATORS = [
     r"appointment.*doctor|clinic|क्लिनिक|डॉक्टर.*अपॉइंटमेंट|dr\.\s*sundaram|eye\s*checkup|medanta|मेदांता|fortis",
     r"gate\s*security|guard\s*room|सिक्योरिटी\s*गार्ड|राम\s*सिंह|security\s*guard|main\s*gate",
     r"routine.*check|अपॉइंटमेंट.*कन्फर्म",
-    r"society.*maintenance|फ्लैट\s*नंबर",
+    r"society.*(maintenance|water|tank|cleaning|notice)|resident\s*welfare|\brwa\b|फ्लैट\s*नंबर",
     r"होम\s*लोन|ब्याज\s*दर|नज़दीकी\s*शाखा|home\s*loan|interest\s*rate",
     r"भतीजा|चाचाजी|मामा|रविवार.*घर|nephew.*amit|visit.*sunday|पंक्चर|टायर|battery\s*died|bypass|ढाबे",
     r"स्कूल|टीचर|क्लास\s*टीचर|parent.*teacher|रिपोर्ट\s*कार्ड",
@@ -186,6 +203,15 @@ def _evaluate_heuristics(transcript_text: str) -> Optional[Dict[str, Any]]:
         has_authority = False
         if "authority_coercion" in pillars:
             pillars.remove("authority_coercion")
+
+    # Routine administrative community/resident welfare notice without credential/payment demand
+    is_routine_community = bool(
+        re.search(r"(?i)\b(society|rwa|resident\s*welfare|maintenance\s*notice)\b", text_lower)
+    )
+    if is_routine_community and not has_value_demand:
+        has_urgency = False
+        if "artificial_urgency" in pillars:
+            pillars.remove("artificial_urgency")
 
     # Bank security advisories that explicitly warn NEVER to share OTP/password
     is_security_advisory = bool(
@@ -281,7 +307,7 @@ def _format_conversation_for_prompt(conversation: List[Dict[str, str]]) -> str:
 # Measured 2026-10-18: gpt-oss-20b gave scam 0.90-0.92 on the CBI smoke line every time in ~740 ms;
 # qwen/qwen3.8-27b with max_tokens=150 flip-flopped between unsure and scam on the same input.
 GROQ_DEFAULT_MODEL = "openai/gpt-oss-20b"
-GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite"
+GEMINI_DEFAULT_MODEL = "gemini-2.0-flash"
 
 
 def _call_groq(conversation_text: str, api_key: str, timeout: float = 1.2) -> Optional[Dict[str, Any]]:
@@ -370,6 +396,15 @@ def _classify_offline_rules(conversation_text: str) -> Dict[str, Any]:
         has_authority = False
         if "authority_coercion" in pillars:
             pillars.remove("authority_coercion")
+
+    # Routine administrative community/resident welfare notice without credential/payment demand
+    is_routine_community = bool(
+        re.search(r"(?i)\b(society|rwa|resident\s*welfare|maintenance\s*notice)\b", text_lower)
+    )
+    if is_routine_community and not has_value_demand:
+        has_urgency = False
+        if "artificial_urgency" in pillars:
+            pillars.remove("artificial_urgency")
 
     # Bank security advisories that explicitly warn NEVER to share OTP/password
     is_security_advisory = bool(

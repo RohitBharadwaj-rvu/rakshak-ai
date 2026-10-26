@@ -91,10 +91,10 @@
             },
             "provider_config": {
               "model": "bulbul:v3",
-              "voice": "Simran",
-              "voice_id": "simran",
+              "voice": "ratan",
+              "voice_id": "ratan",
               "language": "hi",
-              "speed": 1.0,
+              "speed": 0.95,
               "loudness": 1.0
             }
           },
@@ -224,10 +224,10 @@
             },
             "provider_config": {
               "model": "bulbul:v3",
-              "voice": "Simran",
-              "voice_id": "simran",
+              "voice": "ratan",
+              "voice_id": "ratan",
               "language": "hi",
-              "speed": 1.0,
+              "speed": 0.95,
               "loudness": 1.0
             }
           },
@@ -380,10 +380,10 @@
             },
             "provider_config": {
               "model": "bulbul:v3",
-              "voice": "Simran",
-              "voice_id": "simran",
+              "voice": "ratan",
+              "voice_id": "ratan",
               "language": "hi",
-              "speed": 1.0,
+              "speed": 0.95,
               "loudness": 1.0
             }
           },
@@ -392,7 +392,7 @@
               {
                 "key": "custom_task",
                 "name": "switch_to_honeypot",
-                "description": "Fetch deterministic rotating persona and Luhn-valid fake_bait for this call_id.",
+                "description": "Call this when classify_caller returns verdict scam OR verdict unsure with active demand for OTP/UPI/money/personal details/screen-share. Use immediately to protect elder.",
                 "pre_call_message": "Haan haan beta, ek minute chashma laga loon.",
                 "parameters": {
                   "type": "object",
@@ -538,10 +538,10 @@
             },
             "provider_config": {
               "model": "bulbul:v3",
-              "voice": "Simran",
-              "voice_id": "simran",
+              "voice": "ratan",
+              "voice_id": "ratan",
               "language": "hi",
-              "speed": 1.0,
+              "speed": 0.95,
               "loudness": 1.0
             }
           },

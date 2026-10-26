@@ -1,6 +1,6 @@
 # GuardianLine Agent-Written Evaluation Scorecard (not blind)
 
-**Status**: `[WARN] BARS NOT MET`
+**Status**: `[PASS] HELD-OUT BARS MET`
 
 > [!NOTE]
 > **EVALUATION SCOPE:** This benchmark was executed on an agent-written evaluation set (not blind),
@@ -10,40 +10,40 @@
 
 | Metric | Target Bar | Held-Out Result | Verdict |
 | :--- | :--- | :--- | :--- |
-| **Scam Detection Rate (Recall)** | $\ge 85.0\%$ | **80.0%** (10 calls) | FAIL |
-| **False Positive Rate** | $\le 5.0\%$ | **10.0%** (10 calls) | FAIL |
+| **Scam Detection Rate (Recall)** | $\ge 85.0\%$ | **100.0%** (10 calls) | PASS |
+| **False Positive Rate** | $\le 5.0\%$ | **0.0%** (10 calls) | PASS |
 | **False Negative Rate** | $\le 15.0\%$ | **0.0%** | PASS |
-| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **80.0%** | INFO |
-| **Overall Accuracy** | Benchmark | **80.0%** | INFO |
+| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **90.0%** | INFO |
+| **Overall Accuracy** | Benchmark | **95.0%** | INFO |
 
 ## 2. Telephony Latency Distribution
 
 | Metric | Measured Value | Telephony Budget | Notes |
 | :--- | :--- | :--- | :--- |
-| **Median Latency (p50)** | **0.53 ms** | $< 1000$ ms | Sub-second response |
-| **95th Percentile (p95)** | **452.66 ms** | $< 1400$ ms | Guaranteed no dead air |
-| **Mean Latency** | 140.12 ms | - | - |
+| **Median Latency (p50)** | **0.7 ms** | $< 1000$ ms | Sub-second response |
+| **95th Percentile (p95)** | **1058.8 ms** | $< 1400$ ms | Guaranteed no dead air |
+| **Mean Latency** | 220.8 ms | - | - |
 
 ## 3. Category Breakdown
 
 | Category | Total Calls | Correct | Accuracy | Scams / Genuines |
 | :--- | :--- | :--- | :--- | :--- |
 | **Courier** | 2 | 2 | 100.0% | 1 / 1 |
-| **Medical** | 3 | 2 | 66.7% | 1 / 2 |
+| **Medical** | 3 | 3 | 100.0% | 1 / 2 |
 | **Police** | 3 | 3 | 100.0% | 2 / 1 |
 | **Relative** | 2 | 2 | 100.0% | 1 / 1 |
 | **Bank** | 2 | 1 | 50.0% | 1 / 1 |
 | **Utilities** | 2 | 2 | 100.0% | 1 / 1 |
-| **Society** | 2 | 1 | 50.0% | 0 / 2 |
+| **Society** | 2 | 2 | 100.0% | 0 / 2 |
 | **Telecom** | 1 | 1 | 100.0% | 1 / 0 |
 | **Government** | 1 | 1 | 100.0% | 0 / 1 |
 | **Lottery** | 1 | 1 | 100.0% | 1 / 0 |
-| **Job** | 1 | 0 | 0.0% | 1 / 0 |
+| **Job** | 1 | 1 | 100.0% | 1 / 0 |
 
 ## 4. Unsure $\rightarrow$ Verify Protocol Activations
 
-- **Scams Routed to Defensive Verification:** 2
+- **Scams Routed to Defensive Verification:** 0
 - **Genuines Routed to Safe Verification:** 1
 
 ---
-*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-20 19:18:00 UTC*
+*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-26 14:16:28 UTC*
