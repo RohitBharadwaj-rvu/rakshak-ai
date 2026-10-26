@@ -1,12 +1,18 @@
 """
-app/agent/state.py - Persona and Approved Fake Bait State for GuardianLine.
+app/agent/state.py - Persona and Rotating Fake Bait State for GuardianLine.
 """
 
 from typing import Any, Dict, List, Optional
-from app.core.rules import APPROVED_BAIT_VALUES, APPROVED_PERSONAS
+from app.core.rules import (
+    APPROVED_BAIT_VALUES,
+    APPROVED_PERSONAS,
+    PERSONA_KEYS,
+    get_rotating_bait,
+    verify_luhn,
+)
 
 SUPPORTED_LANGUAGES = {"hi", "en", "hinglish"}
-PERSONA_ORDER: List[str] = ["ramesh", "sunita", "iyer"]
+PERSONA_ORDER: List[str] = list(PERSONA_KEYS)
 
 
 def normalize_language(language: Optional[str]) -> str:
@@ -23,21 +29,29 @@ def normalize_language(language: Optional[str]) -> str:
     return "hi"
 
 
-def get_persona_bundle(call_id: str, language: Optional[str] = "hi", preferred_persona: Optional[str] = None) -> Dict[str, Any]:
+def get_persona_bundle(
+    call_id: str,
+    language: Optional[str] = "hi",
+    preferred_persona: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Deterministically select or retrieve an approved persona and fake bait for `call_id`.
+    Deterministically select or retrieve an approved persona and rotating bait for `call_id`.
+    When `preferred_persona` is not specified, rotates across all 20 personas using
+    `get_rotating_bait(call_id)` (seeded via `hashlib.sha256(call_id).digest()`).
     """
     lang = normalize_language(language)
     if preferred_persona and preferred_persona.lower() in APPROVED_PERSONAS:
         p_key = preferred_persona.lower()
+        persona = APPROVED_PERSONAS[p_key]
+        bait_copy = dict(persona["fake_bait"])
     else:
-        # Default Sprint 1 primary persona is 'ramesh', or deterministic selection if specified
-        p_key = "ramesh"
+        rotated = get_rotating_bait(call_id)
+        p_key = rotated["persona_id"]
+        persona = APPROVED_PERSONAS[p_key]
+        bait_copy = dict(rotated["fake_bait"])
 
-    persona = APPROVED_PERSONAS[p_key]
     lines = persona["lines"].get(lang, persona["lines"]["hi"])
 
-    bait_copy = dict(persona["fake_bait"])
     return {
         "call_id": call_id,
         "language": lang,
@@ -58,7 +72,10 @@ def get_persona_bundle(call_id: str, language: Optional[str] = "hi", preferred_p
 __all__ = [
     "APPROVED_PERSONAS",
     "APPROVED_BAIT_VALUES",
+    "PERSONA_ORDER",
     "SUPPORTED_LANGUAGES",
+    "get_rotating_bait",
+    "verify_luhn",
     "normalize_language",
     "get_persona_bundle",
 ]

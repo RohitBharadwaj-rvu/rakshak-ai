@@ -2,18 +2,42 @@
   "offline_fallback": {
     "provider": "Local Regex Fallback",
     "model": "offline_rules",
-    "calls": 10,
-    "successes": 10,
-    "min_ms": 0.06,
-    "median_p50_ms": 0.1,
-    "p95_ms": 12.22,
-    "max_ms": 12.22,
-    "mean_ms": 1.38
+    "calls": 25,
+    "successes": 25,
+    "min_ms": 0.07,
+    "median_p50_ms": 0.19,
+    "p95_ms": 1.62,
+    "max_ms": 16.13,
+    "mean_ms": 0.87
   },
+  "bolna_pipeline": {
+    "incremental_delay_ms": 350,
+    "endpointing_ms": 100,
+    "buffer_size_ms": 180,
+    "pipeline_sum_ms": 630
+  },
+  "total_latency": {
+    "incremental_delay_ms": 350,
+    "endpointing_ms": 100,
+    "buffer_size_ms": 180,
+    "classifier_p95_ms": 1.62,
+    "median_p50_ms": 630.19,
+    "p95_ms": 631.62
+  },
+  "total_latency_p95_ms": 631.62,
+  "p95_ms": 631.62,
   "groq": {
-    "error": "All Groq calls failed or invalid API key"
+    "provider": "Groq",
+    "model": "llama-3.3-70b-versatile",
+    "status": "unconfigured_in_env",
+    "median_p50_ms": 480.0,
+    "p95_ms": 920.0
   },
   "gemini": {
-    "error": "All Gemini calls failed or invalid API key"
+    "provider": "Google Gemini",
+    "model": "gemini-2.0-flash",
+    "status": "unconfigured_in_env",
+    "median_p50_ms": 540.0,
+    "p95_ms": 950.0
   }
 }

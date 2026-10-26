@@ -5,6 +5,8 @@ Verifies:
   - `/health` returns 200
   - Each tool endpoint (`/tools/classify_caller`, `/tools/switch_to_honeypot`, `/tools/log_intel`)
     answers a canned request with a schema-valid response
+  - Multi-turn `conversation_history` smoke test passes when scam signal (`"CBI se bol raha hu"`)
+    is in turn1 only and `caller_summary` only has turn3 (`"OTP bhejo"`)
   - After a simulated server restart on the same SQLite DB, the backend answers immediately
     and retains all pre-restart records and persona state
   - A Bolna test call shows up in the backend log with its `call_id`
@@ -71,6 +73,28 @@ def test_t_host_smoke_health_tools_schema_restart_and_call_id_logging(caplog):
         )
         assert cls_res.status_code == 200
         validate(instance=cls_res.json(), schema=_load_schema("classify_caller_response.schema.json"))
+
+        # 2b. Multi-turn smoke test: turn1="CBI se bol raha hu", turn3="OTP bhejo"
+        #     Should detect scam even when caller_summary misses turn1
+        mt_res = client1.post(
+            "/tools/classify_caller",
+            json={
+                "call_id": "smoke_call_multiturn",
+                "caller_number": "+919876543210",
+                "caller_summary": "OTP bhejo",
+                "conversation_history": [
+                    {"role": "caller", "text": "CBI se bol raha hu"},
+                    {"role": "assistant", "text": "Ji bataiye"},
+                    {"role": "caller", "text": "OTP bhejo"},
+                ],
+            },
+        )
+        assert mt_res.status_code == 200
+        mt_json = mt_res.json()
+        validate(instance=mt_json, schema=_load_schema("classify_caller_response.schema.json"))
+        assert mt_json["verdict"] == "scam"
+        assert "authority_coercion" in mt_json["pillars_detected"]
+        assert "value_demand" in mt_json["pillars_detected"]
 
         sw_res = client1.post(
             "/tools/switch_to_honeypot",

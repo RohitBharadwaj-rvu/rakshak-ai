@@ -65,7 +65,7 @@ Every producer and consumer across Lanes A, B, C, and D is tested against the JS
   - Request: `contracts/switch_to_honeypot_request.schema.json`
   - Response: `contracts/switch_to_honeypot_response.schema.json`
 - **Behavior:**
-  - Returns an elderly honeypot persona (`ramesh`, `sunita`, or `iyer`), in-character spoken stalling lines (`persona_lines`), and fake bait credentials from the approved bait list (`APPROVED_BAIT`).
+  - Returns one of 20 rotating elderly honeypot personas (`ramesh`, `sunita`, `iyer`, etc.), in-character spoken stalling lines (`persona_lines`), and rotating bait credentials via `get_rotating_bait(call_id)`.
   - **Idempotent per `call_id`:** A second call with the same `call_id` always returns the exact same persona and bait details.
   - **Language fallback:** Unknown or unsupported language codes automatically fall back to `"hi"` (Hindi).
   - Missing `call_id` returns HTTP `422` naming `call_id`.
@@ -92,17 +92,17 @@ Every producer and consumer across Lanes A, B, C, and D is tested against the JS
     "मेरा हाथ काँप रहा है बेटा, एक-एक अंक आराम से बोलिए।"
   ],
   "fake_bait": {
-    "upi_id": "ramesh.elderly@testbank",
-    "account_number": "9999000011112222",
-    "ifsc_code": "DUMY0001234",
-    "phone_number": "5550010001"
+    "upi_id": "rsharma72@oksbi",
+    "account_number": "30984716255",
+    "ifsc_code": "SBIN0000125",
+    "phone_number": "9415023481"
   }
 }
 ```
 
 ---
 
-## 4. Mid-Call Tool 3: `log_intel` (Bolna $ightarrow$ Backend, Owner: B)
+## 4. Mid-Call Tool 3: `log_intel` (Bolna $\rightarrow$ Backend, Owner: B)
 
 - **Endpoint:** `POST /tools/log_intel`
 - **Schemas (v1.1, Addition 1):**

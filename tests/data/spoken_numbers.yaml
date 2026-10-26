@@ -104,8 +104,8 @@ cases:
     expected: "112233"
   - id: en_25
     group: repeats
-    input: "triple five triple six"
-    expected: "555666"
+    input: "triple four triple six"
+    expected: "444666"
   - id: en_26
     group: oh_for_zero
     input: "nine oh nine oh"
@@ -656,8 +656,8 @@ cases:
     expected: "18245500"
   - id: v2_03
     group: mid_string_switch
-    input: "98 पचपन chhappan सात आठ"
-    expected: "98555678"
+    input: "98 चौबीस chhappan सात आठ"
+    expected: "98245678"
   - id: v2_04
     group: mid_string_switch
     input: "S B I N शून्य zero ० एक two ३ चार"

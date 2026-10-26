@@ -7,10 +7,11 @@ Exposes the hybrid classify_caller engine as an HTTP service for:
 """
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+import json
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 import app.voice.classifier as _classifier_mod
 from app.voice.classifier import CallerClassificationResult
@@ -30,7 +31,7 @@ class ConversationTurn(BaseModel):
     text: Optional[str] = Field(default=None, description="Alternative key for utterance text")
 
     def get_text(self) -> str:
-        return self.content or self.text or ""
+        return self.text if self.text is not None else (self.content or "")
 
 
 class ClassifyCallerRequest(BaseModel):
@@ -41,6 +42,10 @@ class ClassifyCallerRequest(BaseModel):
         default=None,
         description="Agent-written summary of caller statements (Bolna mid-call parameter)",
     )
+    conversation_history: Optional[List[ConversationTurn]] = Field(
+        default_factory=list,
+        description="Last 6 turns as [{role, text}]",
+    )
     conversation: Optional[List[ConversationTurn]] = Field(
         default_factory=list, description="Ordered transcript turns of the conversation so far"
     )
@@ -48,6 +53,26 @@ class ClassifyCallerRequest(BaseModel):
     max_latency_budget_s: float = Field(
         default=1.4, description="Maximum latency budget in seconds before returning 'unsure'"
     )
+
+    @field_validator("conversation_history", "conversation", mode="before")
+    @classmethod
+    def _parse_turns_input(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            s = v.strip()
+            if not s or s.startswith("%(") or s.startswith("{{"):
+                return []
+            try:
+                parsed = json.loads(s)
+                if isinstance(parsed, list):
+                    return parsed
+            except Exception:
+                return [{"role": "caller", "text": s}]
+            return []
+        if isinstance(v, list):
+            return v
+        return []
 
 
 class ClassifyCallerResponse(BaseModel):
@@ -71,13 +96,25 @@ async def api_classify_caller(req: ClassifyCallerRequest):
     """
     effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
     try:
-        conv_dicts = (
-            [{"role": t.role, "content": t.get_text()} for t in req.conversation]
-            if req.conversation
-            else []
-        )
-        if req.caller_summary and req.caller_summary.strip():
-            conv_dicts.append({"role": "caller", "content": req.caller_summary.strip()})
+        raw_turns = list(req.conversation_history or [])[-6:] if req.conversation_history else list(req.conversation or [])
+        if req.conversation_history and req.conversation:
+            raw_turns = (list(req.conversation_history) + list(req.conversation))[-6:]
+
+        history: List[Dict[str, str]] = [
+            {"role": t.role, "text": t.get_text(), "content": t.get_text()}
+            for t in raw_turns
+            if t.get_text()
+        ]
+        caller_summary = (req.caller_summary or "").strip()
+        history_joined = "\n".join([f"{t['role']}: {t['text']}" for t in history])
+        if history_joined and caller_summary:
+            full_text = f"{history_joined}\n{caller_summary}"
+        else:
+            full_text = history_joined or caller_summary
+
+        conv_dicts = list(history)
+        if caller_summary:
+            conv_dicts.append({"role": "caller", "text": caller_summary, "content": caller_summary})
         budget = min(float(req.max_latency_budget_s or 1.4), HARD_TIMEOUT_SECONDS)
 
         future = _EXECUTOR.submit(
@@ -88,6 +125,8 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             caller_summary=req.caller_summary,
             language=req.language,
             max_latency_budget_s=budget,
+            conversation_history=history,
+            full_text=full_text,
         )
         result: CallerClassificationResult = future.result(timeout=HARD_TIMEOUT_SECONDS)
 

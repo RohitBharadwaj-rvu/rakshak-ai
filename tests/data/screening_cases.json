@@ -17,8 +17,8 @@
   },
   {
     "description": "International exit code 00 matches E.164 contact",
-    "caller_number": "0014155552671",
-    "contacts": ["+14155552671"],
+    "caller_number": "0014156782671",
+    "contacts": ["+14156782671"],
     "bolna_number": "+919988776655",
     "expected_action": "ALLOW",
     "expected_reason": "SAVED_CONTACT"

@@ -75,8 +75,8 @@ def _build_labeled_transcript_dataset():
                 {
                     "role": "assistant",
                     "content": (
-                        "Beta mera UPI ramesh.elderly@testbank hai aur account 9999000011112222 "
-                        "IFSC DUMY0001234 phone 5550010001 hai."
+                        "Beta mera UPI rsharma72@oksbi hai aur account 30984716255 "
+                        "IFSC SBIN0000125 phone 9415023481 hai."
                     ),
                     "timestamp": float(idx * 5 + 3),
                 }
@@ -207,8 +207,8 @@ def _build_labeled_transcript_dataset():
                 {
                     "role": "assistant",
                     "content": (
-                        "My UPI is ramesh.elderly@testbank, sunita.pension@testbank, prof.iyer@testbank, "
-                        "account 9999000011112222, phone 9876500001, IFSC DUMY0001234, PAN ZZZZZ9999Z."
+                        "My UPI is rsharma72@oksbi, sverma68@pnb, siyer75@cnrb, "
+                        "account 30984716255, phone 9415023481, IFSC SBIN0000125, PAN ZZZZZ9999Z."
                     ),
                 },
                 {"role": "user", "content": "Okay, just wait on the line."},
@@ -389,7 +389,7 @@ def _build_labeled_transcript_dataset():
             "transcript": [
                 {
                     "role": "user",
-                    "content": "Okay I see your UPI is ramesh.elderly@testbank, now send to my UPI arrest.fund@okaxis",
+                    "content": "Okay I see your UPI is rsharma72@oksbi, now send to my UPI arrest.fund@okaxis",
                 }
             ],
             "expected": {

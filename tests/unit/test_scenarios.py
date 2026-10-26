@@ -1,20 +1,24 @@
 import glob
 import json
 import os
+import sys
 import pytest
 from jsonschema import validate, ValidationError
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+from app.core.rules import APPROVED_PERSONAS
+
 SCENARIOS_DIR = os.path.join(ROOT_DIR, "evaluation", "scenarios")
 SCHEMA_PATH = os.path.join(ROOT_DIR, "contracts", "scenario.schema.json")
 
 # Approved fake bait values used by GuardianLine personas (must not collide with planted details)
-# Note: Real banking handles (@sbi, @okhdfc, etc.) and valid Indian mobile prefixes (91234..., 98765...)
-# are forbidden to prevent collision with real innocent citizens.
 APPROVED_BAIT_VALUES = {
-    "upi_ids": ["ramesh.elderly@testbank", "sunita.pension@testbank", "prof.iyer@testbank"],
-    "account_numbers": ["9999000011112222", "8888777766665555", "7777666655554444"],
-    "phone_numbers": ["5550010001", "5550010002", "5550010003"],
+    "upi_ids": [p["fake_bait"]["upi_id"] for p in APPROVED_PERSONAS.values()],
+    "account_numbers": [p["fake_bait"]["account_number"] for p in APPROVED_PERSONAS.values()],
+    "phone_numbers": [p["fake_bait"]["phone_number"] for p in APPROVED_PERSONAS.values()],
 }
 
 
@@ -53,7 +57,7 @@ def test_unique_scenario_ids(all_scenarios):
 def test_scam_types_have_hindi_and_english_versions(all_scenarios):
     """Every scam type must have both a Hindi ('hi') and English ('en') version."""
     scam_scenarios = [sc for _, sc in all_scenarios if sc.get("type") == "scam"]
-    
+
     # Map scam base name -> set of languages
     scam_lang_map = {}
     for sc in scam_scenarios:
@@ -150,5 +154,3 @@ def test_ground_truth_registry_completeness(all_scenarios):
         reg_item = sc_registry[sc_id]
         assert reg_item["expected_verdict"] == sc["expected_verdict"]
         assert reg_item["language"] == sc["language"]
-
-

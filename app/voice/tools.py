@@ -21,6 +21,7 @@ from app.voice.store import (
     get_or_assign_honeypot_persona,
     resolve_effective_tool_call_id,
 )
+from app.voice.syndicate import ingest_scam_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +198,15 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         turn_index=req.turn_index,
         seconds_from_start=req.seconds_from_start,
     )
+    if not entry["unparseable"] and not entry.get("is_bait", False) and entry.get("normalized_value"):
+        try:
+            ingest_scam_identifier(
+                call_id=effective_id,
+                identifier_type=entry["type"],
+                normalized_value=entry["normalized_value"],
+            )
+        except Exception as exc:
+            logger.warning("Syndicate ingestion warning for call %s: %s", effective_id, exc)
     logger.info(
         "log_intel effective_id=%s raw_call_id=%s raw_execution_id=%s type=%s normalized=%s unparseable=%s",
         effective_id,
@@ -226,4 +236,3 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         times_logged=entry["times_logged"],
         identifiers_logged=entry["identifiers_logged"],
     )
-
