@@ -88,3 +88,26 @@ def test_api_classify_caller_with_caller_summary():
     assert data["confidence"] >= 0.85
     assert "authority_coercion" in data["pillars_detected"]
 
+
+def test_api_classify_caller_multiturn_conversation_history_when_summary_misses_turn1():
+    """
+    Simulate turn1="CBI se bol raha hu", turn3="OTP bhejo" -> should detect scam
+    even if caller_summary misses turn1.
+    """
+    payload = {
+        "call_id": "call_multiturn_history_scam",
+        "caller_number": "+919876543210",
+        "caller_summary": "OTP bhejo",  # misses turn1 ("CBI se bol raha hu")
+        "conversation_history": [
+            {"role": "caller", "text": "CBI se bol raha hu"},
+            {"role": "assistant", "text": "Ji, bataiye kya baat hai?"},
+            {"role": "caller", "text": "OTP bhejo"},
+        ],
+    }
+    response = client.post("/tools/classify_caller", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["call_id"] == "call_multiturn_history_scam"
+    assert data["verdict"] == "scam"
+    assert "authority_coercion" in data["pillars_detected"]
+    assert "value_demand" in data["pillars_detected"]

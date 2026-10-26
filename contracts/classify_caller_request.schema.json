@@ -1,12 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ClassifyCallerRequest",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "object",
   "required": ["call_id"],
   "anyOf": [
     {"required": ["caller_summary"]},
-    {"required": ["conversation"]}
+    {"required": ["conversation"]},
+    {"required": ["conversation_history"]}
   ],
   "properties": {
     "call_id": {
@@ -54,6 +55,25 @@
             "type": "string"
           },
           "text": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "conversation_history": {
+      "type": "array",
+      "description": "Last 6 turns as [{role, text}]",
+      "items": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "content": {
             "type": "string"
           }
         }

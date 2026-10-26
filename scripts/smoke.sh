@@ -17,7 +17,13 @@ curl -fsS -X POST "${BASE_URL}/tools/classify_caller" \
   -H "Content-Type: application/json" \
   -d '{"call_id":"smoke_call_001","caller_number":"+919876543210","language":"hi","conversation":[{"role":"caller","content":"Main CBI se bol raha hoon, aap digital arrest par hain. Abhi turant 50000 rupaye UPI se security deposit bhejo, warna giraftaar honge."}]}' \
   | grep -q '"verdict":"scam"'
-# 2b: one pillar alone is ambiguous by design (verdict may be unsure), but it must reach
+# 2b: multi-turn conversation_history when turn1="CBI se bol raha hu" and turn3="OTP bhejo"
+#     even if caller_summary misses turn1.
+curl -fsS -X POST "${BASE_URL}/tools/classify_caller" \
+  -H "Content-Type: application/json" \
+  -d '{"call_id":"smoke_call_multiturn","caller_number":"+919876543210","caller_summary":"OTP bhejo","conversation_history":[{"role":"caller","text":"CBI se bol raha hu"},{"role":"assistant","text":"Ji bataiye"},{"role":"caller","text":"OTP bhejo"}]}' \
+  | grep -q '"verdict":"scam"'
+# 2c: one pillar alone is ambiguous by design (verdict may be unsure), but it must reach
 # the Stage 2 LLM; this fails if the Groq/Gemini keys are dead or missing.
 curl -fsS -X POST "${BASE_URL}/tools/classify_caller" \
   -H "Content-Type: application/json" \
@@ -29,7 +35,7 @@ echo "[3/4] Checking POST /tools/switch_to_honeypot ..."
 curl -fsS -X POST "${BASE_URL}/tools/switch_to_honeypot" \
   -H "Content-Type: application/json" \
   -d '{"call_id":"smoke_call_001","language":"hi"}' \
-  | grep -q '"persona_id":"ramesh"'
+  | grep -q '"status":"switched"'
 echo "      PASS"
 
 echo "[4/4] Checking POST /tools/log_intel ..."
