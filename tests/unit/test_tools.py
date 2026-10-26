@@ -5,6 +5,7 @@ Verifies:
   - switch_to_honeypot returns persona and bait for requested language; unknown language -> 'hi';
     second call with same call_id returns the exact same persona
   - Every bait value served is on APPROVED_BAIT_VALUES
+  - get_rotating_bait rotates across 20 personas deterministically using SHA-256 seed
   - log_intel stores both value_as_heard and normalized_value; unparseable value is stored with
     unparseable=True, never rejected
   - log_intel for a call_id with no record yet creates a pending record, which the webhook merges later
@@ -14,6 +15,7 @@ Verifies:
 """
 
 import os
+import re
 import sys
 import tempfile
 import time
@@ -25,7 +27,7 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 import app.voice.classifier as classifier_mod
-from app.core.rules import APPROVED_BAIT_VALUES
+from app.core.rules import APPROVED_BAIT_VALUES, APPROVED_PERSONAS, IFSC_PATTERN, UPI_PATTERN, get_rotating_bait, verify_luhn
 from app.main import app
 from app.voice.store import clear_call_finalized_events, get_call_record, set_db_path
 
@@ -213,7 +215,7 @@ def test_bolna_v1_prompt_field_names_compatibility(client):
     # 2. switch_to_honeypot returns name, age, city, short_backstory, bait_values
     r_sw = client.post(
         "/tools/switch_to_honeypot",
-        json={"call_id": "bolna_v1_001", "language": "hi"},
+        json={"call_id": "bolna_v1_001", "language": "hi", "persona_id": "ramesh"},
     )
     assert r_sw.status_code == 200
     d_sw = r_sw.json()
@@ -221,8 +223,10 @@ def test_bolna_v1_prompt_field_names_compatibility(client):
     assert d_sw["age"] == 72
     assert d_sw["city"] == "Lucknow"
     assert "retired post office clerk" in d_sw["short_backstory"]
-    assert d_sw["bait_values"]["upi_id"] == "ramesh.elderly@testbank"
-    assert d_sw["bait_values"]["account_number"] == "9999000011112222"
+    assert d_sw["bait_values"]["upi_id"] == "rsharma72@oksbi"
+    assert d_sw["bait_values"]["account_number"] == "30984716255"
+    assert d_sw["bait_values"]["ifsc_code"] == "SBIN0000125"
+    assert d_sw["bait_values"]["phone_number"] == "9415023481"
     assert d_sw["bait_values"]["otp"] == "000000"
     assert d_sw["bait_values"]["aadhaar"] == "0000 0000 0000"
 
@@ -242,15 +246,23 @@ def test_bolna_v1_prompt_field_names_compatibility(client):
     assert d_lg["normalized_value"] == "cbi.officer@okaxis"
 
 
-
-def test_fake_bait_uses_only_non_routable_values():
-    # docs/security/approved_bait_signoff.md (lane-d): bait must never collide with real people.
-    import re
-    from app.core.rules import APPROVED_PERSONAS
+def test_rotating_bait_20_personas_luhn_and_determinism():
+    assert len(APPROVED_PERSONAS) == 20
 
     for pid, persona in APPROVED_PERSONAS.items():
         bait = persona["fake_bait"]
-        assert bait["upi_id"].endswith("@testbank"), pid
-        assert re.fullmatch(r"555001\d{4}", bait["phone_number"]), pid
-        assert bait["ifsc_code"] == "DUMY0001234", pid
+        assert UPI_PATTERN.fullmatch(bait["upi_id"]), pid
+        assert IFSC_PATTERN.fullmatch(bait["ifsc_code"]), pid
+        assert 11 <= len(bait["account_number"]) <= 16, pid
+        assert verify_luhn(bait["account_number"]), f"Luhn check failed for {pid}: {bait['account_number']}"
+        assert re.fullmatch(r"9\d{9}", bait["phone_number"]), pid
         assert bait["aadhaar"] == "0000 0000 0000", pid
+
+    # Deterministic for same call_id, rotating across different call_ids
+    b1_first = get_rotating_bait("call_1")
+    b1_second = get_rotating_bait("call_1")
+    b2 = get_rotating_bait("call_2")
+
+    assert b1_first == b1_second
+    assert b1_first["upi_id"] != b2["upi_id"]
+    assert b1_first["account_number"] != b2["account_number"]

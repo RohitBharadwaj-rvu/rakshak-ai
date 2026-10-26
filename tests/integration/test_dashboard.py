@@ -285,7 +285,7 @@ class TestScamIntelligenceView:
         # Add a third call sharing the same bank account (987654321098)
         isolated_store.add_call({
             "call_id": "call_scam_003",
-            "caller_number": "+919444555666",
+            "caller_number": "+919444666777",
             "verdict": "scam",
             "duration": 145.0,
             "created_at": "2026-10-19T04:00:00Z",
@@ -350,6 +350,3 @@ class TestScamIntelligenceView:
         assert detail_resp.status_code == 200
         assert "/dashboard/calls/call_scam_001" in detail_resp.text
         assert "/dashboard/calls/call_scam_003" in detail_resp.text
-
-
-
