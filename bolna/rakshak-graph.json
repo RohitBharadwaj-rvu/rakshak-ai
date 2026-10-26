@@ -1,0 +1,628 @@
+{
+  "agent_config": {
+    "agent_name": "rakshak-v2-graph",
+    "agent_welcome_message": "हैलो जी, कौन बोल रहे हैं?",
+    "agent_type": "graph",
+    "webhook_url": "https://rakshak-ai-3ckj.onrender.com/webhook",
+    "tasks": [
+      {
+        "task_id": "state_1_screening",
+        "node_id": "screening",
+        "task_type": "conversation",
+        "description": "State 1: Fast caller screening using qwen-2.5-32b at 0.3 temperature",
+        "transitions": [
+          {
+            "target_task_id": "state_2_verification",
+            "condition": "classify_caller verdict is unsure or caller claims official authority without verification"
+          },
+          {
+            "target_task_id": "state_3_honeypot",
+            "condition": "classify_caller verdict is scam"
+          }
+        ],
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "optimize_latency": true,
+          "incremental_delay": 350,
+          "hangup_after_silence": 20,
+          "call_terminate": 400,
+          "pronunciation_dict": {
+            "HDFC": "H D F C",
+            "ICICI": "I C I C I",
+            "UPI": "U P I",
+            "IFSC": "I F S C",
+            "CBI": "C B I",
+            "Aadhaar": "Aadhaar"
+          }
+        },
+        "tools_config": {
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "llm_agent": {
+            "agent_type": "graph_llm_agent",
+            "agent_flow_type": "streaming",
+            "llm_config": {
+              "model": "qwen-2.5-32b",
+              "provider": "groq",
+              "family": "qwen",
+              "temperature": 0.3,
+              "max_tokens": 120,
+              "top_p": 0.9
+            }
+          },
+          "transcriber": {
+            "provider": "sarvam",
+            "model": "saaras:v3",
+            "language": "hi",
+            "stream": true,
+            "encoding": "linear16",
+            "sampling_rate": 16000,
+            "endpointing": 100,
+            "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest"
+          },
+          "synthesizer": {
+            "provider": "sarvam",
+            "buffer_size": 180,
+            "audio_format": "wav",
+            "stream": true,
+            "caching": true,
+            "pronunciation_dict": {
+              "HDFC": "H D F C",
+              "ICICI": "I C I C I",
+              "UPI": "U P I",
+              "IFSC": "I F S C",
+              "CBI": "C B I",
+              "Aadhaar": "Aadhaar"
+            },
+            "provider_config": {
+              "model": "bulbul:v3",
+              "voice": "Simran",
+              "voice_id": "simran",
+              "language": "hi",
+              "speed": 1.0,
+              "loudness": 1.0
+            }
+          },
+          "api_tools": {
+            "tools": [
+              {
+                "key": "custom_task",
+                "name": "classify_caller",
+                "description": "Classify caller intent using multi-turn conversation history and summary.",
+                "pre_call_message": "Ek second, sun raha hoon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "caller_summary"
+                  ],
+                  "properties": {
+                    "caller_summary": {
+                      "type": "string",
+                      "description": "Summary of who the caller claims to be and what they are asking for."
+                    },
+                    "conversation_history": {
+                      "type": "array",
+                      "description": "Last 6 turns as [{role, text}]",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "role": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "tools_params": {
+              "classify_caller": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/classify_caller",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "caller_number": "%(from_number)s",
+                  "caller_summary": "%(caller_summary)s",
+                  "conversation_history": "%(conversation_history)s"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "task_id": "state_2_verification",
+        "node_id": "verification",
+        "task_type": "conversation",
+        "description": "State 2: Verification gate asking for government ID / badge number and official landline callback number",
+        "transitions": [
+          {
+            "target_task_id": "state_3_honeypot",
+            "condition": "Caller refuses official ID/callback or demands urgency/OTP/money or classify_caller returns scam"
+          }
+        ],
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "optimize_latency": true,
+          "incremental_delay": 350,
+          "hangup_after_silence": 20,
+          "call_terminate": 400
+        },
+        "tools_config": {
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "llm_agent": {
+            "agent_type": "graph_llm_agent",
+            "agent_flow_type": "streaming",
+            "llm_config": {
+              "model": "qwen-2.5-32b",
+              "provider": "groq",
+              "family": "qwen",
+              "temperature": 0.3,
+              "max_tokens": 120,
+              "top_p": 0.9
+            }
+          },
+          "transcriber": {
+            "provider": "sarvam",
+            "model": "saaras:v3",
+            "language": "hi",
+            "stream": true,
+            "encoding": "linear16",
+            "sampling_rate": 16000,
+            "endpointing": 100,
+            "keywords": "ID, badge, employee number, callback, landline, CBI, RBI, TRAI, police, bank"
+          },
+          "synthesizer": {
+            "provider": "sarvam",
+            "buffer_size": 180,
+            "audio_format": "wav",
+            "stream": true,
+            "caching": true,
+            "pronunciation_dict": {
+              "HDFC": "H D F C",
+              "ICICI": "I C I C I",
+              "UPI": "U P I",
+              "IFSC": "I F S C",
+              "CBI": "C B I",
+              "Aadhaar": "Aadhaar"
+            },
+            "provider_config": {
+              "model": "bulbul:v3",
+              "voice": "Simran",
+              "voice_id": "simran",
+              "language": "hi",
+              "speed": 1.0,
+              "loudness": 1.0
+            }
+          },
+          "api_tools": {
+            "tools": [
+              {
+                "key": "custom_task",
+                "name": "classify_caller",
+                "description": "Re-classify caller after asking for government ID and office callback number.",
+                "pre_call_message": "Ek second, note kar raha hoon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "caller_summary"
+                  ],
+                  "properties": {
+                    "caller_summary": {
+                      "type": "string"
+                    },
+                    "conversation_history": {
+                      "type": "array",
+                      "description": "Last 6 turns as [{role, text}]"
+                    }
+                  }
+                }
+              },
+              {
+                "key": "custom_task",
+                "name": "log_intel",
+                "description": "Log callback number or claimed ID given during verification.",
+                "pre_call_message": "Haan, likh raha hoon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "phone",
+                        "other"
+                      ]
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ],
+            "tools_params": {
+              "classify_caller": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/classify_caller",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "caller_number": "%(from_number)s",
+                  "caller_summary": "%(caller_summary)s",
+                  "conversation_history": "%(conversation_history)s"
+                }
+              },
+              "log_intel": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/log_intel",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "type": "%(type)s",
+                  "value": "%(value)s"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "task_id": "state_3_honeypot",
+        "node_id": "honeypot",
+        "task_type": "conversation",
+        "description": "State 3: Elderly Honeypot engagement (gpt-4.1, Ramesh/rotating 20-persona bait)",
+        "transitions": [
+          {
+            "target_task_id": "state_4_extraction",
+            "condition": "Caller dictates or repeats UPI ID, bank account, IFSC code, callback phone, or phishing link"
+          }
+        ],
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "optimize_latency": true,
+          "incremental_delay": 350,
+          "hangup_after_silence": 25,
+          "call_terminate": 600
+        },
+        "tools_config": {
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "llm_agent": {
+            "agent_type": "graph_llm_agent",
+            "agent_flow_type": "streaming",
+            "llm_config": {
+              "model": "gpt-4.1",
+              "provider": "openai",
+              "family": "openai",
+              "temperature": 0.3,
+              "max_tokens": 150,
+              "top_p": 0.9
+            }
+          },
+          "transcriber": {
+            "provider": "sarvam",
+            "model": "saaras:v3",
+            "language": "hi",
+            "stream": true,
+            "encoding": "linear16",
+            "sampling_rate": 16000,
+            "endpointing": 100,
+            "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, SBIN, PUNB, CNRB, BARB, HDFC, ICICI"
+          },
+          "synthesizer": {
+            "provider": "sarvam",
+            "buffer_size": 180,
+            "audio_format": "wav",
+            "stream": true,
+            "caching": true,
+            "pronunciation_dict": {
+              "HDFC": "H D F C",
+              "ICICI": "I C I C I",
+              "UPI": "U P I",
+              "IFSC": "I F S C",
+              "CBI": "C B I",
+              "Aadhaar": "Aadhaar"
+            },
+            "provider_config": {
+              "model": "bulbul:v3",
+              "voice": "Simran",
+              "voice_id": "simran",
+              "language": "hi",
+              "speed": 1.0,
+              "loudness": 1.0
+            }
+          },
+          "api_tools": {
+            "tools": [
+              {
+                "key": "custom_task",
+                "name": "switch_to_honeypot",
+                "description": "Fetch deterministic rotating persona and Luhn-valid fake_bait for this call_id.",
+                "pre_call_message": "Haan haan beta, ek minute chashma laga loon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "language"
+                  ],
+                  "properties": {
+                    "language": {
+                      "type": "string",
+                      "enum": [
+                        "hi",
+                        "en",
+                        "hinglish"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "key": "custom_task",
+                "name": "log_intel",
+                "description": "Log UPI, bank account, IFSC, phone or link spoken by the scammer.",
+                "pre_call_message": "Haan beta, likh raha hoon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "upi",
+                        "phone",
+                        "account",
+                        "ifsc",
+                        "link"
+                      ]
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ],
+            "tools_params": {
+              "switch_to_honeypot": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/switch_to_honeypot",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "language": "%(language)s"
+                }
+              },
+              "log_intel": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/log_intel",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "type": "%(type)s",
+                  "value": "%(value)s"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "task_id": "state_4_extraction",
+        "node_id": "extraction",
+        "task_type": "conversation",
+        "description": "State 4: Specialized high-precision extraction LLM for UPI/account/IFSC mule rotation",
+        "transitions": [
+          {
+            "target_task_id": "state_3_honeypot",
+            "condition": "After logging identifier and prompting scammer for alternate mule account or IFSC"
+          }
+        ],
+        "toolchain": {
+          "execution": "parallel",
+          "pipelines": [
+            [
+              "transcriber",
+              "llm",
+              "synthesizer"
+            ]
+          ]
+        },
+        "task_config": {
+          "optimize_latency": true,
+          "incremental_delay": 350,
+          "hangup_after_silence": 25,
+          "call_terminate": 600
+        },
+        "tools_config": {
+          "input": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "output": {
+            "format": "wav",
+            "provider": "plivo"
+          },
+          "llm_agent": {
+            "agent_type": "graph_llm_agent",
+            "agent_flow_type": "streaming",
+            "llm_config": {
+              "model": "qwen-2.5-32b",
+              "provider": "groq",
+              "family": "qwen",
+              "temperature": 0.1,
+              "max_tokens": 140,
+              "top_p": 0.85
+            }
+          },
+          "transcriber": {
+            "provider": "sarvam",
+            "model": "saaras:v3",
+            "language": "hi",
+            "stream": true,
+            "encoding": "linear16",
+            "sampling_rate": 16000,
+            "endpointing": 100,
+            "keywords": "at the rate, okaxis, oksbi, okhdfcbank, okicici, ybl, paytm, IFSC, account number"
+          },
+          "synthesizer": {
+            "provider": "sarvam",
+            "buffer_size": 180,
+            "audio_format": "wav",
+            "stream": true,
+            "caching": true,
+            "pronunciation_dict": {
+              "HDFC": "H D F C",
+              "ICICI": "I C I C I",
+              "UPI": "U P I",
+              "IFSC": "I F S C",
+              "CBI": "C B I",
+              "Aadhaar": "Aadhaar"
+            },
+            "provider_config": {
+              "model": "bulbul:v3",
+              "voice": "Simran",
+              "voice_id": "simran",
+              "language": "hi",
+              "speed": 1.0,
+              "loudness": 1.0
+            }
+          },
+          "api_tools": {
+            "tools": [
+              {
+                "key": "custom_task",
+                "name": "log_intel",
+                "description": "High-precision extraction tool logging raw + normalized UPI, account, IFSC, phone, and elicitation tactic.",
+                "pre_call_message": "Ruko beta, ek ek akshar milata hoon.",
+                "parameters": {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "value"
+                  ],
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "upi",
+                        "phone",
+                        "account",
+                        "ifsc",
+                        "link"
+                      ]
+                    },
+                    "value": {
+                      "type": "string",
+                      "description": "Spoken identifier exactly as heard."
+                    },
+                    "value_normalized": {
+                      "type": "string",
+                      "description": "Canonical normalized identifier (e.g., name@okaxis, 11-char IFSC)."
+                    },
+                    "elicitation": {
+                      "type": "string",
+                      "enum": [
+                        "initial_ask",
+                        "payment_failed",
+                        "name_mismatch",
+                        "ifsc_request",
+                        "callback",
+                        "repeat_back"
+                      ]
+                    }
+                  }
+                }
+              }
+            ],
+            "tools_params": {
+              "log_intel": {
+                "url": "https://rakshak-ai-3ckj.onrender.com/tools/log_intel",
+                "method": "POST",
+                "headers": {},
+                "param": {
+                  "call_id": "%(call_sid)s",
+                  "type": "%(type)s",
+                  "value": "%(value)s",
+                  "value_normalized": "%(value_normalized)s",
+                  "elicitation": "%(elicitation)s"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "agent_prompts": {
+    "state_1_screening": {
+      "system_prompt": "State 1 (Screening): You answer the inbound honeypot line quickly. Ask who is calling and why in 1 short sentence. Call `classify_caller` with `caller_summary` and `conversation_history` (last 6 turns). If `scam`, transition immediately to `state_3_honeypot`. If `unsure`, transition to `state_2_verification`."
+    },
+    "state_2_verification": {
+      "system_prompt": "State 2 (Verification): Politely ask the caller for their government ID / employee badge number and official office landline callback number. Log any phone or ID via `log_intel` and re-run `classify_caller`. If they refuse, threaten, or demand OTP/money, transition to `state_3_honeypot`."
+    },
+    "state_3_honeypot": {
+      "system_prompt": "State 3 (Honeypot): Call `switch_to_honeypot` immediately and adopt the returned elderly persona (e.g. Ramesh) and rotating `fake_bait` (Luhn-valid account, real branch IFSC, VPA, 9xxxxxxxxx phone). Keep the scammer on the line and ask where to send the money. When they start giving payment details, transition to `state_4_extraction`."
+    },
+    "state_4_extraction": {
+      "system_prompt": "State 4 (Extraction): Specialized identifier extraction state. Read back every UPI ID, bank account number, and IFSC code slightly wrong so the scammer spells it out clearly. Call `log_intel` for every UPI, account, IFSC, phone, or link, then claim 'payment failed — server busy' to elicit a secondary mule account."
+    }
+  }
+}
