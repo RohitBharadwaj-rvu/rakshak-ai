@@ -27,7 +27,7 @@
           "call_terminate": 400,
           "auto_reschedule": true,
           "optimize_latency": true,
-          "incremental_delay": 600,
+          "incremental_delay": 350,
           "ambient_noise_track": "coffee-shop",
           "call_hangup_message": null,
           "max_silence_repeats": null,
@@ -54,7 +54,15 @@
           "discard_pre_welcome_utterance": false,
           "voicemail_min_transcript_length": 7,
           "number_of_words_for_interruption": 3,
-          "trigger_user_online_message_after": 8
+          "trigger_user_online_message_after": 8,
+          "pronunciation_dict": {
+            "HDFC": "H D F C",
+            "ICICI": "I C I C I",
+            "UPI": "U P I",
+            "IFSC": "I F S C",
+            "CBI": "C B I",
+            "Aadhaar": "Aadhaar"
+          }
         },
         "tools_config": {
           "s2s": null,
@@ -239,15 +247,31 @@
             "stream": true,
             "caching": true,
             "provider": "sarvam",
-            "buffer_size": 230,
+            "buffer_size": 180,
             "audio_format": "wav",
+            "pronunciation_dict": {
+              "HDFC": "H D F C",
+              "ICICI": "I C I C I",
+              "UPI": "U P I",
+              "IFSC": "I F S C",
+              "CBI": "C B I",
+              "Aadhaar": "Aadhaar"
+            },
             "provider_config": {
               "model": "bulbul:v3",
               "speed": 1.0,
               "voice": "Simran",
               "language": "hi",
               "loudness": 1.0,
-              "voice_id": "simran"
+              "voice_id": "simran",
+              "pronunciation_dict": {
+                "HDFC": "H D F C",
+                "ICICI": "I C I C I",
+                "UPI": "U P I",
+                "IFSC": "I F S C",
+                "CBI": "C B I",
+                "Aadhaar": "Aadhaar"
+              }
             }
           },
           "transcriber": {
@@ -261,7 +285,7 @@
             "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest, Paytm, PhonePe, Google Pay",
             "language": "hi",
             "provider": "sarvam",
-            "endpointing": 150,
+            "endpointing": 100,
             "mip_opt_out": null,
             "multilingual": null,
             "deepgram_host": null,

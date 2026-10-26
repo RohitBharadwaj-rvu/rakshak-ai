@@ -4,6 +4,7 @@ File: app/notify/alerts.py
 
 Features:
 - Dispatches real-time WhatsApp and SMS alerts to family upon call finalization
+- Automatic SMS fallback via _fit_sms when WhatsApp fails with Twilio sandbox/number errors (63015, 21211, 21614)
 - Multi-recipient support (comma-separated phone numbers in FAMILY_ALERT_TO)
 - Per-call expiring signed links (HMAC-SHA256) instead of master dashboard token in alerts
 - Persistent SQLite store with two-phase state ('pending' -> 'sent' / 'failed') and stale sweep
@@ -35,7 +36,32 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import quote
 from pydantic import BaseModel, Field
 
+try:
+    from twilio.base.exceptions import TwilioRestException
+except ImportError:
+    class TwilioRestException(Exception):  # type: ignore[no-redef]
+        """Fallback TwilioRestException when twilio SDK is not installed locally."""
+
+        def __init__(
+            self,
+            status: int = 400,
+            uri: str = "/Messages",
+            msg: str = "",
+            code: Optional[int] = None,
+            method: str = "POST",
+            details: Optional[Dict[str, Any]] = None,
+        ):
+            super().__init__(msg or f"Twilio error {code}")
+            self.status = status
+            self.uri = uri
+            self.msg = msg
+            self.code = code
+            self.method = method
+            self.details = details
+
 logger = logging.getLogger("guardianline.notify")
+
+WHATSAPP_FALLBACK_TWILIO_CODES = (63015, 21211, 21614)
 
 # GSM 03.38 character sets
 BASIC_GSM7 = set(
@@ -292,11 +318,7 @@ def format_alert_message(
         suffix = f"ID: {call_id}"
         candidate = f"{prefix}{suffix}"
         if channel == AlertChannel.SMS:
-            if is_gsm7(candidate):
-                while count_septets(candidate) > 306:
-                    candidate = candidate[:-1]
-                return candidate
-            return candidate[:134]
+            return _fit_sms([prefix], "", suffix)
         return candidate
 
 
@@ -575,7 +597,7 @@ class FamilyAlertDispatcher:
             call_id=first.call_id,
             reason=reason,
             recipient=", ".join(r.recipient for r in sub_results),
-            channel=self.config.channel,
+            channel=first.channel,
             message_sid=first.message_sid,
             retry_count=max(r.retry_count for r in sub_results),
             sub_results=[(r.model_dump() if hasattr(r, "model_dump") else r.dict()) for r in sub_results],
@@ -584,6 +606,42 @@ class FamilyAlertDispatcher:
     def dispatch_in_background(self, call_record: Dict[str, Any]) -> concurrent.futures.Future:
         """Submits dispatch to background thread pool so caller is not blocked."""
         return _THREAD_POOL.submit(self.dispatch, call_record)
+
+    def _dispatch_sms_fallback(
+        self,
+        call_record: Dict[str, Any],
+        target_recipient: str,
+        claimed_recipient: str,
+        claimed_channel: str,
+        retries_done: int,
+    ) -> AlertResult:
+        """Dispatches an SMS fallback fitted via _fit_sms with the same call_record payload."""
+        call_id = str(call_record.get("call_id") or "unknown")
+        sms_to = target_recipient.replace("whatsapp:", "")
+        sms_from = (self.config.from_phone or "+14155238886").replace("whatsapp:", "")
+        sms_body = format_alert_message(
+            call_record=call_record,
+            channel=AlertChannel.SMS,
+            base_report_url=self.config.base_report_url,
+            dashboard_token=self.config.token,
+            signing_secret=self.config.signing_secret or self.config.token,
+        )
+        sms_resp = self.twilio_client.messages.create(
+            to=sms_to,
+            from_=sms_from,
+            body=sms_body,
+        )
+        sid = getattr(sms_resp, "sid", "OK")
+        self.store.mark_sent(call_id, claimed_recipient, claimed_channel, sid)
+        logger.info("SMS fallback alert dispatched for call %s to %s (SID: %s)", call_id, mask_number(sms_to), sid)
+        return AlertResult(
+            status=AlertStatus.SENT,
+            call_id=call_id,
+            recipient=sms_to,
+            channel=AlertChannel.SMS,
+            message_sid=sid,
+            retry_count=retries_done,
+        )
 
     def _dispatch_single(self, call_record: Dict[str, Any], target_recipient: str) -> AlertResult:
         call_id = call_record.get("call_id")
@@ -669,8 +727,53 @@ class FamilyAlertDispatcher:
                     message_sid=sid,
                     retry_count=retries_done,
                 )
+            except TwilioRestException as e:
+                last_error = e
+                if getattr(e, "code", None) in WHATSAPP_FALLBACK_TWILIO_CODES and self.config.channel == AlertChannel.WHATSAPP:
+                    logger.warning(
+                        "WhatsApp dispatch failed with TwilioRestException code %s for call %s to %s; falling back to SMS via _fit_sms",
+                        e.code,
+                        call_id,
+                        masked_recip,
+                    )
+                    return self._dispatch_sms_fallback(
+                        call_record=call_record,
+                        target_recipient=target_recipient,
+                        claimed_recipient=recipient,
+                        claimed_channel=channel_val,
+                        retries_done=retries_done,
+                    )
+                if not is_retryable_twilio_error(e):
+                    logger.error("Non-retryable client error on call %s to %s: %s", call_id, masked_recip, str(e))
+                    self.store.mark_failed(call_id, recipient, channel_val, str(e))
+                    return AlertResult(
+                        status=AlertStatus.FAILED,
+                        call_id=call_id,
+                        reason=f"Non-retryable Twilio error: {e}",
+                        recipient=recipient,
+                        channel=self.config.channel,
+                        retry_count=retries_done,
+                    )
+                if attempt < max_retries:
+                    retries_done += 1
+                    sleep_time = self.backoff_base_s * (2 ** attempt)
+                    time.sleep(sleep_time)
             except Exception as e:
                 last_error = e
+                if getattr(e, "code", None) in WHATSAPP_FALLBACK_TWILIO_CODES and self.config.channel == AlertChannel.WHATSAPP:
+                    logger.warning(
+                        "WhatsApp dispatch failed with Twilio code %s for call %s to %s; falling back to SMS via _fit_sms",
+                        getattr(e, "code", None),
+                        call_id,
+                        masked_recip,
+                    )
+                    return self._dispatch_sms_fallback(
+                        call_record=call_record,
+                        target_recipient=target_recipient,
+                        claimed_recipient=recipient,
+                        claimed_channel=channel_val,
+                        retries_done=retries_done,
+                    )
                 if not is_retryable_twilio_error(e):
                     logger.error("Non-retryable client error on call %s to %s: %s", call_id, masked_recip, str(e))
                     self.store.mark_failed(call_id, recipient, channel_val, str(e))

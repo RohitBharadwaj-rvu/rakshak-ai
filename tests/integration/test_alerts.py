@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pytest
 from unittest.mock import MagicMock
@@ -9,6 +10,7 @@ from app.notify.alerts import (
     AlertStatus,
     FamilyAlertDispatcher,
     PersistentAlertStore,
+    TwilioRestException,
     count_septets,
     format_alert_message,
     is_gsm7,
@@ -178,6 +180,48 @@ class TestFamilyAlertDispatcher:
         recipients_called = [call.kwargs["to"] for call in mock_client.messages.create.call_args_list]
         assert "whatsapp:+919876500001" in recipients_called
         assert "whatsapp:+919876500002" in recipients_called
+
+    @pytest.mark.parametrize("twilio_code", [63015, 21211, 21614])
+    def test_whatsapp_sandbox_error_triggers_sms_fallback_with_status_sent(
+        self, scam_record, alert_config, caplog, twilio_code
+    ):
+        caplog.set_level(logging.WARNING)
+        single_config = (
+            alert_config.model_copy(update={"to_phone": "+919876500001"})
+            if hasattr(alert_config, "model_copy")
+            else alert_config.copy(update={"to_phone": "+919876500001"})
+        )
+
+        sms_response = MagicMock()
+        sms_response.sid = f"SM_fallback_{twilio_code}"
+
+        def create_side_effect(**kwargs):
+            if kwargs["to"].startswith("whatsapp:"):
+                raise TwilioRestException(
+                    status=400,
+                    uri="/Messages",
+                    msg=f"Twilio WhatsApp error {twilio_code}",
+                    code=twilio_code,
+                )
+            return sms_response
+
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = create_side_effect
+
+        store = PersistentAlertStore(":memory:")
+        dispatcher = FamilyAlertDispatcher(config=single_config, twilio_client=mock_client, store=store)
+        result = dispatcher.dispatch(scam_record)
+
+        assert result.status == AlertStatus.SENT
+        assert result.channel == AlertChannel.SMS
+        assert result.message_sid == f"SM_fallback_{twilio_code}"
+        assert mock_client.messages.create.call_count == 2
+        sms_call = mock_client.messages.create.call_args_list[1]
+        assert sms_call.kwargs["to"] == "+919876500001"
+        assert not sms_call.kwargs["from_"].startswith("whatsapp:")
+        assert "[SUSPECTED SCAM]" in sms_call.kwargs["body"]
+        assert count_septets(sms_call.kwargs["body"]) <= 306
+        assert any(r.levelname == "WARNING" and str(twilio_code) in r.message for r in caplog.records)
 
     def test_cross_instance_persistent_idempotency_with_two_phase_states(self, scam_record, alert_config, tmp_path):
         db_file = str(tmp_path / "alerts_idempotency.db")
@@ -369,5 +413,27 @@ class TestCallFinalizedEventListener:
         assert proof["screenshot_path"] == "evaluation/live_calls/whatsapp_alert_screenshot.png"
         assert out_proof.exists()
 
+    def test_bolna_latency_tuning_and_stage2_latency_profile(self):
+        root_dir = os.path.join(FIXTURES_DIR, "..", "..")
+        bolna_path = os.path.join(root_dir, "bolna", "rakshak-v0.json")
+        with open(bolna_path, "r", encoding="utf-8") as f:
+            bolna_cfg = json.load(f)
+        task = bolna_cfg["agent_config"]["tasks"][0]
+        assert task["task_config"]["incremental_delay"] == 350
+        assert task["tools_config"]["transcriber"]["endpointing"] == 100
+        assert task["tools_config"]["synthesizer"]["buffer_size"] == 180
+        expected_pronunciation = {
+            "HDFC": "H D F C",
+            "ICICI": "I C I C I",
+            "UPI": "U P I",
+            "IFSC": "I F S C",
+            "CBI": "C B I",
+            "Aadhaar": "Aadhaar",
+        }
+        assert task["tools_config"]["synthesizer"]["pronunciation_dict"] == expected_pronunciation
 
-
+        profile_path = os.path.join(root_dir, "evaluation", "stage2_latency_profile.json")
+        with open(profile_path, "r", encoding="utf-8") as f:
+            profile = json.load(f)
+        assert profile["p95_ms"] < 1000.0
+        assert profile["total_latency"]["p95_ms"] < 1000.0
