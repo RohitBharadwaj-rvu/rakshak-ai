@@ -18,7 +18,7 @@
           ]
         },
         "task_config": {
-          "voicemail": true,
+          "voicemail": false,
           "use_fillers": false,
           "dtmf_enabled": false,
           "ambient_noise": false,
@@ -27,14 +27,14 @@
           "call_terminate": 400,
           "auto_reschedule": true,
           "optimize_latency": true,
-          "incremental_delay": 350,
+          "incremental_delay": 120,
           "ambient_noise_track": "coffee-shop",
           "call_hangup_message": null,
           "max_silence_repeats": null,
           "check_if_user_online": true,
           "hangup_after_LLMCall": true,
           "hangup_after_silence": 20,
-          "welcome_message_delay": 1000,
+          "welcome_message_delay": 100,
           "whitelist_phone_numbers": null,
           "call_cancellation_prompt": "You decide whether a phone call is complete, based on the transcript. The assistant answers calls for an elderly person and works in two modes:\n\nScreening/genuine mode: a polite family member asking who is calling, or taking a message.\nHoneypot mode: after the caller is judged a scam, the assistant plays a confused elderly persona (glasses, wife, \"beta\") to keep the scammer talking.\nThe call is complete ONLY if one of these is true:\n\nThe caller clearly says goodbye or that they are ending the call, for example \"bye\", \"ok bye\", \"theek hai, rakhta hoon\", \"बस इतना ही\", \"ok thank you, bye\". This applies in both modes.\nGenuine mode only: the assistant has taken the message (name, number or reason), the caller has confirmed, and the caller has nothing more to add.\nThe caller has said nothing meaningful for several turns in a row.\nThe call is NOT complete if:\n\nThe assistant is in honeypot mode and the caller has not said goodbye. The assistant stalling, refusing, or saying \"ruk jao\" never ends the call.\nThe caller is still explaining who they are or what they want.\nThe caller is giving or repeating a number, UPI ID, account or link.\nThe assistant has not yet asked who is calling and why.\nOnly the assistant said goodbye or thank you.\nWhen in doubt, the call is NOT complete.",
           "disallow_unknown_numbers": false,
@@ -68,11 +68,11 @@
           "s2s": null,
           "input": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "output": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "api_tools": {
             "tools": [
@@ -229,12 +229,12 @@
             "llm_config": {
               "stop": null,
               "min_p": 0.1,
-              "model": "gpt-4.1",
+              "model": "qwen-2.5-32b",
               "top_k": 0,
               "top_p": 0.9,
-              "family": "openai",
+              "family": "qwen",
               "base_url": null,
-              "provider": "openai",
+              "provider": "groq",
               "verbosity": null,
               "extra_body": null,
               "max_tokens": 150,
@@ -257,7 +257,7 @@
             "stream": true,
             "caching": true,
             "provider": "sarvam",
-            "buffer_size": 180,
+            "buffer_size": 40,
             "audio_format": "wav",
             "pronunciation_dict": {
               "HDFC": "H D F C",

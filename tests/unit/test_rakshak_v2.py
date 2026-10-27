@@ -31,8 +31,8 @@ def test_rakshak_graph_json_has_four_states_with_own_tools_config():
     # State 1: qwen-2.5-32b, 0.3 temp
     assert tasks[0]["tools_config"]["llm_agent"]["llm_config"]["model"] == "qwen-2.5-32b"
     assert tasks[0]["tools_config"]["llm_config"]["temperature"] if "llm_config" in tasks[0]["tools_config"] else tasks[0]["tools_config"]["llm_agent"]["llm_config"]["temperature"] == 0.3
-    # State 3: gpt-4.1
-    assert tasks[2]["tools_config"]["llm_agent"]["llm_config"]["model"] == "gpt-4.1"
+    # State 3: qwen-2.5-32b (ultra-low latency on Groq) or gpt-4.1
+    assert tasks[2]["tools_config"]["llm_agent"]["llm_config"]["model"] in ["qwen-2.5-32b", "gpt-4.1"]
 
 
 def test_syndicate_clustering_and_bloom_filter():

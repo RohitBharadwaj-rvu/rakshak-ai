@@ -29,6 +29,15 @@ def deploy_agent(
 
     agent_config = graph_data.get("agent_config", graph_data)
     key = api_key or os.getenv("BOLNA_API_KEY", "").strip()
+    if not key:
+        env_p = Path(".env")
+        if env_p.exists():
+            for line in env_p.read_text(encoding="utf-8").splitlines():
+                if line.strip().startswith("BOLNA_API_KEY="):
+                    val = line.split("=", 1)[1].strip()
+                    if val and not val.startswith("your_"):
+                        key = val
+                        break
 
     if not key or mock:
         print("[Deploy Info] BOLNA_API_KEY not found in environment; operating in sandbox/registered agent mode.")
@@ -41,7 +50,8 @@ def deploy_agent(
         }
 
     url = "https://api.bolna.ai/v2/agent"
-    payload_bytes = json.dumps(agent_config).encode("utf-8")
+    payload = graph_data if "agent_config" in graph_data else {"agent_config": agent_config}
+    payload_bytes = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url,
         data=payload_bytes,

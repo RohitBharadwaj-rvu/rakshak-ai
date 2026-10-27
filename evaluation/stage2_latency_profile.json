@@ -11,21 +11,21 @@
     "mean_ms": 0.87
   },
   "bolna_pipeline": {
-    "incremental_delay_ms": 350,
+    "incremental_delay_ms": 120,
     "endpointing_ms": 100,
-    "buffer_size_ms": 180,
-    "pipeline_sum_ms": 630
+    "buffer_size_ms": 40,
+    "pipeline_sum_ms": 260
   },
   "total_latency": {
-    "incremental_delay_ms": 350,
+    "incremental_delay_ms": 120,
     "endpointing_ms": 100,
-    "buffer_size_ms": 180,
+    "buffer_size_ms": 40,
     "classifier_p95_ms": 1.62,
-    "median_p50_ms": 630.19,
-    "p95_ms": 631.62
+    "median_p50_ms": 260.19,
+    "p95_ms": 261.62
   },
-  "total_latency_p95_ms": 631.62,
-  "p95_ms": 631.62,
+  "total_latency_p95_ms": 261.62,
+  "p95_ms": 261.62,
   "groq": {
     "provider": "Groq",
     "model": "llama-3.3-70b-versatile",

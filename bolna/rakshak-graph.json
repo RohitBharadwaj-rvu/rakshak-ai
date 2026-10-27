@@ -32,7 +32,7 @@
         },
         "task_config": {
           "optimize_latency": true,
-          "incremental_delay": 350,
+          "incremental_delay": 120,
           "hangup_after_silence": 20,
           "call_terminate": 400,
           "pronunciation_dict": {
@@ -47,14 +47,14 @@
         "tools_config": {
           "input": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "output": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "llm_agent": {
-            "agent_type": "graph_llm_agent",
+            "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
               "model": "qwen-2.5-32b",
@@ -77,7 +77,7 @@
           },
           "synthesizer": {
             "provider": "sarvam",
-            "buffer_size": 180,
+            "buffer_size": 40,
             "audio_format": "wav",
             "stream": true,
             "caching": true,
@@ -173,21 +173,21 @@
         },
         "task_config": {
           "optimize_latency": true,
-          "incremental_delay": 350,
+          "incremental_delay": 120,
           "hangup_after_silence": 20,
           "call_terminate": 400
         },
         "tools_config": {
           "input": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "output": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "llm_agent": {
-            "agent_type": "graph_llm_agent",
+            "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
               "model": "qwen-2.5-32b",
@@ -210,7 +210,7 @@
           },
           "synthesizer": {
             "provider": "sarvam",
-            "buffer_size": 180,
+            "buffer_size": 40,
             "audio_format": "wav",
             "stream": true,
             "caching": true,
@@ -310,7 +310,7 @@
         "task_id": "state_3_honeypot",
         "node_id": "honeypot",
         "task_type": "conversation",
-        "description": "State 3: Elderly Honeypot engagement (gpt-4.1, Ramesh/rotating 20-persona bait)",
+        "description": "State 3: Elderly Honeypot engagement (qwen-2.5-32b, Ramesh/rotating 20-persona bait)",
         "transitions": [
           {
             "target_task_id": "state_4_extraction",
@@ -329,26 +329,26 @@
         },
         "task_config": {
           "optimize_latency": true,
-          "incremental_delay": 350,
+          "incremental_delay": 120,
           "hangup_after_silence": 25,
           "call_terminate": 600
         },
         "tools_config": {
           "input": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "output": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "llm_agent": {
-            "agent_type": "graph_llm_agent",
+            "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
-              "model": "gpt-4.1",
-              "provider": "openai",
-              "family": "openai",
+              "model": "qwen-2.5-32b",
+              "provider": "groq",
+              "family": "qwen",
               "temperature": 0.3,
               "max_tokens": 150,
               "top_p": 0.9
@@ -366,7 +366,7 @@
           },
           "synthesizer": {
             "provider": "sarvam",
-            "buffer_size": 180,
+            "buffer_size": 40,
             "audio_format": "wav",
             "stream": true,
             "caching": true,
@@ -487,21 +487,21 @@
         },
         "task_config": {
           "optimize_latency": true,
-          "incremental_delay": 350,
+          "incremental_delay": 120,
           "hangup_after_silence": 25,
           "call_terminate": 600
         },
         "tools_config": {
           "input": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "output": {
             "format": "wav",
-            "provider": "plivo"
+            "provider": "vobiz"
           },
           "llm_agent": {
-            "agent_type": "graph_llm_agent",
+            "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
               "model": "qwen-2.5-32b",
@@ -524,7 +524,7 @@
           },
           "synthesizer": {
             "provider": "sarvam",
-            "buffer_size": 180,
+            "buffer_size": 40,
             "audio_format": "wav",
             "stream": true,
             "caching": true,
@@ -612,16 +612,16 @@
     ]
   },
   "agent_prompts": {
-    "state_1_screening": {
+    "task_1": {
       "system_prompt": "State 1 (Screening): You answer the inbound honeypot line quickly. Ask who is calling and why in 1 short sentence. Call `classify_caller` with `caller_summary` and `conversation_history` (last 6 turns). If `scam`, transition immediately to `state_3_honeypot`. If `unsure`, transition to `state_2_verification`."
     },
-    "state_2_verification": {
+    "task_2": {
       "system_prompt": "State 2 (Verification): Politely ask the caller for their government ID / employee badge number and official office landline callback number. Log any phone or ID via `log_intel` and re-run `classify_caller`. If they refuse, threaten, or demand OTP/money, transition to `state_3_honeypot`."
     },
-    "state_3_honeypot": {
+    "task_3": {
       "system_prompt": "State 3 (Honeypot): Call `switch_to_honeypot` immediately and adopt the returned elderly persona (e.g. Ramesh) and rotating `fake_bait` (Luhn-valid account, real branch IFSC, VPA, 9xxxxxxxxx phone). Keep the scammer on the line and ask where to send the money. When they start giving payment details, transition to `state_4_extraction`."
     },
-    "state_4_extraction": {
+    "task_4": {
       "system_prompt": "State 4 (Extraction): Specialized identifier extraction state. Read back every UPI ID, bank account number, and IFSC code slightly wrong so the scammer spells it out clearly. Call `log_intel` for every UPI, account, IFSC, phone, or link, then claim 'payment failed — server busy' to elicit a secondary mule account."
     }
   }
