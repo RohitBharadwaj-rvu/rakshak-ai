@@ -1,6 +1,6 @@
 {
   "agent_config": {
-    "agent_name": "rakshak-v2-graph",
+    "agent_name": "guardian_line_test1",
     "agent_welcome_message": "हैलो जी, कौन बोल रहे हैं?",
     "agent_type": "graph",
     "webhook_url": "https://rakshak-ai-3ckj.onrender.com/webhook",
