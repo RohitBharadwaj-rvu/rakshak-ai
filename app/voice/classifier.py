@@ -142,7 +142,7 @@ def has_critical_value_or_credential_demand(text: str) -> bool:
     # when NOT demanding OTP, screen-share, personal UPI VPA, or remote access
     is_routine_identity = bool(
         re.search(
-            r"(?i)\b(society|rwa|resident\s*welfare|maintenance\s*notice|electricity\s*bill|water\s*bill|doctor\s*appointment|clinic\s*followup)\b",
+            r"(?i)\b(society|rwa|resident\s*welfare|maintenance|electricity\s*bill|water\s*bill|doctor\s*appointment|clinic\s*followup)\b",
             text,
         )
     )

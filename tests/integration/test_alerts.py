@@ -181,7 +181,7 @@ class TestFamilyAlertDispatcher:
         assert "whatsapp:+919876500001" in recipients_called
         assert "whatsapp:+919876500002" in recipients_called
 
-    @pytest.mark.parametrize("twilio_code", [63015, 21211, 21614])
+    @pytest.mark.parametrize("twilio_code", [63015, 21211, 21614, 63007])
     def test_whatsapp_sandbox_error_triggers_sms_fallback_with_status_sent(
         self, scam_record, alert_config, caplog, twilio_code
     ):

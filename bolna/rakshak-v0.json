@@ -27,7 +27,7 @@
           "call_terminate": 400,
           "auto_reschedule": true,
           "optimize_latency": true,
-          "incremental_delay": 120,
+          "incremental_delay": 350,
           "ambient_noise_track": "coffee-shop",
           "call_hangup_message": null,
           "max_silence_repeats": null,
@@ -257,7 +257,7 @@
             "stream": true,
             "caching": true,
             "provider": "sarvam",
-            "buffer_size": 40,
+            "buffer_size": 180,
             "audio_format": "wav",
             "pronunciation_dict": {
               "HDFC": "H D F C",
