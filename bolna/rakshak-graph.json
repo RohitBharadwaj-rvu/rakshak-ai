@@ -9,7 +9,7 @@
         "task_id": "state_1_screening",
         "node_id": "screening",
         "task_type": "conversation",
-        "description": "State 1: Fast caller screening using qwen-2.5-32b at 0.3 temperature",
+        "description": "State 1: Fast caller screening using qwen/qwen3.8-27b at 0.3 temperature",
         "transitions": [
           {
             "target_task_id": "state_2_verification",
@@ -57,7 +57,7 @@
             "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
-              "model": "qwen-2.5-32b",
+              "model": "qwen/qwen3.8-27b",
               "provider": "groq",
               "family": "qwen",
               "temperature": 0.3,
@@ -190,7 +190,7 @@
             "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
-              "model": "qwen-2.5-32b",
+              "model": "qwen/qwen3.8-27b",
               "provider": "groq",
               "family": "qwen",
               "temperature": 0.3,
@@ -310,7 +310,7 @@
         "task_id": "state_3_honeypot",
         "node_id": "honeypot",
         "task_type": "conversation",
-        "description": "State 3: Elderly Honeypot engagement (qwen-2.5-32b, Ramesh/rotating 20-persona bait)",
+        "description": "State 3: Elderly Honeypot engagement (qwen/qwen3.8-27b, Ramesh/rotating 20-persona bait)",
         "transitions": [
           {
             "target_task_id": "state_4_extraction",
@@ -346,7 +346,7 @@
             "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
-              "model": "qwen-2.5-32b",
+              "model": "qwen/qwen3.8-27b",
               "provider": "groq",
               "family": "qwen",
               "temperature": 0.3,
@@ -504,7 +504,7 @@
             "agent_type": "simple_llm_agent",
             "agent_flow_type": "streaming",
             "llm_config": {
-              "model": "qwen-2.5-32b",
+              "model": "qwen/qwen3.8-27b",
               "provider": "groq",
               "family": "qwen",
               "temperature": 0.1,

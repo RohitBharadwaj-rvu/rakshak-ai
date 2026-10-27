@@ -229,7 +229,7 @@
             "llm_config": {
               "stop": null,
               "min_p": 0.1,
-              "model": "qwen-2.5-32b",
+              "model": "qwen/qwen3.8-27b",
               "top_k": 0,
               "top_p": 0.9,
               "family": "qwen",
