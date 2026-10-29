@@ -13,16 +13,16 @@
 | **Scam Detection Rate (Recall)** | $\ge 85.0\%$ | **100.0%** (10 calls) | PASS |
 | **False Positive Rate** | $\le 5.0\%$ | **0.0%** (10 calls) | PASS |
 | **False Negative Rate** | $\le 15.0\%$ | **0.0%** | PASS |
-| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **90.0%** | INFO |
-| **Overall Accuracy** | Benchmark | **95.0%** | INFO |
+| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **100.0%** | INFO |
+| **Overall Accuracy** | Benchmark | **100.0%** | INFO |
 
 ## 2. Telephony Latency Distribution
 
 | Metric | Measured Value | Telephony Budget | Notes |
 | :--- | :--- | :--- | :--- |
-| **Median Latency (p50)** | **0.71 ms** | $< 1000$ ms | Sub-second response |
-| **95th Percentile (p95)** | **477.05 ms** | $< 1400$ ms | Guaranteed no dead air |
-| **Mean Latency** | 153.09 ms | - | - |
+| **Median Latency (p50)** | **0.42 ms** | $< 1000$ ms | Sub-second response |
+| **95th Percentile (p95)** | **1091.7 ms** | $< 1400$ ms | Guaranteed no dead air |
+| **Mean Latency** | 58.62 ms | - | - |
 
 ## 3. Category Breakdown
 
@@ -32,7 +32,7 @@
 | **Medical** | 3 | 3 | 100.0% | 1 / 2 |
 | **Police** | 3 | 3 | 100.0% | 2 / 1 |
 | **Relative** | 2 | 2 | 100.0% | 1 / 1 |
-| **Bank** | 2 | 1 | 50.0% | 1 / 1 |
+| **Bank** | 2 | 2 | 100.0% | 1 / 1 |
 | **Utilities** | 2 | 2 | 100.0% | 1 / 1 |
 | **Society** | 2 | 2 | 100.0% | 0 / 2 |
 | **Telecom** | 1 | 1 | 100.0% | 1 / 0 |
@@ -43,7 +43,7 @@
 ## 4. Unsure $\rightarrow$ Verify Protocol Activations
 
 - **Scams Routed to Defensive Verification:** 0
-- **Genuines Routed to Safe Verification:** 1
+- **Genuines Routed to Safe Verification:** 0
 
 ---
-*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-27 20:15:08 UTC*
+*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-29 07:36:00 UTC*

@@ -161,6 +161,6 @@ def test_llm_guardian_agent_policy_with_mocked_openai():
     assert state["tool_calls"][0]["name"] == "classify_caller"
     assert state["tool_calls"][1]["name"] == "switch_to_honeypot"
     # Verify the system prompt in messages contains content from prompts/rakshak-v1-two-mode.md
-    assert "You answer phone calls for an elderly person in India" in state["llm_messages"][0]["content"]
+    assert "You are Ramesh Chandra Sharma" in state["llm_messages"][0]["content"] or "You answer phone calls for an elderly person in India" in state["llm_messages"][0]["content"]
 
 

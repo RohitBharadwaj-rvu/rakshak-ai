@@ -72,6 +72,7 @@ AUTHORITY_PATTERNS = [
     r"task.*(earn|prepaid)|telegram.*(channel|task)|(part-?time|work\s*from\s*home).*(job|task|opportunity)|रेटिंग्स|rating.*agency",
     r"pension.*(block|fraud|suspend)|पेंशन.*(बंद|ब्लॉक|जांच)|कल्याण\s*विभाग",
     r"money\s*laundering|हवाला|गैरकानूनी|vigilance",
+    r"bijli\s*vibhag|connection\s*cut\s*ho\s*jayega|kbc\b|lucky\s*draw|lottery\s*nikli|(courier|delivery|parcel|amazon|flipkart)[\s\S]*(cancellation|cancel|code|otp)",
 ]
 
 # Pillar 2: Artificial Urgency, Secrecy & Isolation Pressure
@@ -124,10 +125,11 @@ CRITICAL_VALUE_OR_CREDENTIAL_PATTERNS = [
     # 3. Aadhaar / National ID / UID
     r"aadhaar|adhar|aaddhar|आधार\s*(नंबर|कार्ड)?|आधर|\b12\s*(अंक|digit)",
     # 4. Card Details / CVV / Expiry / Bank Account Credentials
-    r"(card|debit\s*card|credit\s*card).*(number|no|cvv|expiry|details)|cvv|कार्ड\s*(नंबर|विवरण)",
+    r"(card|debit\s*card|credit\s*card).*(number|\bno\b|cvv|expiry|details)|cvv|कार्ड\s*(नंबर|विवरण)",
     r"(account|acnt|a/c)\s*number.*(send|transfer|deposit)|खाता.*संख्या|खाता\s*नंबर",
     # 5. Remote-Access Software / Screen Sharing
     r"any\s*desk|anidask|anydesk|eneedask|teamviewer|quicksupport|remote\s*access|स्क्रीन\s*शेयर|ऐप\s*डाउनलोड|play\s*store.*install",
+    r"cancellation\s*code|\b\d+\s*digit\s*(cancellation|cancel|delivery|verification)\s*code|processing\s*tax|pay\s*karke\s*update",
 ]
 
 
@@ -155,7 +157,12 @@ def has_critical_value_or_credential_demand(text: str) -> bool:
     if is_routine_identity and not has_hard_credential_demand:
         return False
 
-    text_lower = text.lower()
+    clean_text = re.sub(
+        r"(?i)(never\s*(ask|share).*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें)",
+        "",
+        text,
+    )
+    text_lower = clean_text.lower()
     return any(bool(re.search(p, text_lower)) for p in CRITICAL_VALUE_OR_CREDENTIAL_PATTERNS)
 
 
@@ -175,6 +182,7 @@ GENUINE_INDICATORS = [
     r"ओटीपी.*न\s*दें|पासवर्ड.*न\s*दें|never\s*ask.*(otp|pin|password)|कभी\s*भी.*(पिन|पासवर्ड|ओटीपी).*नहीं\s*मांगते|risk\s*prevention|security\s*advisory|सतर्कता\s*शाखा",
     r"tenant\s*verification|किराएदार.*सत्यापन|थाने\s*आकर|drop\s*by.*police\s*station|किराएदारों\s*का\s*सत्यापन",
     r"hospital.*admission|अस्पताल.*रिसेप्शन|admission\s*desk|आयुष्मान\s*भारत|photocopy.*aadhaar|मरीज\s*का\s*आधार",
+    r"dr\.\s*mehta|lal\s*pathlabs|blood\s*test\s*report|thyroid|hba1c|jeevan\s*pramaan|life\s*certificate|papa\s*pranam|tabiyat\s*kaisi|hanuman\s*mandir|prasad\s*packet|igl\s*piped\s*gas|meter\s*reading|kirayedar\s*ka\s*verification|beat\s*constable",
 ]
 
 

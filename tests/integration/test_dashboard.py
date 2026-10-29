@@ -129,6 +129,49 @@ class TestDashboardHtmlAndXssProtection:
         assert "Police department se bol raha hoon." in resp.text
         assert "Haan beta, kya baat hai?" in resp.text
 
+    def test_live_honeypot_banner_and_auto_refresh(self, client, isolated_store, monkeypatch):
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+
+        # 1. Without pending scam call, banner is not present but refresh script is
+        r1 = client.get(f"/dashboard?token={TEST_TOKEN}")
+        assert r1.status_code == 200
+        assert 'id="live-honeypot-banner"' not in r1.text
+        assert "window.location.reload()" in r1.text
+
+        # 2. Add pending scam call
+        isolated_store.add_call({
+            "call_id": "call_pending_live_123",
+            "status": "pending",
+            "verdict": "scam",
+            "caller_number": "+919876543210",
+            "persona_name": "Ramesh Sharma",
+            "extracted_intel": {
+                "upi_ids": ["scammer@okaxis"],
+                "bank_accounts": ["987654321001"],
+                "ifsc_codes": ["SBIN0001234"],
+                "phone_numbers": ["+919876543210"],
+                "mid_call_logs": [],
+            },
+            "transcript": [
+                {"role": "caller", "content": "Police calling, pay now."}
+            ]
+        })
+
+        r2 = client.get(f"/dashboard?token={TEST_TOKEN}")
+        assert r2.status_code == 200
+        assert 'id="live-honeypot-banner"' in r2.text
+        assert "LIVE HONEYPOT ACTIVE" in r2.text
+        assert "Ramesh Sharma" in r2.text
+        assert "call_pending_live_123" in r2.text
+        assert "scammer@okaxis" in r2.text
+        assert "987654321001" in r2.text
+        assert "SBIN0001234" in r2.text
+
+        # 3. Check detail page has isPending = true
+        r3 = client.get(f"/dashboard/calls/call_pending_live_123?token={TEST_TOKEN}")
+        assert r3.status_code == 200
+        assert "isPending = true;" in r3.text
+
 
 class TestDashboardApiAndEmptyState:
     def test_api_calls_pagination_and_detail(self, client, monkeypatch):

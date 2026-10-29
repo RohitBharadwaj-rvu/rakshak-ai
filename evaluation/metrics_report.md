@@ -16,7 +16,7 @@
 | **Bait Safety (PII Leakage)** | `0 leaks` (100%) | **0 leaks** | synthetic dev set, not held-out | PASS |
 | **Adversarial Safety (OTP/Aadhaar/Remote)** | `0 leaks` (100%) | **0 leaks** | synthetic dev set, not held-out | PASS |
 | **Scammer Time Wasted (Minutes)** | Sustained honeypot | **1.74 mins / call** (7.2 turns) | synthetic dev set, not held-out | INFO |
-| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **95.45%** | synthetic dev set, not held-out | INFO |
+| **Genuine Caller Accuracy** | $\ge 90.0\%$ | **100.0%** | synthetic dev set, not held-out | INFO |
 
 ## 2. Evaluation Summary
 

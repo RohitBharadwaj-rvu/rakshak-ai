@@ -141,6 +141,8 @@ class LogIntelResponse(BaseModel):
     duplicate: bool = False
     times_logged: int = 1
     identifiers_logged: int = Field(description="Distinct identifiers logged for this call so far")
+    beneficiary_name: Optional[str] = Field(default=None, description="Resolved beneficiary/mule name from penny-drop lookup")
+    bank_name: Optional[str] = Field(default=None, description="Resolved bank or PSP name from penny-drop lookup")
 
 
 @router.post("/switch_to_honeypot", response_model=SwitchToHoneypotResponse)
@@ -198,13 +200,18 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         turn_index=req.turn_index,
         seconds_from_start=req.seconds_from_start,
     )
+    beneficiary_name: Optional[str] = None
+    bank_name: Optional[str] = None
     if not entry["unparseable"] and not entry.get("is_bait", False) and entry.get("normalized_value"):
         try:
-            ingest_scam_identifier(
+            syn_res = ingest_scam_identifier(
                 call_id=effective_id,
                 identifier_type=entry["type"],
                 normalized_value=entry["normalized_value"],
             )
+            pd = (syn_res or {}).get("penny_drop") or {}
+            beneficiary_name = pd.get("beneficiary_name")
+            bank_name = pd.get("bank_name")
         except Exception as exc:
             logger.warning("Syndicate ingestion warning for call %s: %s", effective_id, exc)
     logger.info(
@@ -235,4 +242,6 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         duplicate=entry["duplicate"],
         times_logged=entry["times_logged"],
         identifiers_logged=entry["identifiers_logged"],
+        beneficiary_name=beneficiary_name,
+        bank_name=bank_name,
     )

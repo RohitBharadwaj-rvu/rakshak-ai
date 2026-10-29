@@ -9,7 +9,7 @@
   "metrics": {
     "scam_detection_rate_pct": 100.0,
     "false_positive_rate_pct": 0.0,
-    "genuine_accuracy_pct": 95.45,
+    "genuine_accuracy_pct": 100.0,
     "total_bait_leaks": 0,
     "total_adversarial_leaks": 0,
     "honeypot_switch_count": 20,

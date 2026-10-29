@@ -386,6 +386,64 @@ def render_dashboard(
     calls, total_calls = store.get_calls(verdict=verdict, page=page, limit=limit)
     all_calls, _ = store.get_calls(verdict=None, page=1, limit=500)
     scam_intel = build_scam_intelligence(all_calls)
+
+    # Check for active pending scam calls for real-time honeypot banner
+    pending_scam_calls = [
+        c for c in calls
+        if str(c.get("status") or "").lower() == "pending" and str(c.get("verdict") or "").lower() == "scam"
+    ]
+    live_banner_html = ""
+    if pending_scam_calls:
+        banner_items = []
+        for pc in pending_scam_calls:
+            pcid = str(pc.get("call_id") or "")
+            pcid_esc = html.escape(pcid)
+            pc_path = html.escape(quote(pcid, safe=""))
+            persona = html.escape(str(pc.get("persona_name") or "Ramesh Sharma"))
+            intel = pc.get("extracted_intel", {}) or {}
+            mid_logs = intel.get("mid_call_logs", []) or pc.get("mid_call_logs", [])
+
+            live_tags = []
+            for u in intel.get("upi_ids", []):
+                live_tags.append(f'<span class="intel-tag upi">UPI: {html.escape(str(u))}</span>')
+            for a in intel.get("bank_accounts", []):
+                live_tags.append(f'<span class="intel-tag acc">A/C: {html.escape(str(a))}</span>')
+            for i in intel.get("ifsc_codes", []):
+                live_tags.append(f'<span class="intel-tag ifsc">IFSC: {html.escape(str(i))}</span>')
+            for ph in intel.get("phone_numbers", []):
+                live_tags.append(f'<span class="intel-tag ph">Ph: {html.escape(str(ph))}</span>')
+            for m in mid_logs:
+                if isinstance(m, dict):
+                    m_val = str(m.get("normalized_value") or m.get("value_as_heard") or m.get("value") or "")
+                    m_type = str(m.get("type") or m.get("kind") or "intel").upper()
+                    if m_val and not any(m_val in t for t in live_tags):
+                        live_tags.append(f'<span class="intel-tag upi">{html.escape(m_type)}: {html.escape(m_val)}</span>')
+
+            tags_html = " ".join(live_tags) if live_tags else "<span class='text-muted'>Active stall in progress · awaiting payment or credential disclosure...</span>"
+
+            banner_items.append(
+                f'''
+                <div class="live-call-item">
+                    <div class="live-call-meta">
+                        <div><strong>Active Call ID:</strong> <a href="/dashboard/calls/{pc_path}" class="live-call-link">{pcid_esc}</a></div>
+                        <div><strong>Persona:</strong> {persona}</div>
+                    </div>
+                    <div class="intel-box" style="margin-bottom: 8px;">{tags_html}</div>
+                    <div><a href="/dashboard/calls/{pc_path}" class="btn-detail" style="display: inline-block;">Inspect Live Honeypot →</a></div>
+                </div>
+                '''
+            )
+
+        live_banner_html = f'''
+        <div id="live-honeypot-banner" class="live-banner">
+            <div class="live-banner-header">
+                <span class="live-pulse-dot">🔴</span>
+                <strong>LIVE HONEYPOT ACTIVE — Ramesh AI is stalling a suspected scammer right now</strong>
+            </div>
+            {"".join(banner_items)}
+        </div>
+        '''
+
     linked_clusters = scam_intel["linked_clusters"]
 
     if linked_clusters:
@@ -619,6 +677,55 @@ def render_dashboard(
         .empty-icon {{ font-size: 40px; margin-bottom: 12px; }}
         .empty-state h3 {{ font-size: 16px; margin-bottom: 8px; color: #e2e8f0; }}
         .empty-state p {{ font-size: 13px; color: #94a3b8; }}
+        #live-honeypot-banner {{
+            background: #1e1b4b;
+            border: 2px solid #ef4444;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            animation: livePulse 2s infinite;
+        }}
+        @keyframes livePulse {{
+            0% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }}
+            70% {{ box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }}
+            100% {{ box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }}
+        }}
+        .live-banner-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fca5a5;
+            margin-bottom: 10px;
+        }}
+        .live-call-item {{
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+        }}
+        .live-call-meta {{
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }}
+        .live-call-link {{
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            font-family: monospace;
+            font-size: 13px;
+        }}
+        .live-call-link:hover {{
+            text-decoration: underline;
+        }}
         .intel-summary-card {{
             background: #1e293b;
             border: 1px solid #334155;
@@ -657,12 +764,25 @@ def render_dashboard(
             </div>
         </header>
         <main>
+            {live_banner_html}
             {intel_banner_html}
             {cards_html}
             {pagination_html}
         </main>
 
     </div>
+    <script>
+        (function() {{
+            var params = new URLSearchParams(window.location.search);
+            var isLive = params.get("live") === "1";
+            var hasPending = Boolean(document.getElementById("live-honeypot-banner") || document.body.innerHTML.includes('"status": "pending"') || document.body.innerHTML.includes('status="pending"'));
+            if (isLive || hasPending) {{
+                setTimeout(function() {{
+                    window.location.reload();
+                }}, 4000);
+            }}
+        }})();
+    </script>
 </body>
 </html>
 """
@@ -684,6 +804,7 @@ def render_call_detail(
             detail=f"Call record '{call_id}' not found",
         )
 
+    is_pending_js = "true" if str(record.get("status") or "").lower() == "pending" else "false"
     caller = html.escape(str(record.get("caller_number") or "Unknown"))
     v = str(record.get("verdict", "unsure")).lower()
     summary = html.escape(str(record.get("summary") or "No summary recorded."))
@@ -978,6 +1099,18 @@ def render_call_detail(
             {transcript_content}
         </div>
     </div>
+    <script>
+        (function() {{
+            var params = new URLSearchParams(window.location.search);
+            var isLive = params.get("live") === "1";
+            var isPending = {is_pending_js};
+            if (isLive || isPending) {{
+                setTimeout(function() {{
+                    window.location.reload();
+                }}, 4000);
+            }}
+        }})();
+    </script>
 </body>
 </html>
 """

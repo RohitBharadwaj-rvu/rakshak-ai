@@ -72,7 +72,7 @@
             "stream": true,
             "encoding": "linear16",
             "sampling_rate": 16000,
-            "endpointing": 100,
+            "endpointing": 300,
             "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, police, CBI, courier, parcel, arrest"
           },
           "synthesizer": {
@@ -143,7 +143,8 @@
                   "call_id": "%(call_sid)s",
                   "caller_number": "%(from_number)s",
                   "caller_summary": "%(caller_summary)s",
-                  "conversation_history": "%(conversation_history)s"
+                  "conversation_history": "%(conversation_history)s",
+                  "execution_id": "%(execution_id)s"
                 }
               }
             }
@@ -205,7 +206,7 @@
             "stream": true,
             "encoding": "linear16",
             "sampling_rate": 16000,
-            "endpointing": 100,
+            "endpointing": 300,
             "keywords": "ID, badge, employee number, callback, landline, CBI, RBI, TRAI, police, bank"
           },
           "synthesizer": {
@@ -289,7 +290,8 @@
                   "call_id": "%(call_sid)s",
                   "caller_number": "%(from_number)s",
                   "caller_summary": "%(caller_summary)s",
-                  "conversation_history": "%(conversation_history)s"
+                  "conversation_history": "%(conversation_history)s",
+                  "execution_id": "%(execution_id)s"
                 }
               },
               "log_intel": {
@@ -299,7 +301,8 @@
                 "param": {
                   "call_id": "%(call_sid)s",
                   "type": "%(type)s",
-                  "value": "%(value)s"
+                  "value": "%(value)s",
+                  "execution_id": "%(execution_id)s"
                 }
               }
             }
@@ -361,7 +364,7 @@
             "stream": true,
             "encoding": "linear16",
             "sampling_rate": 16000,
-            "endpointing": 100,
+            "endpointing": 300,
             "keywords": "UPI, OTP, Aadhaar, KYC, bank account, IFSC, SBIN, PUNB, CNRB, BARB, HDFC, ICICI"
           },
           "synthesizer": {
@@ -447,7 +450,9 @@
                 "headers": {},
                 "param": {
                   "call_id": "%(call_sid)s",
-                  "language": "%(language)s"
+                  "language": "%(language)s",
+                  "execution_id": "%(execution_id)s",
+                  "persona_id": "ramesh"
                 }
               },
               "log_intel": {
@@ -457,7 +462,8 @@
                 "param": {
                   "call_id": "%(call_sid)s",
                   "type": "%(type)s",
-                  "value": "%(value)s"
+                  "value": "%(value)s",
+                  "execution_id": "%(execution_id)s"
                 }
               }
             }
@@ -519,7 +525,7 @@
             "stream": true,
             "encoding": "linear16",
             "sampling_rate": 16000,
-            "endpointing": 100,
+            "endpointing": 300,
             "keywords": "at the rate, okaxis, oksbi, okhdfcbank, okicici, ybl, paytm, IFSC, account number"
           },
           "synthesizer": {
@@ -602,7 +608,8 @@
                   "type": "%(type)s",
                   "value": "%(value)s",
                   "value_normalized": "%(value_normalized)s",
-                  "elicitation": "%(elicitation)s"
+                  "elicitation": "%(elicitation)s",
+                  "execution_id": "%(execution_id)s"
                 }
               }
             }

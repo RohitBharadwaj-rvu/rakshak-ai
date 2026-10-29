@@ -113,6 +113,18 @@
       "type": "integer",
       "minimum": 0,
       "description": "Distinct non-bait identifiers logged for this call so far"
+    },
+    "beneficiary_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bank_name": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": false
