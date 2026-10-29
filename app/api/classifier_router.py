@@ -130,6 +130,19 @@ async def api_classify_caller(req: ClassifyCallerRequest):
         )
         result: CallerClassificationResult = future.result(timeout=HARD_TIMEOUT_SECONDS)
 
+        # Feature 1: Autonomous Kidnap / Extortion Verification Loop
+        try:
+            from app.voice.family_loop import is_kidnap_scenario, trigger_family_verification
+            check_text = f"{req.caller_summary or ''} {full_text} {result.reason}".strip()
+            if is_kidnap_scenario(check_text):
+                trigger_family_verification(
+                    call_id=effective_id,
+                    caller_summary=req.caller_summary or full_text,
+                    caller_number=req.caller_number or "",
+                )
+        except Exception as f_exc:
+            logger.warning("Could not trigger family verification loop: %s", f_exc)
+
         logger.info(
             "classify_caller effective_id=%s raw_call_id=%s raw_execution_id=%s verdict=%s confidence=%.2f",
             effective_id,

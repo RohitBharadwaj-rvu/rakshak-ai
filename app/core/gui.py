@@ -501,15 +501,29 @@ def render_dashboard(
             c_path = html.escape(quote(str(c.get("call_id", "")), safe=""))
             caller = html.escape(str(c.get("caller_number") or "Unknown / Withheld"))
             v = str(c.get("verdict", "unsure")).lower()
-            if v not in ("scam", "genuine", "unsure"):
+            if v not in ("scam", "genuine", "unsure", "safe_delivery", "legitimate_verified"):
                 v = "unsure"
 
             duration_num = _safe_duration(c.get("duration"))
             summary = html.escape(str(c.get("summary") or "No summary recorded."))
             intel = c.get("extracted_intel", {}) or {}
 
-            badge_class = "badge-scam" if v == "scam" else ("badge-genuine" if v == "genuine" else "badge-unsure")
-            badge_text = "🚨 SUSPECTED SCAM" if v == "scam" else ("✅ GENUINE" if v == "genuine" else "❓ UNSURE")
+            if v == "scam":
+                badge_class = "badge-scam"
+                badge_text = "🚨 SUSPECTED SCAM"
+            elif v in ("genuine", "safe_delivery", "legitimate_verified"):
+                badge_class = "badge-genuine"
+                badge_text = "✅ VERIFIED DELIVERY" if "delivery" in v else "✅ GENUINE"
+            else:
+                badge_class = "badge-unsure"
+                badge_text = "❓ UNSURE"
+
+            fam_status = str(c.get("family_verification_status") or "NONE").upper()
+            fam_badge = ""
+            if fam_status == "CONFIRMED_SAFE":
+                fam_badge = '<div style="margin-bottom:8px;"><span class="badge" style="background:#14532d;color:#86efac;font-size:11px;">✅ AMIT CONFIRMED SAFE IN PUNE</span></div>'
+            elif fam_status == "PENDING":
+                fam_badge = f'<div style="margin-bottom:8px;"><span class="badge" style="background:#78350f;color:#fde68a;font-size:11px;">⏳ VERIFYING AMIT SAFE...</span> <button onclick="confirmSafe(\'{c_id}\')" style="background:#2563eb;color:white;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;margin-left:6px;">Simulate Amit SAFE Reply</button></div>'
 
             intel_items = []
             for upi in intel.get("upi_ids", []):
@@ -531,6 +545,7 @@ def render_dashboard(
                     <span class="badge {badge_class}">{badge_text}</span>
                     <span class="duration">{duration_num:.0f}s</span>
                 </div>
+                {fam_badge}
                 <div class="caller-number">{caller}</div>
                 <div class="summary">{summary}</div>
                 <div class="intel-box">{intel_html}</div>
@@ -773,6 +788,21 @@ def render_dashboard(
     </div>
     <script>
         (function() {{
+            window.confirmSafe = function(callId) {{
+                fetch('/api/calls/' + encodeURIComponent(callId) + '/verify_son_safe', {{method: 'POST'}})
+                    .then(function(r) {{ return r.json(); }})
+                    .then(function(d) {{ window.location.reload(); }})
+                    .catch(function(err) {{ console.error("Verify safe error:", err); }});
+            }};
+
+            if (window.EventSource) {{
+                var es = new EventSource('/dashboard/sse');
+                es.addEventListener('family_verification_pending', function(e) {{ window.location.reload(); }});
+                es.addEventListener('family_verified_safe', function(e) {{ window.location.reload(); }});
+                es.addEventListener('legitimate_caller_approved', function(e) {{ window.location.reload(); }});
+                es.addEventListener('syndicate_match_detected', function(e) {{ window.location.reload(); }});
+            }}
+
             var params = new URLSearchParams(window.location.search);
             var isLive = params.get("live") === "1";
             var hasPending = Boolean(document.getElementById("live-honeypot-banner") || document.body.innerHTML.includes('"status": "pending"') || document.body.innerHTML.includes('status="pending"'));

@@ -16,10 +16,15 @@ from pydantic import AliasChoices, BaseModel, Field, model_validator
 
 from app.agent.state import get_persona_bundle
 from app.voice.extractor import normalize_and_validate_single_intel
+from datetime import datetime, timezone
+from app.voice.ifsc import is_valid_ifsc, resolve_ifsc, generate_ifsc_spoken_hint
+from app.voice.family_loop import broadcast_sse, get_family_intel_injection
 from app.voice.store import (
     append_mid_call_intel,
     get_or_assign_honeypot_persona,
     resolve_effective_tool_call_id,
+    update_call_verdict,
+    upsert_mule_identifier,
 )
 from app.voice.syndicate import ingest_scam_identifier
 
@@ -58,6 +63,26 @@ class SwitchToHoneypotResponse(BaseModel):
     persona_lines: List[str]
     fake_bait: FakeBaitModel
     bait_values: FakeBaitModel
+    system_intel: Optional[str] = None
+
+
+class ApproveLegitimateCallerRequest(BaseModel):
+    call_id: str = Field(..., min_length=1, description="Unique identifier for the active call (e.g., %(call_sid)s)")
+    execution_id: Optional[str] = Field(default=None, description="Optional Bolna execution ID (e.g., %(execution_id)s)")
+    caller_type: str = Field(default="delivery", description="Caller category: e.g. delivery, pharmacy, clinic, utility, ride")
+    brand_or_person: str = Field(default="Delivery Partner", description="Entity name: e.g. Blinkit, Swiggy, Zomato, Apollo Pharmacy, BlueDart")
+    delivery_details: str = Field(default="Package delivery at door", description="Delivery context or request summary heard from caller")
+
+
+class ApproveLegitimateCallerResponse(BaseModel):
+    status: Literal["approved", "rejected"]
+    approved: bool
+    call_id: str
+    brand_or_person: str
+    caller_type: str
+    delivery_details: str
+    reason: Optional[str] = None
+    spoken_instruction: str
 
 
 IntelKind = Literal["upi", "phone", "account", "ifsc", "link", "pan", "other"]
@@ -143,6 +168,13 @@ class LogIntelResponse(BaseModel):
     identifiers_logged: int = Field(description="Distinct identifiers logged for this call so far")
     beneficiary_name: Optional[str] = Field(default=None, description="Resolved beneficiary/mule name from penny-drop lookup")
     bank_name: Optional[str] = Field(default=None, description="Resolved bank or PSP name from penny-drop lookup")
+    bank_branch: Optional[str] = Field(default=None, description="Resolved branch name for IFSC")
+    bank_city: Optional[str] = Field(default=None, description="Resolved city from Razorpay IFSC")
+    bank_state: Optional[str] = Field(default=None, description="Resolved state from Razorpay IFSC")
+    spoken_hint: Optional[str] = Field(default=None, description="Devanagari spoken hint for calling out scammer branch/city")
+    syndicate_match: bool = Field(default=False, description="True if this mule identifier was seen in multiple calls")
+    linked_call_ids: List[str] = Field(default_factory=list, description="Other call IDs linked to this mule identifier")
+    system_intel: Optional[str] = Field(default=None, description="Ground-truth mid-call context injection")
 
 
 @router.post("/switch_to_honeypot", response_model=SwitchToHoneypotResponse)
@@ -168,7 +200,88 @@ async def api_switch_to_honeypot(req: SwitchToHoneypotRequest) -> SwitchToHoneyp
         bundle["persona_id"],
         bundle["language"],
     )
-    return SwitchToHoneypotResponse(**bundle)
+    family_intel = get_family_intel_injection(effective_id)
+    return SwitchToHoneypotResponse(
+        **bundle,
+        system_intel=family_intel,
+    )
+
+
+SCAM_INDICATORS = {
+    "otp", "upi", "money", "fee", "arrest", "kyc", "anydesk", "code", "cvv",
+    "pin", "password", "urgent", "transfer", "charge", "refund", "card number",
+}
+
+
+@router.post("/approve_legitimate_caller", response_model=ApproveLegitimateCallerResponse)
+async def api_approve_legitimate_caller(req: ApproveLegitimateCallerRequest) -> ApproveLegitimateCallerResponse:
+    """
+    Bolna mid-call tool to verify legitimate delivery / service personnel (e.g. Swiggy, Blinkit, Apollo).
+    Guarded by an instant scam indicator check. If OTP/money/KYC is requested, rejects and instructs bait/hangup.
+    If clean: marks call as 'safe_delivery', notifies family, broadcasts SSE, and hands off gracefully.
+    """
+    effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
+    combined_text = f"{req.caller_type} {req.brand_or_person} {req.delivery_details}".lower()
+    
+    # Safety guardrail: reject if high-risk scam indicators found
+    has_scam_indicator = any(indicator in combined_text for indicator in SCAM_INDICATORS)
+    if has_scam_indicator:
+        logger.warning(
+            "approve_legitimate_caller REJECTED for call_id=%s: scam indicator detected in '%s'",
+            effective_id,
+            req.delivery_details,
+        )
+        return ApproveLegitimateCallerResponse(
+            status="rejected",
+            approved=False,
+            call_id=effective_id,
+            brand_or_person=req.brand_or_person,
+            caller_type=req.caller_type,
+            delivery_details=req.delivery_details,
+            reason="High-risk scam indicator (OTP/UPI/fee/code) detected in delivery details",
+            spoken_instruction="यह डिलीवरी फर्जी लग रही है। डिलीवरी वाला पैसे या ओटीपी मांग रहा है। मना करें और फोन काटें या हनीपॉट पर स्विच करें।",
+        )
+
+    # 1. Update SQLite call verdict
+    update_call_verdict(effective_id, "safe_delivery")
+
+    # 2. Family notification
+    notify_msg = f"✅ VERIFIED CALLER: {req.brand_or_person} ({req.caller_type}) — {req.delivery_details}. Safe to attend at gate/door."
+    logger.info("Legitimate caller approved for call_id=%s: %s", effective_id, notify_msg)
+    try:
+        from app.notify.alerts import build_dispatcher_from_env
+        dispatcher = build_dispatcher_from_env()
+        if dispatcher and getattr(dispatcher, "twilio_client", None):
+            from_num = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_WHATSAPP_NUMBER")
+            to_num = os.getenv("SON_PHONE_NUMBER", "+919876543210")
+            dispatcher.twilio_client.messages.create(body=notify_msg, from_=from_num, to=to_num)
+    except Exception as e:
+        logger.warning("Could not send legitimate delivery alert: %s", e)
+
+    # 3. Broadcast SSE to dashboard
+    broadcast_sse({
+        "event": "legitimate_caller_approved",
+        "call_id": effective_id,
+        "brand": req.brand_or_person,
+        "caller_type": req.caller_type,
+        "details": req.delivery_details,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # 4. Spoken response for Ramesh
+    spoken = (
+        f"हाँ बेटा, मैं गेट के गार्ड को बोल देता हूँ, पार्सल वहीं रख दो। थैंक यू। "
+        f"[SYSTEM: Call verified legitimate {req.brand_or_person} delivery. Politely end call.]"
+    )
+    return ApproveLegitimateCallerResponse(
+        status="approved",
+        approved=True,
+        call_id=effective_id,
+        brand_or_person=req.brand_or_person,
+        caller_type=req.caller_type,
+        delivery_details=req.delivery_details,
+        spoken_instruction=spoken,
+    )
 
 
 @router.post("/log_intel", response_model=LogIntelResponse)
@@ -202,26 +315,81 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
     )
     beneficiary_name: Optional[str] = None
     bank_name: Optional[str] = None
-    if not entry["unparseable"] and not entry.get("is_bait", False) and entry.get("normalized_value"):
+    bank_branch: Optional[str] = None
+    bank_city: Optional[str] = None
+    bank_state: Optional[str] = None
+    spoken_hint: Optional[str] = None
+    syndicate_match: bool = False
+    linked_call_ids: List[str] = []
+
+    norm_val_final = entry.get("normalized_value") or norm_val
+
+    # IFSC lookup via Razorpay API or offline fallback
+    if (kind == "ifsc" or is_valid_ifsc(norm_val_final)) and not entry.get("is_bait", False):
+        try:
+            ifsc_res = await resolve_ifsc(norm_val_final)
+            if ifsc_res:
+                bank_name = ifsc_res.get("bank") or bank_name
+                bank_branch = ifsc_res.get("branch")
+                bank_city = ifsc_res.get("city")
+                bank_state = ifsc_res.get("state")
+                spoken_hint = generate_ifsc_spoken_hint(ifsc_res)
+        except Exception as exc:
+            logger.warning("IFSC resolution error: %s", exc)
+
+    if not entry["unparseable"] and not entry.get("is_bait", False) and norm_val_final:
         try:
             syn_res = ingest_scam_identifier(
                 call_id=effective_id,
                 identifier_type=entry["type"],
-                normalized_value=entry["normalized_value"],
+                normalized_value=norm_val_final,
             )
             pd = (syn_res or {}).get("penny_drop") or {}
-            beneficiary_name = pd.get("beneficiary_name")
-            bank_name = pd.get("bank_name")
+            beneficiary_name = beneficiary_name or pd.get("beneficiary_name")
+            bank_name = bank_name or pd.get("bank_name")
         except Exception as exc:
             logger.warning("Syndicate ingestion warning for call %s: %s", effective_id, exc)
+
+        # Cross-call mule tracking in mule_identifiers table
+        try:
+            mule_res = upsert_mule_identifier(
+                identifier_type=entry["type"],
+                identifier_value=norm_val_final,
+                call_id=effective_id,
+                bank_city=bank_city or "",
+                bank_state=bank_state or "",
+                bank_branch=bank_branch or "",
+            )
+            if mule_res.get("syndicate_match"):
+                syndicate_match = True
+                linked_call_ids = mule_res.get("linked_call_ids") or []
+                broadcast_sse({
+                    "event": "syndicate_match_detected",
+                    "call_id": effective_id,
+                    "identifier": norm_val_final,
+                    "type": entry["type"],
+                    "hit_count": mule_res.get("hit_count", 2),
+                    "linked_calls": linked_call_ids,
+                    "bank_city": bank_city or "",
+                    "bank_state": bank_state or "",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                })
+        except Exception as exc:
+            logger.warning("Mule identifier upsert error: %s", exc)
+
+    # Mid-call context injection (e.g. Amit confirmed safe)
+    family_intel = get_family_intel_injection(effective_id)
+
     logger.info(
-        "log_intel effective_id=%s raw_call_id=%s raw_execution_id=%s type=%s normalized=%s unparseable=%s",
+        "log_intel effective_id=%s raw_call_id=%s raw_execution_id=%s type=%s normalized=%s unparseable=%s ifsc_city=%s syn_match=%s",
         effective_id,
         req.call_id,
         req.execution_id,
         kind,
         norm_val,
         unparseable,
+        bank_city,
+        syndicate_match,
     )
     return LogIntelResponse(
         status="logged",
@@ -244,4 +412,11 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         identifiers_logged=entry["identifiers_logged"],
         beneficiary_name=beneficiary_name,
         bank_name=bank_name,
+        bank_branch=bank_branch,
+        bank_city=bank_city,
+        bank_state=bank_state,
+        spoken_hint=spoken_hint,
+        syndicate_match=syndicate_match,
+        linked_call_ids=linked_call_ids,
+        system_intel=family_intel,
     )
