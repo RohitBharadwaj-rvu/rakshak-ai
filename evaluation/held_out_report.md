@@ -20,9 +20,9 @@
 
 | Metric | Measured Value | Telephony Budget | Notes |
 | :--- | :--- | :--- | :--- |
-| **Median Latency (p50)** | **0.35 ms** | $< 1000$ ms | Sub-second response |
-| **95th Percentile (p95)** | **498.48 ms** | $< 1400$ ms | Guaranteed no dead air |
-| **Mean Latency** | 26.04 ms | - | - |
+| **Median Latency (p50)** | **0.49 ms** | $< 1000$ ms | Sub-second response |
+| **95th Percentile (p95)** | **376.6 ms** | $< 1400$ ms | Guaranteed no dead air |
+| **Mean Latency** | 20.48 ms | - | - |
 
 ## 3. Category Breakdown
 
@@ -46,4 +46,4 @@
 - **Genuines Routed to Safe Verification:** 0
 
 ---
-*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-29 09:40:43 UTC*
+*Report generated automatically by `scripts/run_held_out_eval.py` on 2026-10-29 14:00:48 UTC*
