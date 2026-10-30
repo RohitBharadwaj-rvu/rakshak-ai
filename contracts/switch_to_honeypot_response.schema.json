@@ -20,7 +20,11 @@
     },
     "language": {
       "type": "string",
-      "enum": ["hi", "en", "hinglish"]
+      "enum": [
+        "hi",
+        "en",
+        "hinglish"
+      ]
     },
     "persona_id": {
       "type": "string",
@@ -78,29 +82,70 @@
     },
     "fake_bait": {
       "type": "object",
-      "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
+      "required": [
+        "upi_id",
+        "account_number",
+        "ifsc_code",
+        "phone_number"
+      ],
       "properties": {
-        "upi_id": {"type": "string"},
-        "account_number": {"type": "string"},
-        "ifsc_code": {"type": "string"},
-        "phone_number": {"type": "string"},
-        "otp": {"type": "string"},
-        "aadhaar": {"type": "string"}
+        "upi_id": {
+          "type": "string"
+        },
+        "account_number": {
+          "type": "string"
+        },
+        "ifsc_code": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "otp": {
+          "type": "string"
+        },
+        "aadhaar": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
     },
     "bait_values": {
       "type": "object",
-      "required": ["upi_id", "account_number", "ifsc_code", "phone_number"],
+      "required": [
+        "upi_id",
+        "account_number",
+        "ifsc_code",
+        "phone_number"
+      ],
       "properties": {
-        "upi_id": {"type": "string"},
-        "account_number": {"type": "string"},
-        "ifsc_code": {"type": "string"},
-        "phone_number": {"type": "string"},
-        "otp": {"type": "string"},
-        "aadhaar": {"type": "string"}
+        "upi_id": {
+          "type": "string"
+        },
+        "account_number": {
+          "type": "string"
+        },
+        "ifsc_code": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        },
+        "otp": {
+          "type": "string"
+        },
+        "aadhaar": {
+          "type": "string"
+        }
       },
       "additionalProperties": false
+    },
+    "system_intel": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional ground-truth mid-call context injection"
     }
   },
   "additionalProperties": false

@@ -11,7 +11,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-      "latency_ms": 9.162664413452148,
+      "latency_ms": 6.527900695800781,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Steals netbanking/login OTP under the guise of ecommerce delivery confirmation"
@@ -24,7 +24,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-      "latency_ms": 2.2287368774414062,
+      "latency_ms": 2.0885467529296875,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Extorts money/penalty while citing official police tenant verification"
@@ -37,7 +37,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-      "latency_ms": 0.6659030914306641,
+      "latency_ms": 0.347137451171875,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Exploits emergency emotional panic and fake hospital pre-admission advance"
@@ -50,7 +50,7 @@
       "actual_verdict": "scam",
       "confidence": 0.88,
       "method": "heuristic",
-      "latency_ms": 0.2899169921875,
+      "latency_ms": 0.3094673156738281,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Relative impersonation exploiting familial trust and roadside emergency"
@@ -63,7 +63,7 @@
       "actual_verdict": "scam",
       "confidence": 0.88,
       "method": "heuristic",
-      "latency_ms": 1.5838146209716797,
+      "latency_ms": 1.7845630645751953,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Bypasses OTP warnings by asking for remote screen access software"
@@ -76,7 +76,7 @@
       "actual_verdict": "scam",
       "confidence": 0.96,
       "method": "heuristic",
-      "latency_ms": 0.18215179443359375,
+      "latency_ms": 0.12826919555664062,
       "reason": "General Safety Rule: Value/credential demand combined with coercive pressure (authority_coercion, artificial_urgency, value_demand)",
       "is_vulnerability": false,
       "risk_explanation": "Impersonates traffic authority with immediate vehicle seizure threat"

@@ -24,6 +24,7 @@ from app.core.lane_c import install as install_lane_c
 from app.voice.store import init_db
 from app.voice.tools import router as tools_router
 from app.voice.webhook import router as webhook_router
+from app.api.upgrades_router import router as upgrades_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,6 +58,7 @@ app.add_middleware(
 app.include_router(classifier_router)
 app.include_router(tools_router)
 app.include_router(webhook_router)
+app.include_router(upgrades_router)
 install_lane_c(app)
 
 

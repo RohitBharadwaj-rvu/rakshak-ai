@@ -182,6 +182,8 @@ _ADDED_COLUMNS = [
     ("money_lost", "INTEGER DEFAULT 0"),
     ("evidence_status", "TEXT DEFAULT 'draft'"),
     ("confirmed_at", "TEXT DEFAULT NULL"),
+    ("family_verification_status", "TEXT DEFAULT 'NONE'"),
+    ("family_verified_at", "TEXT DEFAULT NULL"),
 ]
 
 
@@ -220,6 +222,24 @@ def init_db(db_path: Optional[str] = None) -> None:
             for col, ddl in _ADDED_COLUMNS:
                 if col not in existing_cols:
                     conn.execute(f"ALTER TABLE call_records ADD COLUMN {col} {ddl}")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS mule_identifiers (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identifier_type TEXT NOT NULL,
+                    identifier_value TEXT NOT NULL,
+                    first_seen_call_id TEXT NOT NULL,
+                    last_seen_call_id TEXT NOT NULL,
+                    hit_count INTEGER DEFAULT 1,
+                    bank_city TEXT DEFAULT '',
+                    bank_state TEXT DEFAULT '',
+                    bank_branch TEXT DEFAULT '',
+                    linked_call_ids TEXT DEFAULT '[]',
+                    updated_at TEXT,
+                    UNIQUE(identifier_type, identifier_value)
+                )
+                """
+            )
             conn.commit()
             _restore_from_pg_if_needed(conn)
         finally:
@@ -273,6 +293,8 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         "money_lost": bool(row["money_lost"]) if "money_lost" in row_keys and row["money_lost"] is not None else False,
         "evidence_status": row["evidence_status"] if "evidence_status" in row_keys and row["evidence_status"] else "draft",
         "confirmed_at": row["confirmed_at"] if "confirmed_at" in row_keys else None,
+        "family_verification_status": row["family_verification_status"] if "family_verification_status" in row_keys and row["family_verification_status"] else "NONE",
+        "family_verified_at": row["family_verified_at"] if "family_verified_at" in row_keys else None,
     }
 
 
@@ -1092,6 +1114,223 @@ def confirm_call_evidence(call_id: str) -> Optional[Dict[str, Any]]:
             return _row_to_record(updated)
         finally:
             conn.close()
+
+
+def update_call_family_verification(
+    call_id: str,
+    status: str,
+    verified_at: Optional[str] = None,
+    db_path: Optional[str] = None,
+) -> None:
+    """Update family verification status ('NONE', 'PENDING', 'CONFIRMED_SAFE') for a call."""
+    init_db(db_path)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    v_at = verified_at or (now_iso if status == "CONFIRMED_SAFE" else None)
+    with _DB_LOCK:
+        conn = _get_conn(db_path)
+        try:
+            row = conn.execute("SELECT call_id FROM call_records WHERE call_id = ?", (call_id,)).fetchone()
+            if row:
+                conn.execute(
+                    "UPDATE call_records SET family_verification_status = ?, family_verified_at = ?, updated_at = ? WHERE call_id = ?",
+                    (status, v_at, now_iso, call_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO call_records (
+                        call_id, agent_id, caller_number, caller_number_missing,
+                        start_time, duration, verdict, confidence,
+                        persona, language, transcript_json, extracted_intel_json,
+                        summary, report_link, status, finalized_fired,
+                        created_at, updated_at, family_verification_status, family_verified_at
+                    ) VALUES (?, 'bolna_agent_guardianline_v0', '', 1, ?, 0.0, 'unsure', 0.5, 'screening_receptionist', 'hi', '[]', '{}', '', '', 'pending', 0, ?, ?, ?, ?)
+                    """,
+                    (call_id, now_iso, now_iso, now_iso, status, v_at),
+                )
+            conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
+        finally:
+            conn.close()
+
+
+def update_call_verdict(call_id: str, verdict: str, db_path: Optional[str] = None) -> None:
+    """Update call verdict (e.g., 'safe_delivery', 'scam', 'safe') in call_records."""
+    init_db(db_path)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with _DB_LOCK:
+        conn = _get_conn(db_path)
+        try:
+            row = conn.execute("SELECT call_id FROM call_records WHERE call_id = ?", (call_id,)).fetchone()
+            if row:
+                conn.execute(
+                    "UPDATE call_records SET verdict = ?, updated_at = ? WHERE call_id = ?",
+                    (verdict, now_iso, call_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO call_records (
+                        call_id, agent_id, caller_number, caller_number_missing,
+                        start_time, duration, verdict, confidence,
+                        persona, language, transcript_json, extracted_intel_json,
+                        summary, report_link, status, finalized_fired,
+                        created_at, updated_at
+                    ) VALUES (?, 'bolna_agent_guardianline_v0', '', 1, ?, 0.0, ?, 0.9, 'screening_receptionist', 'hi', '[]', '{}', '', '', 'pending', 0, ?, ?)
+                    """,
+                    (call_id, now_iso, verdict, now_iso, now_iso),
+                )
+            conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
+        finally:
+            conn.close()
+
+
+def upsert_mule_identifier(
+    identifier_type: str,
+    identifier_value: str,
+    call_id: str,
+    bank_city: str = "",
+    bank_state: str = "",
+    bank_branch: str = "",
+    db_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Upsert cross-call mule identifier into `mule_identifiers`.
+    Returns dict with identifier details, hit_count, syndicate_match (True if hit_count > 1), and linked_call_ids.
+    """
+    init_db(db_path)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    norm_val = str(identifier_value).strip().lower() if identifier_type in ("upi", "ifsc") else str(identifier_value).strip()
+    with _DB_LOCK:
+        conn = _get_conn(db_path)
+        try:
+            row = conn.execute(
+                "SELECT * FROM mule_identifiers WHERE identifier_type = ? AND identifier_value = ?",
+                (identifier_type, norm_val),
+            ).fetchone()
+            if row:
+                try:
+                    linked = json.loads(row["linked_call_ids"] or "[]")
+                except Exception:
+                    linked = []
+                if call_id and call_id not in linked:
+                    linked.append(call_id)
+                hit_count = int(row["hit_count"] or 1) + 1
+                city = bank_city or row["bank_city"] or ""
+                state = bank_state or row["bank_state"] or ""
+                branch = bank_branch or row["bank_branch"] or ""
+                conn.execute(
+                    """
+                    UPDATE mule_identifiers
+                    SET last_seen_call_id = ?, hit_count = ?, linked_call_ids = ?,
+                        bank_city = ?, bank_state = ?, bank_branch = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (call_id, hit_count, json.dumps(linked), city, state, branch, now_iso, row["id"]),
+                )
+                conn.commit()
+                return {
+                    "id": row["id"],
+                    "identifier_type": identifier_type,
+                    "identifier_value": norm_val,
+                    "first_seen_call_id": row["first_seen_call_id"],
+                    "last_seen_call_id": call_id,
+                    "hit_count": hit_count,
+                    "syndicate_match": hit_count > 1,
+                    "linked_call_ids": linked,
+                    "bank_city": city,
+                    "bank_state": state,
+                    "bank_branch": branch,
+                    "updated_at": now_iso,
+                }
+            else:
+                linked = [call_id] if call_id else []
+                cur = conn.execute(
+                    """
+                    INSERT INTO mule_identifiers (
+                        identifier_type, identifier_value, first_seen_call_id,
+                        last_seen_call_id, hit_count, bank_city, bank_state,
+                        bank_branch, linked_call_ids, updated_at
+                    ) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        identifier_type,
+                        norm_val,
+                        call_id,
+                        call_id,
+                        bank_city or "",
+                        bank_state or "",
+                        bank_branch or "",
+                        json.dumps(linked),
+                        now_iso,
+                    ),
+                )
+                conn.commit()
+                return {
+                    "id": cur.lastrowid,
+                    "identifier_type": identifier_type,
+                    "identifier_value": norm_val,
+                    "first_seen_call_id": call_id,
+                    "last_seen_call_id": call_id,
+                    "hit_count": 1,
+                    "syndicate_match": False,
+                    "linked_call_ids": linked,
+                    "bank_city": bank_city or "",
+                    "bank_state": bank_state or "",
+                    "bank_branch": bank_branch or "",
+                    "updated_at": now_iso,
+                }
+        finally:
+            conn.close()
+
+
+def list_mule_identifiers(db_path: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    """List cross-call mule identifiers tracked across calls."""
+    init_db(db_path)
+    with _DB_LOCK:
+        conn = _get_conn(db_path)
+        try:
+            rows = conn.execute(
+                "SELECT * FROM mule_identifiers ORDER BY hit_count DESC, updated_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+            result = []
+            for r in rows:
+                try:
+                    linked = json.loads(r["linked_call_ids"] or "[]")
+                except Exception:
+                    linked = []
+                result.append({
+                    "id": r["id"],
+                    "identifier_type": r["identifier_type"],
+                    "identifier_value": r["identifier_value"],
+                    "first_seen_call_id": r["first_seen_call_id"],
+                    "last_seen_call_id": r["last_seen_call_id"],
+                    "hit_count": r["hit_count"],
+                    "bank_city": r["bank_city"],
+                    "bank_state": r["bank_state"],
+                    "bank_branch": r["bank_branch"],
+                    "linked_call_ids": linked,
+                    "updated_at": r["updated_at"],
+                })
+            return result
+        finally:
+            conn.close()
+
+
+def get_syndicate_graph(db_path: Optional[str] = None) -> Dict[str, Any]:
+    """Return cross-call syndicate graph structure and repeat mule metrics."""
+    from app.voice.syndicate import cluster_syndicates
+    mules = list_mule_identifiers(db_path=db_path)
+    repeat_mules = [m for m in mules if m["hit_count"] > 1]
+    syndicates = cluster_syndicates(db_path=db_path)
+    return {
+        "syndicates": syndicates,
+        "repeat_mules": repeat_mules,
+        "total_mules_tracked": len(mules),
+        "total_repeat_mules": len(repeat_mules),
+    }
 
 
 def export_all_raw_rows() -> List[Dict[str, Any]]:

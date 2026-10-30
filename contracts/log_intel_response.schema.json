@@ -125,6 +125,45 @@
         "string",
         "null"
       ]
+    },
+    "bank_branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bank_city": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "bank_state": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "spoken_hint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "syndicate_match": {
+      "type": "boolean"
+    },
+    "linked_call_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "system_intel": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "additionalProperties": false
