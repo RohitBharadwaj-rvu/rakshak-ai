@@ -2,9 +2,9 @@ name: GuardianLine CI
 
 on:
   push:
-    branches: [ main, voice, lane-d, lane-c, lane-b ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, voice, lane-d, lane-c, lane-b ]
+    branches: [ main ]
 
 jobs:
   test-and-eval:
