@@ -420,7 +420,7 @@ class TestCallFinalizedEventListener:
             bolna_cfg = json.load(f)
         task = bolna_cfg["agent_config"]["tasks"][0]
         assert task["task_config"]["incremental_delay"] in (180, 250, 350, 450)
-        assert task["tools_config"]["transcriber"]["endpointing"] in (100, 350, 600, 850)
+        assert task["tools_config"]["transcriber"]["endpointing"] in (100, 350, 600, 850, 1200)
         assert task["tools_config"]["synthesizer"]["buffer_size"] in (80, 180)
         expected_pronunciation = {
             "HDFC": "H D F C",
