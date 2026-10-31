@@ -105,6 +105,13 @@ async def api_get_syndicate_graph():
     return get_syndicate_graph()
 
 
+@router.get("/api/mobile/calls")
+async def api_mobile_calls(limit: int = 50):
+    """Read-only mobile Caretaker feed returning recent screened call records."""
+    capped = max(1, min(100, limit))
+    return list_call_records(limit=capped)
+
+
 @router.get("/dashboard/sse")
 @router.get("/api/events")
 async def sse_event_stream(request: Request):

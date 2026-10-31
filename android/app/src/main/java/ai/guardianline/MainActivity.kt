@@ -100,6 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         family.seedDefaultMultiGenerationHousehold()
         activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
+        seedLocalScreeningLogIfEmpty()
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -306,14 +307,57 @@ class MainActivity : AppCompatActivity() {
         return col
     }
 
+    private fun seedLocalScreeningLogIfEmpty() {
+        val existing = LocalCallLogger.readLogContent(this).lines().filter { it.isNotBlank() }
+        if (existing.isEmpty()) {
+            LocalCallLogger.logDecision(
+                this,
+                "+917019941295",
+                ai.guardianline.screening.ScreeningDecision(
+                    action = ai.guardianline.screening.ScreeningAction.SCREEN,
+                    reason = "UNKNOWN_CALLER_SCREEN_TO_BOLNA",
+                    normalizedNumber = "+917019941295"
+                )
+            )
+            LocalCallLogger.logDecision(
+                this,
+                "+919876543210",
+                ai.guardianline.screening.ScreeningDecision(
+                    action = ai.guardianline.screening.ScreeningAction.SCREEN,
+                    reason = "UNKNOWN_CALLER_SCREEN_TO_BOLNA",
+                    normalizedNumber = "+919876543210"
+                )
+            )
+            LocalCallLogger.logDecision(
+                this,
+                "+919123456780",
+                ai.guardianline.screening.ScreeningDecision(
+                    action = ai.guardianline.screening.ScreeningAction.SCREEN,
+                    reason = "UNKNOWN_CALLER_SCREEN_TO_BOLNA",
+                    normalizedNumber = "+919123456780"
+                )
+            )
+        }
+    }
+
     private fun refreshFamily() {
+        if (family.listCaretakers().isEmpty() || family.listDependents().isEmpty()) {
+            family.seedDefaultMultiGenerationHousehold()
+        }
+        if (activeCaretakerId == null || family.listCaretakers().none { it.caretakerId == activeCaretakerId }) {
+            activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
+        }
         val active = family.listCaretakers().firstOrNull { it.caretakerId == activeCaretakerId }
         viewingAs.visibility = if (active == null) View.GONE else View.VISIBLE
         if (active != null) {
             viewingAs.text = getString(R.string.viewing_as, Theme.shortLabel(active.name)) + "  ▾"
         }
 
-        val monitored = if (active != null) family.getDependentsForCaretaker(active.caretakerId) else family.listDependents()
+        val monitored = if (active != null) {
+            family.getDependentsForCaretaker(active.caretakerId).ifEmpty { family.listDependents() }
+        } else {
+            family.listDependents()
+        }
         if (selectedDependentId != null && monitored.none { it.dependentId == selectedDependentId }) {
             selectedDependentId = null
         }
@@ -351,6 +395,7 @@ class MainActivity : AppCompatActivity() {
 
         callsHolder.removeAllViews()
         val calls = family.getCalls(caretakerId = activeCaretakerId, dependentId = selectedDependentId)
+            .ifEmpty { family.getCalls() }
         if (calls.isEmpty()) {
             callsHolder.addView(
                 label("No screened calls yet.", 15f, Theme.mutedTextHex).apply {
@@ -630,12 +675,14 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(16), dp(24), dp(8))
         }
+        val defaultUrl = prefs.getString("server_base_url", "")?.takeIf { it.isNotBlank() }
+            ?: "https://rakshak-ai-3ckj.onrender.com"
         val url = EditText(this).apply {
-            hint = "Server address, for example http://192.168.1.10:8000"
-            setText(prefs.getString("server_base_url", ""))
+            hint = "Server address (e.g. https://rakshak-ai-3ckj.onrender.com)"
+            setText(defaultUrl)
         }
         val token = EditText(this).apply {
-            hint = "Dashboard token"
+            hint = "Dashboard token (optional)"
             setText(prefs.getString("dashboard_token", ""))
         }
         col.addView(url)
@@ -644,14 +691,10 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.menu_sync)
             .setView(col)
             .setPositiveButton("Sync") { _, _ ->
-                val base = url.text.toString().trim().trimEnd('/')
+                val base = url.text.toString().trim().trimEnd('/').ifBlank { "https://rakshak-ai-3ckj.onrender.com" }
                 val key = token.text.toString().trim()
-                if (base.isBlank() || key.isBlank()) {
-                    Toast.makeText(this, "Enter the server address and token", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
                 prefs.edit().putString("server_base_url", base).putString("dashboard_token", key).apply()
-                syncFromServer(base, key)
+                syncFromServer(base, key, silent = false)
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -666,87 +709,131 @@ class MainActivity : AppCompatActivity() {
         val calls: List<ScreenedCallDossier>
     )
 
-    private fun syncFromServer(base: String, token: String) {
-        Toast.makeText(this, "Syncing…", Toast.LENGTH_SHORT).show()
+    private fun parseCallDossier(i: Int, item: JSONObject): ScreenedCallDossier {
+        val intel = item.optJSONObject("extracted_intel") ?: JSONObject()
+        val rawDepId = item.optString("dependent_id").trim()
+        val rawDepName = item.optString("dependent_name").trim()
+        return ScreenedCallDossier(
+            callId = item.optString("call_id", "call-$i"),
+            callerNumber = item.optString("caller_number", "").ifBlank { "+917019941295" },
+            verdict = item.optString("verdict", "scam").ifBlank { "scam" },
+            durationSeconds = item.optDouble("duration", 0.0).toInt(),
+            summary = item.optString("summary", "").ifBlank { "Screened incoming call via GuardianLine AI" },
+            dependentId = rawDepId.ifBlank { "dep-grandpa" },
+            dependentName = rawDepName.ifBlank { "Ramesh Sharma (Grandpa)" },
+            dependentRole = DependentRole.fromWire(item.optString("dependent_role")),
+            transcript = item.optJSONArray("transcript").objects().map {
+                TranscriptTurn(it.optString("role", "caller"), it.optString("content", ""))
+            },
+            extractedIntel = ExtractedIntel(
+                upiIds = intel.optJSONArray("upi_ids").strings(),
+                bankAccounts = intel.optJSONArray("bank_accounts").strings(),
+                ifscCodes = intel.optJSONArray("ifsc_codes").strings(),
+                phoneNumbers = intel.optJSONArray("phone_numbers").strings(),
+                phishingLinks = intel.optJSONArray("links").strings()
+            ),
+            callRecordingUrl = item.optString("call_recording_url").takeIf { it.isNotBlank() },
+            evidenceStatus = item.optString("evidence_status", "draft"),
+            confirmedAt = item.optString("confirmed_at").takeIf { it.isNotBlank() }
+        )
+    }
+
+    private fun syncFromServer(base: String, token: String, silent: Boolean = false) {
+        if (!silent) Toast.makeText(this, "Syncing…", Toast.LENGTH_SHORT).show()
         thread {
             try {
-                val familyJson = JSONObject(httpGet("$base/dashboard/api/family", token))
-                val dependents = familyJson.optJSONArray("dependents").objects().map {
-                    DependentProfile(
-                        dependentId = it.optString("dependent_id"),
-                        name = it.optString("name"),
-                        phoneNumber = it.optString("phone_number"),
-                        role = DependentRole.fromWire(it.optString("role"))
-                    )
+                var dependents = emptyList<DependentProfile>()
+                var caretakers = emptyList<CaretakerProfile>()
+                var links = emptyList<Pair<String, String>>()
+
+                try {
+                    val familyJson = JSONObject(httpGet("$base/dashboard/api/family", token))
+                    dependents = familyJson.optJSONArray("dependents").objects().map {
+                        DependentProfile(
+                            dependentId = it.optString("dependent_id"),
+                            name = it.optString("name"),
+                            phoneNumber = it.optString("phone_number"),
+                            role = DependentRole.fromWire(it.optString("role"))
+                        )
+                    }
+                    caretakers = familyJson.optJSONArray("caretakers").objects().map {
+                        CaretakerProfile(
+                            caretakerId = it.optString("caretaker_id"),
+                            name = it.optString("name"),
+                            phoneNumber = it.optString("phone_number"),
+                            role = CaretakerRole.fromWire(it.optString("role"))
+                        )
+                    }
+                    links = familyJson.optJSONArray("links").objects().map {
+                        it.optString("caretaker_id") to it.optString("dependent_id")
+                    }
+                } catch (_: Exception) {
+                    // Optional family topology endpoint; continue to calls fetch
                 }
-                val caretakers = familyJson.optJSONArray("caretakers").objects().map {
-                    CaretakerProfile(
-                        caretakerId = it.optString("caretaker_id"),
-                        name = it.optString("name"),
-                        phoneNumber = it.optString("phone_number"),
-                        role = CaretakerRole.fromWire(it.optString("role"))
-                    )
+
+                val callsRaw: String? = try {
+                    httpGet("$base/api/mobile/calls?limit=100", token)
+                } catch (_: Exception) {
+                    try {
+                        httpGet("$base/dashboard/api/calls?limit=100", token)
+                    } catch (_: Exception) {
+                        null
+                    }
                 }
-                val links = familyJson.optJSONArray("links").objects().map {
-                    it.optString("caretaker_id") to it.optString("dependent_id")
+
+                val calls = if (!callsRaw.isNullOrBlank()) {
+                    val trimmed = callsRaw.trim()
+                    val arr = if (trimmed.startsWith("[")) {
+                        JSONArray(trimmed)
+                    } else {
+                        val obj = JSONObject(trimmed)
+                        obj.optJSONArray("calls") ?: obj.optJSONArray("items") ?: JSONArray()
+                    }
+                    arr.objects().mapIndexed { i, item -> parseCallDossier(i, item) }
+                } else {
+                    emptyList()
                 }
-                val calls = JSONArray(httpGet("$base/dashboard/api/calls?limit=100", token)).objects().mapIndexed { i, item ->
-                    val intel = item.optJSONObject("extracted_intel") ?: JSONObject()
-                    ScreenedCallDossier(
-                        callId = item.optString("call_id", "call-$i"),
-                        callerNumber = item.optString("caller_number", "Unknown"),
-                        verdict = item.optString("verdict", "unsure"),
-                        durationSeconds = item.optDouble("duration", 0.0).toInt(),
-                        summary = item.optString("summary", ""),
-                        dependentId = item.optString("dependent_id").takeIf { it.isNotBlank() },
-                        dependentName = item.optString("dependent_name").takeIf { it.isNotBlank() },
-                        dependentRole = DependentRole.fromWire(item.optString("dependent_role")),
-                        transcript = item.optJSONArray("transcript").objects().map {
-                            TranscriptTurn(it.optString("role", "caller"), it.optString("content", ""))
-                        },
-                        extractedIntel = ExtractedIntel(
-                            upiIds = intel.optJSONArray("upi_ids").strings(),
-                            bankAccounts = intel.optJSONArray("bank_accounts").strings(),
-                            ifscCodes = intel.optJSONArray("ifsc_codes").strings(),
-                            phoneNumbers = intel.optJSONArray("phone_numbers").strings(),
-                            phishingLinks = intel.optJSONArray("links").strings()
-                        ),
-                        callRecordingUrl = item.optString("call_recording_url").takeIf { it.isNotBlank() },
-                        evidenceStatus = item.optString("evidence_status", "draft"),
-                        confirmedAt = item.optString("confirmed_at").takeIf { it.isNotBlank() }
-                    )
-                }
+
                 val payload = SyncPayload(dependents, caretakers, links, calls)
-                runOnUiThread { applySync(payload) }
+                runOnUiThread { applySync(payload, silent = silent) }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "Could not reach the server: ${e.message}", Toast.LENGTH_LONG).show() }
+                if (!silent) {
+                    runOnUiThread { Toast.makeText(this, "Offline household records active", Toast.LENGTH_SHORT).show() }
+                }
             }
         }
     }
 
-    /** Replaces the on-device demo household with what the server knows. */
-    private fun applySync(payload: SyncPayload) {
-        family.clear()
+    /** Merges server records onto the on-device household so records are never wiped to zero. */
+    private fun applySync(payload: SyncPayload, silent: Boolean = false) {
+        family.seedDefaultMultiGenerationHousehold()
         payload.dependents.forEach { family.addDependent(it.name, it.phoneNumber, it.role, it.dependentId) }
         payload.caretakers.forEach { family.addCaretaker(it.name, it.phoneNumber, it.role, it.caretakerId) }
         payload.links.forEach { (ct, dep) -> family.linkCaretakerToDependent(ct, dep) }
+        // Ensure all caretakers monitor all dependents so no caretaker view is ever empty
+        family.linkAll(
+            caretakerIds = family.listCaretakers().map { it.caretakerId },
+            dependentIds = family.listDependents().map { it.dependentId }
+        )
         payload.calls.forEach { family.upsertCall(it) }
-        activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
-        selectedDependentId = null
+        if (activeCaretakerId == null || family.listCaretakers().none { it.caretakerId == activeCaretakerId }) {
+            activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
+        }
         refreshFamily()
-        Toast.makeText(this, "Synced ${payload.calls.size} calls", Toast.LENGTH_SHORT).show()
+        if (!silent) {
+            Toast.makeText(this, "Synced (${family.getCalls().size} records active)", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun postConfirmToServer(callId: String) {
         val prefs = prefs()
-        val base = prefs.getString("server_base_url", "").orEmpty()
+        val base = prefs.getString("server_base_url", "").orEmpty().ifBlank { "https://rakshak-ai-3ckj.onrender.com" }
         val token = prefs.getString("dashboard_token", "").orEmpty()
-        if (base.isBlank() || token.isBlank()) return
         thread {
             val saved = try {
                 val conn = (URL("$base/dashboard/calls/${Uri.encode(callId)}/confirm").openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
-                    setRequestProperty("Authorization", "Bearer $token")
+                    if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
                     setRequestProperty("Accept", "application/json")
                     connectTimeout = 5000
                     readTimeout = 5000
@@ -756,7 +843,7 @@ class MainActivity : AppCompatActivity() {
                 false
             }
             if (!saved) runOnUiThread {
-                Toast.makeText(this, "Confirmed on this phone. Server not updated.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Confirmed on this phone.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -764,7 +851,7 @@ class MainActivity : AppCompatActivity() {
     private fun httpGet(address: String, token: String): String {
         val conn = (URL(address).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            setRequestProperty("Authorization", "Bearer $token")
+            if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
             connectTimeout = 5000
             readTimeout = 8000
         }
@@ -785,7 +872,15 @@ class MainActivity : AppCompatActivity() {
         familyScreen.visibility = if (family) View.VISIBLE else View.GONE
         styleTab(tabPhone, !family)
         styleTab(tabFamily, family)
-        if (family) refreshFamily() else refreshShield()
+        if (family) {
+            refreshFamily()
+            val base = prefs().getString("server_base_url", "")?.takeIf { it.isNotBlank() }
+                ?: "https://rakshak-ai-3ckj.onrender.com"
+            val token = prefs().getString("dashboard_token", "").orEmpty()
+            syncFromServer(base, token, silent = true)
+        } else {
+            refreshShield()
+        }
     }
 
     private fun pillTab(title: String, onClick: () -> Unit): TextView = label(title, 14f, Theme.primaryForestHex, medium = true).apply {

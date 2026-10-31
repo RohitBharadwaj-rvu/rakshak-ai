@@ -266,8 +266,8 @@ class FamilyCircleManager {
         }
 
         return calls.values.filter { call ->
-            val matchesCaretaker = if (allowedDependents != null) {
-                call.dependentId == null || allowedDependents.contains(call.dependentId)
+            val matchesCaretaker = if (allowedDependents != null && allowedDependents.isNotEmpty()) {
+                call.dependentId.isNullOrBlank() || allowedDependents.contains(call.dependentId) || !dependents.containsKey(call.dependentId)
             } else {
                 true
             }
@@ -436,6 +436,32 @@ class FamilyCircleManager {
 
         upsertCall(
             ScreenedCallDossier(
+                callId = "a08082b8-e14e-4193-b0d2-0cf5c237e4ea",
+                callerNumber = "+917019941295",
+                verdict = "scam",
+                durationSeconds = 212,
+                summary = "SBI Delhi Branch KYC Block & Rs 5,000 Fee Scam targeting Grandfather Ramesh. Extracted UPI, 10-digit number & live-resolved IFSC SBIN0001856 (Delhi).",
+                dependentId = grandpa.dependentId,
+                dependentName = grandpa.name,
+                dependentRole = grandpa.role,
+                transcript = listOf(
+                    TranscriptTurn("caller", "Hello, main Rahul bol raha hoon SBI Delhi branch se. Aapka KYC expire ho gaya hai, account block ho jayega."),
+                    TranscriptTurn("agent", "Accha, SBI se? Par kis branch se bol rahe hain aap? Mera KYC toh poora hai."),
+                    TranscriptTurn("caller", "Main aapko UPI ID deta hoon rahul.sbi@ybl, uspe Rs 5000 bhej dijiye. Phone number 7019941295 aur IFSC code SBIN0001856 hai."),
+                    TranscriptTurn("agent", "Arre, yeh IFSC code toh Delhi branch ka dikha raha hai! Aapke bataye UPI par payment fail bata raha hai, aur mere phone par abhi tak koi OTP nahi aaya hai.")
+                ),
+                extractedIntel = ExtractedIntel(
+                    upiIds = listOf("rahul.sbi@ybl"),
+                    ifscCodes = listOf("SBIN0001856"),
+                    phoneNumbers = listOf("7019941295")
+                ),
+                callRecordingUrl = "https://api.bolna.ai/recordings/call/a08082b8-e14e-4193-b0d2-0cf5c237e4ea",
+                evidenceStatus = "draft"
+            )
+        )
+
+        upsertCall(
+            ScreenedCallDossier(
                 callId = "59a2191a-1379-43f2-a341-66ecc5ab4dcb",
                 callerNumber = "+919876543210",
                 verdict = "scam",
@@ -446,9 +472,9 @@ class FamilyCircleManager {
                 dependentRole = grandpa.role,
                 transcript = listOf(
                     TranscriptTurn("caller", "Namaskar, main CBI cyber cell aur SBI headquarters se bol raha hoon. Aapka KYC block ho gaya hai, turant ramesh.scam@okaxis par 10,000 rupaye bhejo."),
-                    TranscriptTurn("agent", "Arre beta, main Ramesh bol raha hoon, meri umar 72 saal hai. Mera chashma nahi mil raha, aap apna UPI ID aur bank account number dhire-dhire batao."),
+                    TranscriptTurn("agent", "Main Ramesh bol raha hoon. Aap apna UPI ID aur bank account number bataiye."),
                     TranscriptTurn("caller", "Jaldi note karo: UPI ID ramesh.scam@okaxis hai aur account number 918273645501, IFSC SBIN0001234. Abhi transfer karo warna digital arrest warrant niklega!"),
-                    TranscriptTurn("agent", "Accha beta, main passbook dhoondh ke apne bete Rajesh se pooch ke abhi karta hoon.")
+                    TranscriptTurn("agent", "Is number par toh payment fail bata raha hai, koi doosra bank khata aur IFSC code bata dijiye.")
                 ),
                 extractedIntel = ExtractedIntel(
                     upiIds = listOf("ramesh.scam@okaxis"),
@@ -473,7 +499,7 @@ class FamilyCircleManager {
                 dependentRole = grandma.role,
                 transcript = listOf(
                     TranscriptTurn("caller", "Bijli vibhag se bol raha hoon, aaj raat 9 baje bijli kat jayegi. Turant ramesh.scam@okaxis par 4,500 bhejo."),
-                    TranscriptTurn("agent", "Beta bil toh pichle hafte hi bhara tha. Ruko main bahu Priya ko bulati hoon.")
+                    TranscriptTurn("agent", "Bijli ka bil toh main har mahine samay par jama karti hoon, mere paas raseed bhi rakhi hai.")
                 ),
                 extractedIntel = ExtractedIntel(
                     upiIds = listOf("ramesh.scam@okaxis"),
@@ -505,6 +531,29 @@ class FamilyCircleManager {
                     phishingLinks = listOf("http://free-pass-claim.example.com")
                 ),
                 callRecordingUrl = "https://bolna.ai/recordings/88d4203c-9532-40b2-c223-99aee7cd0012.mp3",
+                evidenceStatus = "draft"
+            )
+        )
+
+        upsertCall(
+            ScreenedCallDossier(
+                callId = "99e5304d-0643-41c3-d334-00bff8de1123",
+                callerNumber = "+918899776655",
+                verdict = "scam",
+                durationSeconds = 64,
+                summary = "Fake scholarship registration fee scam targeting Kid Ananya from linked syndicate caller.",
+                dependentId = kidAnanya.dependentId,
+                dependentName = kidAnanya.name,
+                dependentRole = kidAnanya.role,
+                transcript = listOf(
+                    TranscriptTurn("caller", "Beta aapki school scholarship pass ho gayi hai, processing fee Rs 2,000 rahul.sbi@ybl par bhejo."),
+                    TranscriptTurn("agent", "Main pehle papa Rajesh se baat karungi, phone par paise nahi bhejti.")
+                ),
+                extractedIntel = ExtractedIntel(
+                    upiIds = listOf("rahul.sbi@ybl"),
+                    phoneNumbers = listOf("8899776655")
+                ),
+                callRecordingUrl = "https://bolna.ai/recordings/99e5304d-0643-41c3-d334-00bff8de1123.mp3",
                 evidenceStatus = "draft"
             )
         )
