@@ -156,5 +156,5 @@ def generate_ifsc_spoken_hint(ifsc_details: Dict[str, Any], claimed_identity: Op
     branch_str = f"{bank}, {branch} ब्रांच".strip(", ")
 
     if claimed_identity:
-        return f"भैया, आप तो {claimed_identity} बोल रहे हैं, पर ये IFSC कोड तो {loc_str} ({branch_str}) का दिखा रहा है! ये चक्कर क्या है?"
-    return f"भैया, ये IFSC कोड तो {loc_str} ({branch_str}) का दिखा रहा है! ये खाता किसका है?"
+        return f"आप तो {claimed_identity} बोल रहे हैं, पर ये IFSC कोड तो {loc_str} ({branch_str}) का दिखा रहा है!"
+    return f"ये IFSC कोड तो {loc_str} ({branch_str}) का दिखा रहा है, और इसमें खाताधारक का नाम किसी और का आ रहा है! ये खाता किसका है?"
