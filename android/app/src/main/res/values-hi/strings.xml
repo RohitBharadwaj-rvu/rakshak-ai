@@ -17,4 +17,9 @@
     <string name="toast_role_unavailable">इस फ़ोन पर कॉल स्क्रीनिंग सुविधा उपलब्ध नहीं है।</string>
     <string name="btn_share_log">स्क्रीनिंग लॉग भेजें</string>
     <string name="toast_log_empty">अभी तक कोई कॉल लॉग नहीं हुई है।</string>
+    <string name="tab_dependent_shield">🛡️ फ़ोन सुरक्षा (डिपेंडेंट)</string>
+    <string name="tab_caretaker_dashboard">👨‍👩‍👧‍👦 परिवार डैशबोर्ड (केयरटेकर)</string>
+    <string name="caretaker_header">परिवार सुरक्षा चक्र · माता-पिता, दादा-दादी और बच्चों की सुरक्षा</string>
+    <string name="btn_manage_family">+ परिवार सदस्य जोड़ें / लिंक करें</string>
+    <string name="btn_sync_server">↻ सर्वर सिंक करें</string>
 </resources>

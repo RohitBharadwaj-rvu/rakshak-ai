@@ -17,4 +17,9 @@
     <string name="toast_role_unavailable">Call Screening Role is unavailable on this device.</string>
     <string name="btn_share_log">Share screening log</string>
     <string name="toast_log_empty">No screened calls logged yet.</string>
+    <string name="tab_dependent_shield">🛡️ Dependent Shield</string>
+    <string name="tab_caretaker_dashboard">👨‍👩‍👧‍👦 Caretaker Dashboard</string>
+    <string name="caretaker_header">Family Protection Circle · Multi-Caretaker &amp; Dependent Hub</string>
+    <string name="btn_manage_family">+ Add / Link Family Member</string>
+    <string name="btn_sync_server">↻ Sync Live Server</string>
 </resources>

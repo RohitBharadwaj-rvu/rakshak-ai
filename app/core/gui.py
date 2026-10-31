@@ -51,6 +51,8 @@ class BaseCallStore(ABC):
         verdict: Optional[str] = None,
         page: int = 1,
         limit: int = 50,
+        dependent_id: Optional[str] = None,
+        dependent_ids: Optional[List[str]] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Returns (paged_calls, total_matching_count)."""
         pass
@@ -103,6 +105,8 @@ class InMemoryCallStore(BaseCallStore):
         verdict: Optional[str] = None,
         page: int = 1,
         limit: int = 50,
+        dependent_id: Optional[str] = None,
+        dependent_ids: Optional[List[str]] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         with self._lock:
             calls = list(self._calls.values())
@@ -113,6 +117,12 @@ class InMemoryCallStore(BaseCallStore):
         if verdict:
             v_lower = verdict.lower()
             calls = [c for c in calls if str(c.get("verdict", "")).lower() == v_lower]
+
+        if dependent_id:
+            calls = [c for c in calls if str(c.get("dependent_id", "")) == dependent_id]
+        elif dependent_ids is not None:
+            allowed = set(dependent_ids)
+            calls = [c for c in calls if str(c.get("dependent_id", "")) in allowed]
 
         total_count = len(calls)
         start_idx = max(0, (page - 1) * limit)
@@ -367,6 +377,24 @@ def build_scam_intelligence(calls: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 
+def _resolve_dependent_filter(
+    dependent_id: Optional[str] = None,
+    caretaker_id: Optional[str] = None,
+) -> Tuple[Optional[str], Optional[List[str]]]:
+    """
+    Resolves query filters `(dependent_id, dependent_ids)`:
+    - If `dependent_id` is specified, filters to that single dependent.
+    - Else if `caretaker_id` is specified, resolves all dependents monitored by that caretaker.
+    """
+    if dependent_id:
+        return dependent_id, None
+    if caretaker_id:
+        from app.core.family import get_family_registry
+        deps = get_family_registry().get_dependents_for_caretaker(caretaker_id)
+        return None, [str(d["dependent_id"]) for d in deps]
+    return None, None
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 @router.get("/dashboard/", response_class=HTMLResponse)
 @router.get("/gui", response_class=HTMLResponse)
@@ -376,6 +404,8 @@ def render_dashboard(
     auth_token: str = Depends(verify_overview_auth),
     token: Optional[str] = Query(None),
     verdict: Optional[str] = Query(None, pattern="^(scam|genuine|unsure)$"),
+    dependent_id: Optional[str] = Query(None),
+    caretaker_id: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     store: BaseCallStore = Depends(get_dashboard_store),
@@ -383,8 +413,21 @@ def render_dashboard(
     if token:
         return _session_redirect(request, auth_token)
 
-    calls, total_calls = store.get_calls(verdict=verdict, page=page, limit=limit)
-    all_calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+    dep_single, dep_list = _resolve_dependent_filter(dependent_id=dependent_id, caretaker_id=caretaker_id)
+    calls, total_calls = store.get_calls(
+        verdict=verdict,
+        page=page,
+        limit=limit,
+        dependent_id=dep_single,
+        dependent_ids=dep_list,
+    )
+    all_calls, _ = store.get_calls(
+        verdict=None,
+        page=1,
+        limit=500,
+        dependent_id=dep_single,
+        dependent_ids=dep_list,
+    )
     scam_intel = build_scam_intelligence(all_calls)
 
     # Check for active pending scam calls for real-time honeypot banner
@@ -481,6 +524,42 @@ def render_dashboard(
         </div>
         """
 
+    from app.core.family import get_family_registry
+    family_topology = get_family_registry().get_family_topology()
+    caretakers_topo = family_topology.get("caretakers", [])
+    dependents_topo = family_topology.get("dependents", [])
+    family_filter_html = ""
+    if caretakers_topo or dependents_topo:
+        ct_pills = [
+            f'<a href="/dashboard" class="btn-detail" style="border: 1px solid {"#38bdf8" if not caretaker_id and not dependent_id else "#334155"};">👨‍👩‍👧‍👦 All Family</a>'
+        ]
+        for ct in caretakers_topo:
+            cid = html.escape(quote(str(ct["caretaker_id"]), safe=""))
+            cname = html.escape(str(ct["name"]))
+            crole = html.escape(str(ct.get("role", "parent")).title())
+            active_border = "#38bdf8" if caretaker_id == ct["caretaker_id"] else "#334155"
+            ct_pills.append(
+                f'<a href="/dashboard?caretaker_id={cid}" class="btn-detail" style="border: 1px solid {active_border};">👁️ {cname} ({crole})</a>'
+            )
+        dep_pills = []
+        for dp in dependents_topo:
+            did = html.escape(quote(str(dp["dependent_id"]), safe=""))
+            dname = html.escape(str(dp["name"]))
+            drole = html.escape(str(dp.get("role", "grandparent")).title())
+            active_border = "#22c55e" if dependent_id == dp["dependent_id"] else "#334155"
+            dep_pills.append(
+                f'<a href="/dashboard?dependent_id={did}" class="btn-detail" style="border: 1px solid {active_border};">🛡️ {dname} ({drole})</a>'
+            )
+        family_filter_html = f"""
+        <div class="intel-summary-card" style="border-left-color: #22c55e;">
+            <div class="card-header" style="margin-bottom: 8px;">
+                <strong>👨‍👩‍👧‍👦 Family Protection Circle · Multi-Caretaker &amp; Dependent Filter</strong>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px;">{"".join(ct_pills)}</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">{"".join(dep_pills)}</div>
+        </div>
+        """
+
 
     total_pages = max(1, (total_calls + limit - 1) // limit) if total_calls > 0 else 1
     start_num = (page - 1) * limit + 1 if total_calls > 0 else 0
@@ -539,6 +618,13 @@ def render_dashboard(
 
             intel_html = " ".join(intel_items) if intel_items else "<span class='text-muted'>No attacker payment intel extracted</span>"
 
+            dep_name_raw = str(c.get("dependent_name") or "").strip()
+            dep_role_raw = str(c.get("dependent_role") or "").strip()
+            dep_badge_html = ""
+            if dep_name_raw:
+                role_suffix = f" ({html.escape(dep_role_raw.title())})" if dep_role_raw else ""
+                dep_badge_html = f'<div style="margin-bottom: 6px;"><span class="intel-tag ifsc">🛡️ Protected: {html.escape(dep_name_raw)}{role_suffix}</span></div>'
+
             card = f"""
             <div class="call-card {v}">
                 <div class="card-header">
@@ -546,6 +632,7 @@ def render_dashboard(
                     <span class="duration">{duration_num:.0f}s</span>
                 </div>
                 {fam_badge}
+                {dep_badge_html}
                 <div class="caller-number">{caller}</div>
                 <div class="summary">{summary}</div>
                 <div class="intel-box">{intel_html}</div>
@@ -780,6 +867,7 @@ def render_dashboard(
         </header>
         <main>
             {live_banner_html}
+            {family_filter_html}
             {intel_banner_html}
             {cards_html}
             {pagination_html}
@@ -1318,17 +1406,165 @@ def render_scam_intelligence_view(
 
 
 @router.get("/dashboard/api/calls", response_model=List[Dict[str, Any]])
-
-
 def list_calls_api(
     auth_token: str = Depends(verify_overview_auth),
     verdict: Optional[str] = Query(None, pattern="^(scam|genuine|unsure)$", description="Filter: scam, genuine, unsure"),
+    dependent_id: Optional[str] = Query(None, description="Filter calls for a specific dependent"),
+    caretaker_id: Optional[str] = Query(None, description="Filter calls across all dependents monitored by this caretaker"),
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     store: BaseCallStore = Depends(get_dashboard_store),
 ):
-    calls, _ = store.get_calls(verdict=verdict, page=page, limit=limit)
+    dep_single, dep_list = _resolve_dependent_filter(dependent_id=dependent_id, caretaker_id=caretaker_id)
+    calls, _ = store.get_calls(
+        verdict=verdict,
+        page=page,
+        limit=limit,
+        dependent_id=dep_single,
+        dependent_ids=dep_list,
+    )
     return calls
+
+
+@router.get("/dashboard/api/calls/{call_id}/dossier", response_model=Dict[str, Any])
+def get_call_dossier_api(
+    call_id: str,
+    auth: str = Depends(verify_call_access),
+    store: BaseCallStore = Depends(get_dashboard_store),
+):
+    """
+    Consolidated mobile & web Caretaker Dossier endpoint returning:
+    - Full CallRecord (with transcript, audio URL, dependent info, extracted intel)
+    - Pre-formatted Chakshu packet & Report Suspect packets
+    - Pre-filled 1930 Cybercrime report text
+    - Cross-call shared scam intelligence links
+    """
+    record = store.get_call(call_id)
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Call record with ID '{call_id}' not found",
+        )
+    chakshu = build_chakshu_packet(record)
+    chakshu_dict = chakshu.model_dump() if hasattr(chakshu, "model_dump") else chakshu.dict()
+    suspect_packets = [pkt.to_dict() for pkt in build_report_suspect_packets(record)]
+
+    if _REPORT_RENDERER is not None:
+        report_1930_text = _REPORT_RENDERER(record)
+    else:
+        caller = record.get("caller_number") or "Not captured"
+        summary = record.get("summary") or "Not captured"
+        report_1930_text = f"1930 INCIDENT DOSSIER | Case: {call_id} | Suspect: {caller} | Summary: {summary}"
+
+    all_calls, _ = store.get_calls(verdict=None, page=1, limit=500)
+    scam_intel = build_scam_intelligence(all_calls)
+    shared_links = scam_intel["shared_by_call_id"].get(call_id, [])
+
+    return {
+        "call": record,
+        "evidence_status": record.get("evidence_status") or "draft",
+        "confirmed_at": record.get("confirmed_at"),
+        "chakshu_packet": chakshu_dict,
+        "suspect_packets": suspect_packets,
+        "report_1930_text": report_1930_text,
+        "shared_scam_links": shared_links,
+        "portals": {
+            "chakshu_url": "https://sancharsaathi.gov.in/sfc/",
+            "cybercrime_1930_url": "https://cybercrime.gov.in",
+            "helpline_number": "1930",
+        },
+    }
+
+
+@router.get("/dashboard/api/family", response_model=Dict[str, Any])
+def get_family_topology_api(
+    auth_token: str = Depends(verify_overview_auth),
+    caretaker_id: Optional[str] = Query(None),
+):
+    from app.core.family import get_family_registry
+    return get_family_registry().get_family_topology(caretaker_id=caretaker_id)
+
+
+@router.post("/dashboard/api/family/dependents", response_model=Dict[str, Any])
+async def register_dependent_api(
+    request: Request,
+    auth_token: str = Depends(verify_overview_auth),
+):
+    from app.core.family import get_family_registry
+    body = await request.json()
+    try:
+        return get_family_registry().register_dependent(
+            name=str(body.get("name") or ""),
+            phone_number=str(body.get("phone_number") or ""),
+            role=str(body.get("role") or "grandparent"),
+            dependent_id=body.get("dependent_id"),
+            device_status=str(body.get("device_status") or "active"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/dashboard/api/family/caretakers", response_model=Dict[str, Any])
+async def register_caretaker_api(
+    request: Request,
+    auth_token: str = Depends(verify_overview_auth),
+):
+    from app.core.family import get_family_registry
+    body = await request.json()
+    try:
+        return get_family_registry().register_caretaker(
+            name=str(body.get("name") or ""),
+            phone_number=str(body.get("phone_number") or ""),
+            role=str(body.get("role") or "parent"),
+            channel=str(body.get("channel") or "whatsapp"),
+            caretaker_id=body.get("caretaker_id"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/dashboard/api/family/links", response_model=Dict[str, Any])
+async def link_caretakers_and_dependents_api(
+    request: Request,
+    auth_token: str = Depends(verify_overview_auth),
+):
+    from app.core.family import get_family_registry
+    body = await request.json()
+    reg = get_family_registry()
+    label = str(body.get("relationship_label") or "")
+
+    ct_ids = body.get("caretaker_ids") or ([body["caretaker_id"]] if body.get("caretaker_id") else [])
+    dep_ids = body.get("dependent_ids") or ([body["dependent_id"]] if body.get("dependent_id") else [])
+    if not ct_ids or not dep_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must provide caretaker_id(s) and dependent_id(s)",
+        )
+    created_links = []
+    try:
+        for cid in ct_ids:
+            for did in dep_ids:
+                created_links.append(
+                    reg.link_caretaker_to_dependent(
+                        caretaker_id=str(cid),
+                        dependent_id=str(did),
+                        relationship_label=label,
+                    )
+                )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return {"links": created_links}
+
+
+@router.delete("/dashboard/api/family/links", response_model=Dict[str, Any])
+def unlink_caretaker_and_dependent_api(
+    caretaker_id: str = Query(...),
+    dependent_id: str = Query(...),
+    auth_token: str = Depends(verify_overview_auth),
+):
+    from app.core.family import get_family_registry
+    removed = get_family_registry().unlink_caretaker_from_dependent(caretaker_id, dependent_id)
+    return {"removed": removed, "caretaker_id": caretaker_id, "dependent_id": dependent_id}
 
 
 @router.get("/dashboard/api/calls/{call_id}", response_model=Dict[str, Any])

@@ -32,7 +32,8 @@ def isolated_store():
 
 
 @pytest.fixture
-def test_app(isolated_store):
+def test_app(isolated_store, monkeypatch):
+    monkeypatch.delenv("REPORT_SIGNING_SECRET", raising=False)
     # Another test may have installed lane B's report renderer; these tests cover the local fallback
     set_report_renderer(None)
     app = FastAPI(title="GuardianLine Dashboard Test")
@@ -393,3 +394,129 @@ class TestScamIntelligenceView:
         assert detail_resp.status_code == 200
         assert "/dashboard/calls/call_scam_001" in detail_resp.text
         assert "/dashboard/calls/call_scam_003" in detail_resp.text
+
+
+class TestMultiCaretakerMultiDependentDashboard:
+    def test_family_api_and_caretaker_dependent_filtering_and_dossier(self, client, isolated_store, monkeypatch, tmp_path):
+        from app.core.family import FamilyRegistry, set_family_registry
+
+        monkeypatch.setenv("GUARDIAN_DASHBOARD_TOKEN", TEST_TOKEN)
+        reg = FamilyRegistry(db_path=str(tmp_path / "dash_family.db"))
+        set_family_registry(reg)
+        try:
+            headers = {"Authorization": f"Bearer {TEST_TOKEN}"}
+
+            # 1. Register two caretakers (Mom and Dad) via REST API
+            r_dad = client.post(
+                "/dashboard/api/family/caretakers",
+                json={"name": "Rajesh (Dad)", "phone_number": "+919811111101", "role": "parent"},
+                headers=headers,
+            )
+            assert r_dad.status_code == 200
+            dad_id = r_dad.json()["caretaker_id"]
+
+            r_mom = client.post(
+                "/dashboard/api/family/caretakers",
+                json={"name": "Priya (Mom)", "phone_number": "+919811111102", "role": "parent"},
+                headers=headers,
+            )
+            assert r_mom.status_code == 200
+            mom_id = r_mom.json()["caretaker_id"]
+
+            # 2. Register Grandparents and Kids as dependents via REST API
+            r_gp = client.post(
+                "/dashboard/api/family/dependents",
+                json={"name": "Ramesh (Grandpa)", "phone_number": "+919800000001", "role": "grandparent"},
+                headers=headers,
+            )
+            assert r_gp.status_code == 200
+            gp_id = r_gp.json()["dependent_id"]
+
+            r_gm = client.post(
+                "/dashboard/api/family/dependents",
+                json={"name": "Sunita (Grandma)", "phone_number": "+919800000002", "role": "grandparent"},
+                headers=headers,
+            )
+            assert r_gm.status_code == 200
+            gm_id = r_gm.json()["dependent_id"]
+
+            r_kid = client.post(
+                "/dashboard/api/family/dependents",
+                json={"name": "Aarav (Kid)", "phone_number": "+919800000003", "role": "child"},
+                headers=headers,
+            )
+            assert r_kid.status_code == 200
+            kid_id = r_kid.json()["dependent_id"]
+
+            # 3. Link both Mom and Dad to Grandpa, Grandma, and Kid
+            r_links = client.post(
+                "/dashboard/api/family/links",
+                json={
+                    "caretaker_ids": [dad_id, mom_id],
+                    "dependent_ids": [gp_id, gm_id, kid_id],
+                    "relationship_label": "Family Guardian",
+                },
+                headers=headers,
+            )
+            assert r_links.status_code == 200
+            assert len(r_links.json()["links"]) == 6
+
+            # 4. Add calls for Grandpa and Kid
+            isolated_store.add_call({
+                "call_id": "call_gp_1",
+                "caller_number": "+919999900001",
+                "verdict": "scam",
+                "dependent_id": gp_id,
+                "dependent_name": "Ramesh (Grandpa)",
+                "dependent_role": "grandparent",
+                "duration": 120.0,
+                "created_at": "2026-10-30T10:00:00Z",
+                "summary": "Fake police call to Grandpa.",
+                "extracted_intel": {"upi_ids": ["syndicate@okaxis"], "bank_accounts": [], "ifsc_codes": [], "phone_numbers": []},
+                "transcript": [{"role": "caller", "content": "Pay 10000 to syndicate@okaxis"}],
+            })
+            isolated_store.add_call({
+                "call_id": "call_kid_1",
+                "caller_number": "+919999900002",
+                "verdict": "scam",
+                "dependent_id": kid_id,
+                "dependent_name": "Aarav (Kid)",
+                "dependent_role": "child",
+                "duration": 80.0,
+                "created_at": "2026-10-30T11:00:00Z",
+                "summary": "Gaming prize scam targeting Kid with same UPI.",
+                "extracted_intel": {"upi_ids": ["syndicate@okaxis"], "bank_accounts": [], "ifsc_codes": [], "phone_numbers": []},
+                "transcript": [{"role": "caller", "content": "Send fee to syndicate@okaxis"}],
+            })
+
+            # 5. Filter calls by dependent_id
+            gp_calls_resp = client.get(f"/dashboard/api/calls?dependent_id={gp_id}", headers=headers)
+            assert gp_calls_resp.status_code == 200
+            gp_calls = gp_calls_resp.json()
+            assert [c["call_id"] for c in gp_calls] == ["call_gp_1"]
+
+            # 6. Filter calls by caretaker_id (Mom monitors both Grandpa and Kid)
+            mom_calls_resp = client.get(f"/dashboard/api/calls?caretaker_id={mom_id}", headers=headers)
+            assert mom_calls_resp.status_code == 200
+            mom_calls = mom_calls_resp.json()
+            assert {c["call_id"] for c in mom_calls} == {"call_gp_1", "call_kid_1"}
+
+            # 7. Fetch full mobile dossier JSON for a call
+            dossier_resp = client.get("/dashboard/api/calls/call_gp_1/dossier", headers=headers)
+            assert dossier_resp.status_code == 200
+            dossier = dossier_resp.json()
+            assert dossier["call"]["call_id"] == "call_gp_1"
+            assert dossier["call"]["dependent_name"] == "Ramesh (Grandpa)"
+            assert "chakshu_packet" in dossier
+            assert "suspect_packets" in dossier
+            assert "report_1930_text" in dossier
+            assert dossier["evidence_status"] == "draft"
+            assert any(s["identifier"] == "syndicate@okaxis" for s in dossier["shared_scam_links"])
+
+            # 8. Dashboard HTML displays dependent badge and filter bar
+            dash_html = client.get(f"/dashboard?dependent_id={gp_id}", headers=headers)
+            assert dash_html.status_code == 200
+            assert "Ramesh (Grandpa)" in dash_html.text
+        finally:
+            set_family_registry(None)
+

@@ -35,14 +35,31 @@ class LaneBCallStore(gui.BaseCallStore):
     def add_call(self, record: Dict[str, Any]) -> None:
         raise NotImplementedError("CallRecords are written by Lane B's webhook, not the dashboard")
 
-    def _count(self, verdict: Optional[str]) -> int:
+    def _count(
+        self,
+        verdict: Optional[str],
+        dependent_id: Optional[str] = None,
+        dependent_ids: Optional[List[str]] = None,
+    ) -> int:
         self._store.init_db()
         conn = sqlite3.connect(self._store.get_db_path())
         try:
+            clauses: List[str] = []
+            params: List[Any] = []
             if verdict:
-                row = conn.execute("SELECT COUNT(*) FROM call_records WHERE verdict = ?", (verdict,)).fetchone()
-            else:
-                row = conn.execute("SELECT COUNT(*) FROM call_records").fetchone()
+                clauses.append("verdict = ?")
+                params.append(verdict)
+            if dependent_id:
+                clauses.append("dependent_id = ?")
+                params.append(dependent_id)
+            elif dependent_ids is not None:
+                if not dependent_ids:
+                    return 0
+                placeholders = ", ".join(["?"] * len(dependent_ids))
+                clauses.append(f"dependent_id IN ({placeholders})")
+                params.extend(dependent_ids)
+            where_sql = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+            row = conn.execute(f"SELECT COUNT(*) FROM call_records{where_sql}", params).fetchone()
             return int(row[0])
         finally:
             conn.close()
@@ -52,10 +69,18 @@ class LaneBCallStore(gui.BaseCallStore):
         verdict: Optional[str] = None,
         page: int = 1,
         limit: int = 50,
+        dependent_id: Optional[str] = None,
+        dependent_ids: Optional[List[str]] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         offset = max(0, (page - 1) * limit)
-        calls = self._store.list_call_records(limit=limit, verdict=verdict, offset=offset)
-        return calls, self._count(verdict)
+        calls = self._store.list_call_records(
+            limit=limit,
+            verdict=verdict,
+            offset=offset,
+            dependent_id=dependent_id,
+            dependent_ids=dependent_ids,
+        )
+        return calls, self._count(verdict, dependent_id=dependent_id, dependent_ids=dependent_ids)
 
     def get_call(self, call_id: str) -> Optional[Dict[str, Any]]:
         return self._store.get_call_record(call_id)

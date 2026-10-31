@@ -287,9 +287,20 @@ def format_alert_message(
             intel_block = "\n".join(bullet_lines) if bullet_lines else "• Attacker details logged to dossier"
 
             summary = call_record.get("summary") or "Suspected fraud attempt screened by voice assistant."
+            dep_name = str(call_record.get("dependent_name") or "").strip()
+            if not dep_name:
+                try:
+                    from app.core.family import get_family_registry
+                    dep_obj = get_family_registry().resolve_dependent_for_call(call_record)
+                    if dep_obj:
+                        dep_name = str(dep_obj.get("name") or "")
+                except Exception:
+                    pass
+            dep_line = f"*Protected Member:* {dep_name}\n" if dep_name else ""
             return (
                 f"🚨 *GUARDIANLINE SCAM ALERT*\n\n"
                 f"A suspected scam call was handled by GuardianLine. Please check on them.\n\n"
+                f"{dep_line}"
                 f"*Caller:* {caller_num}\n"
                 f"*Summary:* {summary}\n\n"
                 f"*Captured Attacker Intel:*\n"
@@ -558,10 +569,22 @@ class FamilyAlertDispatcher:
 
     def dispatch(self, call_record: Dict[str, Any]) -> AlertResult:
         """
-        Synchronously dispatches alerts to all configured family recipients.
+        Synchronously dispatches alerts to all configured family recipients and any caretakers
+        linked to the call's dependent in FamilyRegistry.
         Returns a summary AlertResult.
         """
-        recipients = self.config.recipients
+        recipients = list(self.config.recipients)
+        try:
+            from app.core.family import get_family_registry
+            linked_recipients = get_family_registry().resolve_alert_recipients_for_call(
+                call_record,
+                fallback_recipients=recipients,
+            )
+            if linked_recipients:
+                recipients = linked_recipients
+        except Exception:
+            pass
+
         if not recipients:
             logger.error("No recipients configured for family alert")
             return AlertResult(

@@ -184,6 +184,10 @@ _ADDED_COLUMNS = [
     ("confirmed_at", "TEXT DEFAULT NULL"),
     ("family_verification_status", "TEXT DEFAULT 'NONE'"),
     ("family_verified_at", "TEXT DEFAULT NULL"),
+    ("dependent_id", "TEXT DEFAULT ''"),
+    ("dependent_name", "TEXT DEFAULT ''"),
+    ("dependent_phone", "TEXT DEFAULT ''"),
+    ("dependent_role", "TEXT DEFAULT ''"),
 ]
 
 
@@ -295,6 +299,10 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         "confirmed_at": row["confirmed_at"] if "confirmed_at" in row_keys else None,
         "family_verification_status": row["family_verification_status"] if "family_verification_status" in row_keys and row["family_verification_status"] else "NONE",
         "family_verified_at": row["family_verified_at"] if "family_verified_at" in row_keys else None,
+        "dependent_id": (row["dependent_id"] or "") if "dependent_id" in row_keys else "",
+        "dependent_name": (row["dependent_name"] or "") if "dependent_name" in row_keys else "",
+        "dependent_phone": (row["dependent_phone"] or "") if "dependent_phone" in row_keys else "",
+        "dependent_role": (row["dependent_role"] or "") if "dependent_role" in row_keys else "",
     }
 
 
@@ -548,21 +556,34 @@ def list_call_records(
     limit: int = 50,
     verdict: Optional[str] = None,
     offset: int = 0,
+    dependent_id: Optional[str] = None,
+    dependent_ids: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     init_db()
     with _DB_LOCK:
         conn = _get_conn()
         try:
+            clauses: List[str] = []
+            params: List[Any] = []
             if verdict:
-                rows = conn.execute(
-                    "SELECT * FROM call_records WHERE verdict = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
-                    (verdict, limit, offset),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM call_records ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
-                    (limit, offset),
-                ).fetchall()
+                clauses.append("verdict = ?")
+                params.append(verdict)
+            if dependent_id:
+                clauses.append("dependent_id = ?")
+                params.append(dependent_id)
+            elif dependent_ids is not None:
+                if not dependent_ids:
+                    return []
+                placeholders = ", ".join(["?"] * len(dependent_ids))
+                clauses.append(f"dependent_id IN ({placeholders})")
+                params.extend(dependent_ids)
+
+            where_sql = f"WHERE {' AND '.join(clauses)} " if clauses else ""
+            params.extend([limit, offset])
+            rows = conn.execute(
+                f"SELECT * FROM call_records {where_sql}ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
+                params,
+            ).fetchall()
             return [_row_to_record(r) for r in rows]
         finally:
             conn.close()
@@ -843,6 +864,21 @@ def finalize_call_record_from_webhook(
     metadata = payload.get("metadata") or {}
     language = str(metadata.get("language") or "hi")
     meta_persona = str(metadata.get("persona") or "")
+    dep_id = str(payload.get("dependent_id") or metadata.get("dependent_id") or "").strip()
+    dep_name = str(payload.get("dependent_name") or metadata.get("dependent_name") or "").strip()
+    dep_phone = str(payload.get("dependent_phone") or metadata.get("dependent_phone") or "").strip()
+    dep_role = str(payload.get("dependent_role") or metadata.get("dependent_role") or "").strip()
+    if (dep_id or dep_phone) and not dep_name:
+        try:
+            from app.core.family import get_family_registry
+            resolved_dep = get_family_registry().get_dependent(dep_id or dep_phone)
+            if resolved_dep:
+                dep_id = str(resolved_dep.get("dependent_id") or dep_id)
+                dep_name = str(resolved_dep.get("name") or dep_name)
+                dep_phone = str(resolved_dep.get("phone_number") or dep_phone)
+                dep_role = str(resolved_dep.get("role") or dep_role)
+        except Exception:
+            pass
 
     start_time_val = str(
         payload.get("created_at")
@@ -919,6 +955,10 @@ def finalize_call_record_from_webhook(
                         recording_hash_error = ?,
                         hashed_at = ?,
                         money_lost = ?,
+                        dependent_id = COALESCE(NULLIF(?, ''), dependent_id),
+                        dependent_name = COALESCE(NULLIF(?, ''), dependent_name),
+                        dependent_phone = COALESCE(NULLIF(?, ''), dependent_phone),
+                        dependent_role = COALESCE(NULLIF(?, ''), dependent_role),
                         evidence_status = COALESCE(evidence_status, 'draft'),
                         finalized_fired = 1,
                         updated_at = ?
@@ -948,6 +988,10 @@ def finalize_call_record_from_webhook(
                         r_hash_err,
                         hashed_at_val,
                         money_lost_val,
+                        dep_id,
+                        dep_name,
+                        dep_phone,
+                        dep_role,
                         now_iso,
                         call_id,
                     ),
@@ -963,8 +1007,9 @@ def finalize_call_record_from_webhook(
                         stage2_ran, classifier_method,
                         transcript_sha256, recording_sha256, recording_hash_error,
                         hashed_at, money_lost, evidence_status,
+                        dependent_id, dependent_name, dependent_phone, dependent_role,
                         finalized_fired, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                     """,
                     (
                         call_id,
@@ -992,6 +1037,10 @@ def finalize_call_record_from_webhook(
                         hashed_at_val,
                         money_lost_val,
                         "draft",
+                        dep_id,
+                        dep_name,
+                        dep_phone,
+                        dep_role,
                         now_iso,
                         now_iso,
                     ),
