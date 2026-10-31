@@ -252,6 +252,20 @@ class FamilyCircleManager {
         calls[dossier.callId] = dossier
     }
 
+    fun prependCalls(newCalls: List<ScreenedCallDossier>) {
+        if (newCalls.isEmpty()) return
+        val existing = LinkedHashMap(calls)
+        calls.clear()
+        for (c in newCalls) {
+            calls[c.callId] = c
+        }
+        for ((id, c) in existing) {
+            if (!calls.containsKey(id)) {
+                calls[id] = c
+            }
+        }
+    }
+
     fun getCall(callId: String): ScreenedCallDossier? = calls[callId]
 
     fun getCalls(

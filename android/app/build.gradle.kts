@@ -17,12 +17,36 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Configurable gateway number via BOLNA_GATEWAY_NUMBER / GUARDIAN_GATEWAY_NUMBER property or env
+        val envMap = mutableMapOf<String, String>()
+        val rootEnv = rootProject.file("../.env")
+        if (rootEnv.exists()) {
+            rootEnv.readLines().forEach { line ->
+                val trimmed = line.trim()
+                if (trimmed.isNotEmpty() && !trimmed.startsWith("#") && trimmed.contains("=")) {
+                    val k = trimmed.substringBefore("=").trim()
+                    val v = trimmed.substringAfter("=").trim().removeSurrounding("\"").removeSurrounding("'")
+                    envMap[k] = v
+                }
+            }
+        }
+
         val gatewayNumber = (project.findProperty("BOLNA_GATEWAY_NUMBER") as String?)
             ?.takeIf { it.isNotBlank() }
             ?: (project.findProperty("GUARDIAN_GATEWAY_NUMBER") as String?)?.takeIf { it.isNotBlank() }
             ?: System.getenv("BOLNA_GATEWAY_NUMBER")?.takeIf { it.isNotBlank() }
-            ?: "+919988776655"
+            ?: envMap["BOLNA_GATEWAY_NUMBER"]?.takeIf { it.isNotBlank() }
+            ?: "+918064261985"
         buildConfigField("String", "BOLNA_GATEWAY_NUMBER", "\"$gatewayNumber\"")
+
+        val bolnaAgentId = System.getenv("BOLNA_AGENT_ID")?.takeIf { it.isNotBlank() }
+            ?: envMap["BOLNA_AGENT_ID"]?.takeIf { it.isNotBlank() }
+            ?: "a6998177-c352-47b5-8867-4757b29416a9"
+        buildConfigField("String", "BOLNA_AGENT_ID", "\"$bolnaAgentId\"")
+
+        val bolnaApiKey = System.getenv("BOLNA_API_KEY")?.takeIf { it.isNotBlank() }
+            ?: envMap["BOLNA_API_KEY"]?.takeIf { it.isNotBlank() }
+            ?: ""
+        buildConfigField("String", "BOLNA_API_KEY", "\"$bolnaApiKey\"")
 
     }
 
