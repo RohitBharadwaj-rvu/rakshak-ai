@@ -73,12 +73,16 @@ class LaneBCallStore(gui.BaseCallStore):
         dependent_ids: Optional[List[str]] = None,
     ) -> Tuple[List[Dict[str, Any]], int]:
         offset = max(0, (page - 1) * limit)
+        filters: Dict[str, Any] = {}
+        if dependent_id:
+            filters["dependent_id"] = dependent_id
+        if dependent_ids is not None:
+            filters["dependent_ids"] = dependent_ids
         calls = self._store.list_call_records(
             limit=limit,
             verdict=verdict,
             offset=offset,
-            dependent_id=dependent_id,
-            dependent_ids=dependent_ids,
+            **filters,
         )
         return calls, self._count(verdict, dependent_id=dependent_id, dependent_ids=dependent_ids)
 

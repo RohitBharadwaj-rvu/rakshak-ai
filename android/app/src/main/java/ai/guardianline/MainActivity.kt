@@ -6,9 +6,12 @@ import ai.guardianline.caretaker.DependentProfile
 import ai.guardianline.caretaker.DependentRole
 import ai.guardianline.caretaker.ExtractedIntel
 import ai.guardianline.caretaker.FamilyCircleManager
+import ai.guardianline.caretaker.MaterialYouFamilyTheme as Theme
 import ai.guardianline.caretaker.ScreenedCallDossier
 import ai.guardianline.caretaker.TranscriptTurn
 import ai.guardianline.screening.LocalCallLogger
+import ai.guardianline.ui.ShieldView
+import ai.guardianline.ui.WaveformView
 import android.Manifest
 import android.app.AlertDialog
 import android.app.role.RoleManager
@@ -17,6 +20,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -26,18 +30,21 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -47,110 +54,84 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
 
+/**
+ * Two quiet screens in the Material You 3 style:
+ *  - My phone: shield status plus the two switches that protect this handset.
+ *  - Family: caretakers see calls screened for the grandparents and kids they look after.
+ */
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var statusText: TextView
-    private lateinit var permText: TextView
-    private lateinit var btnEnableScreening: Button
-    private lateinit var btnSetupForwarding: Button
-    private lateinit var btnShareLog: Button
-    private lateinit var dependentEnrollmentSummary: TextView
-
-    private lateinit var tabShieldBtn: Button
-    private lateinit var tabCaretakerBtn: Button
-    private lateinit var shieldContainer: LinearLayout
-    private lateinit var caretakerContainer: LinearLayout
-
-    // Caretaker dashboard state
-    private val familyManager = FamilyCircleManager()
+    private val family = FamilyCircleManager()
     private var activeCaretakerId: String? = null
     private var selectedDependentId: String? = null
-    private var selectedRoleFilter: DependentRole? = null
 
-    private lateinit var caretakerSelectRow: LinearLayout
-    private lateinit var dependentFilterRow: LinearLayout
-    private lateinit var scamIntelContainer: LinearLayout
-    private lateinit var callsListContainer: LinearLayout
+    private lateinit var tabPhone: TextView
+    private lateinit var tabFamily: TextView
+    private lateinit var phoneScreen: LinearLayout
+    private lateinit var familyScreen: LinearLayout
+
+    private lateinit var shield: ShieldView
+    private lateinit var shieldTitle: TextView
+    private lateinit var shieldSub: TextView
+    private lateinit var screeningSwitch: SwitchCompat
+    private lateinit var contactsLine: TextView
+
+    private lateinit var viewingAs: TextView
+    private lateinit var avatarRow: LinearLayout
+    private lateinit var noteHolder: LinearLayout
+    private lateinit var callsHolder: LinearLayout
 
     private val requestRoleLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { _ ->
-        checkScreeningRoleStatus()
-    }
+    ) { refreshShield() }
 
-    private val requestPermissionLauncher = registerForActivityResult(
+    private val requestContactsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        checkPermissionsStatus()
-    }
+    ) { refreshShield() }
 
     private val requestNotificationLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ -> }
+    ) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supportActionBar?.hide()
+        window.statusBarColor = c(Theme.surfaceBackgroundHex)
 
-        familyManager.seedDefaultMultiGenerationHousehold()
-        activeCaretakerId = familyManager.listCaretakers().firstOrNull()?.caretakerId
+        family.seedDefaultMultiGenerationHousehold()
+        activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
 
-        val rootScroll = ScrollView(this).apply {
-            setBackgroundColor(Color.parseColor("#0F172A"))
-            isFillViewport = true
-        }
-
-        val rootLayout = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(36, 36, 36, 48)
-        }
-        rootScroll.addView(rootLayout)
-
-        // Top Mode Switcher: Dependent Shield vs Caretaker Dashboard
-        val modeBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(8, 8, 8, 8)
-            background = roundedBg("#1E293B", 24f)
+            setPadding(dp(20), dp(16), dp(20), dp(32))
         }
 
-        tabShieldBtn = Button(this).apply {
-            text = getString(R.string.tab_dependent_shield)
-            textSize = 13f
-            isAllCaps = false
-            setTypeface(null, Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginEnd = 6
-            }
-            setOnClickListener { switchMode(isCaretakerMode = false) }
+        val topBar = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        tabPhone = pillTab(getString(R.string.tab_my_phone)) { showScreen(family = false) }
+        tabFamily = pillTab(getString(R.string.tab_family)) { showScreen(family = true) }
+        topBar.addView(tabPhone, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginEnd = dp(8) })
+        topBar.addView(tabFamily)
+        topBar.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+        val menu = label("⋮", 26f, Theme.primaryForestHex, medium = true).apply {
+            setPadding(dp(14), dp(4), dp(14), dp(4))
+            contentDescription = "More options"
+            setOnClickListener { showMenu(it) }
         }
-        tabCaretakerBtn = Button(this).apply {
-            text = getString(R.string.tab_caretaker_dashboard)
-            textSize = 13f
-            isAllCaps = false
-            setTypeface(null, Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginStart = 6
-            }
-            setOnClickListener { switchMode(isCaretakerMode = true) }
-        }
-        modeBar.addView(tabShieldBtn)
-        modeBar.addView(tabCaretakerBtn)
-        rootLayout.addView(modeBar, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 28 })
+        topBar.addView(menu)
+        root.addView(topBar, lp(bottom = 12))
 
-        // Container 1: Dependent Shield (Protect This Phone)
-        shieldContainer = buildDependentShieldView()
-        rootLayout.addView(shieldContainer)
+        phoneScreen = buildPhoneScreen()
+        familyScreen = buildFamilyScreen()
+        root.addView(phoneScreen)
+        root.addView(familyScreen)
 
-        // Container 2: Caretaker Dashboard (Monitor Multiple Dependents)
-        caretakerContainer = buildCaretakerDashboardView()
-        rootLayout.addView(caretakerContainer)
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(c(Theme.surfaceBackgroundHex))
+            isFillViewport = true
+            addView(root)
+        })
 
-        setContentView(rootScroll)
-
-        switchMode(isCaretakerMode = false)
-        refreshCaretakerDashboard()
+        showScreen(family = false)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -160,1204 +141,129 @@ class MainActivity : AppCompatActivity() {
         ProtectionStatusWorker.schedule(this)
     }
 
-    private fun switchMode(isCaretakerMode: Boolean) {
-        if (isCaretakerMode) {
-            shieldContainer.visibility = View.GONE
-            caretakerContainer.visibility = View.VISIBLE
-            tabCaretakerBtn.background = roundedBg("#2563EB", 18f)
-            tabCaretakerBtn.setTextColor(Color.WHITE)
-            tabShieldBtn.background = roundedBg("#1E293B", 18f)
-            tabShieldBtn.setTextColor(Color.parseColor("#94A3B8"))
-            refreshCaretakerDashboard()
-        } else {
-            shieldContainer.visibility = View.VISIBLE
-            caretakerContainer.visibility = View.GONE
-            tabShieldBtn.background = roundedBg("#2563EB", 18f)
-            tabShieldBtn.setTextColor(Color.WHITE)
-            tabCaretakerBtn.background = roundedBg("#1E293B", 18f)
-            tabCaretakerBtn.setTextColor(Color.parseColor("#94A3B8"))
-            updateDependentEnrollmentSummary()
-        }
-    }
-
-    private fun buildDependentShieldView(): LinearLayout {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        val title = TextView(this).apply {
-            text = getString(R.string.title_shield)
-            textSize = 24f
-            setTextColor(Color.parseColor("#38BDF8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        layout.addView(title)
-
-        val subtitle = TextView(this).apply {
-            text = getString(R.string.subtitle_shield)
-            textSize = 15f
-            setTextColor(Color.parseColor("#94A3B8"))
-            setPadding(0, 0, 0, 24)
-        }
-        layout.addView(subtitle)
-
-        // Family Enrollment Card for this Dependent Handset
-        val enrollmentCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = roundedBg("#1E293B", 24f, strokeColor = "#334155")
-            setPadding(32, 28, 32, 28)
-        }
-        val enrollTitle = TextView(this).apply {
-            text = "👨‍👩‍👧‍👦 Protected Family Handset Profile"
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 10)
-        }
-        enrollmentCard.addView(enrollTitle)
-
-        dependentEnrollmentSummary = TextView(this).apply {
-            textSize = 14f
-            setTextColor(Color.parseColor("#CBD5E1"))
-            setPadding(0, 0, 0, 16)
-        }
-        enrollmentCard.addView(dependentEnrollmentSummary)
-
-        val btnConfigureDeviceOwner = Button(this).apply {
-            text = "Enroll / Assign Caretakers for This Handset"
-            textSize = 14f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#334155", 16f)
-            setOnClickListener { showManageFamilyDialog() }
-        }
-        enrollmentCard.addView(btnConfigureDeviceOwner)
-        layout.addView(enrollmentCard, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 24 })
-
-        val statusCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = roundedBg("#1E293B", 24f)
-            setPadding(32, 28, 32, 28)
-        }
-
-        statusText = TextView(this).apply {
-            textSize = 18f
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 16)
-        }
-        statusCard.addView(statusText)
-
-        permText = TextView(this).apply {
-            textSize = 15f
-            setPadding(0, 0, 0, 8)
-        }
-        statusCard.addView(permText)
-
-        layout.addView(statusCard, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 24 })
-
-        btnEnableScreening = Button(this).apply {
-            text = getString(R.string.btn_enable_screening)
-            textSize = 17f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#2563EB", 20f)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(32, 28, 32, 28)
-            setOnClickListener { requestCallScreeningRole() }
-        }
-        layout.addView(btnEnableScreening, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16 })
-
-        btnSetupForwarding = Button(this).apply {
-            text = getString(R.string.btn_setup_forwarding)
-            textSize = 17f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#059669", 20f)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(32, 28, 32, 28)
-            setOnClickListener { triggerCarrierForwardingDialer() }
-        }
-        layout.addView(btnSetupForwarding, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16 })
-
-        btnShareLog = Button(this).apply {
-            text = getString(R.string.btn_share_log)
-            textSize = 15f
-            isAllCaps = false
-            setTextColor(Color.parseColor("#E2E8F0"))
-            background = roundedBg("#334155", 20f)
-            setPadding(24, 24, 24, 24)
-            setOnClickListener { shareSoakLog() }
-        }
-        layout.addView(btnShareLog, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
-
-        updateDependentEnrollmentSummary()
-        return layout
-    }
-
-    private fun updateDependentEnrollmentSummary() {
-        val prefs = getSharedPreferences("guardian_family_prefs", Context.MODE_PRIVATE)
-        val enrolledDepId = prefs.getString("this_device_dependent_id", "dep-grandpa")
-        val dep = familyManager.listDependents().firstOrNull { it.dependentId == enrolledDepId }
-            ?: familyManager.listDependents().firstOrNull()
-        if (dep != null) {
-            val caretakers = familyManager.getCaretakersForDependent(dep.dependentId)
-            val ctNames = caretakers.joinToString(", ") { "${it.name} (${it.phoneNumber})" }.ifBlank { "None assigned" }
-            dependentEnrollmentSummary.text =
-                "Handset Owner: ${dep.name} · ${dep.role.displayLabel}\n" +
-                "Phone: ${dep.phoneNumber}\n" +
-                "Monitored By Caretakers: $ctNames"
-        } else {
-            dependentEnrollmentSummary.text = "Not enrolled yet. Tap below to register this device and link parents/caretakers."
-        }
-    }
-
-    private fun buildCaretakerDashboardView(): LinearLayout {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        val headerTitle = TextView(this).apply {
-            text = "🛡️ Family Protection Dashboard"
-            textSize = 22f
-            setTextColor(Color.parseColor("#38BDF8"))
-            setTypeface(null, Typeface.BOLD)
-        }
-        layout.addView(headerTitle)
-
-        val headerSub = TextView(this).apply {
-            text = "Multi-Caretaker ↔ Multi-Dependent Hub (Parents monitoring Grandparents & Kids)"
-            textSize = 13f
-            setTextColor(Color.parseColor("#94A3B8"))
-            setPadding(0, 4, 0, 18)
-        }
-        layout.addView(headerSub)
-
-        // Action row: Add/Link Family Member + Sync Server
-        val topActions = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        val btnManageFamily = Button(this).apply {
-            text = getString(R.string.btn_manage_family)
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#2563EB", 16f)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f).apply {
-                marginEnd = 8
-            }
-            setOnClickListener { showManageFamilyDialog() }
-        }
-        val btnSyncServer = Button(this).apply {
-            text = getString(R.string.btn_sync_server)
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.parseColor("#E2E8F0"))
-            background = roundedBg("#334155", 16f)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.8f).apply {
-                marginStart = 8
-            }
-            setOnClickListener { showServerSyncDialog() }
-        }
-        topActions.addView(btnManageFamily)
-        topActions.addView(btnSyncServer)
-        layout.addView(topActions, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 20 })
-
-        // Section: Viewing as Caretaker (Parent selector)
-        val ctLabel = TextView(this).apply {
-            text = "👁️ Viewing as Caretaker (Parent / Guardian):"
-            textSize = 13f
-            setTextColor(Color.parseColor("#94A3B8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        layout.addView(ctLabel)
-
-        val ctScroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-        }
-        caretakerSelectRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        ctScroll.addView(caretakerSelectRow)
-        layout.addView(ctScroll, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16 })
-
-        // Section: Monitored Dependents Filter (All, Grandparents, Kids, or specific Dependent)
-        val depLabel = TextView(this).apply {
-            text = "🛡️ Filter by Protected Dependent (Grandparents & Kids):"
-            textSize = 13f
-            setTextColor(Color.parseColor("#94A3B8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        layout.addView(depLabel)
-
-        val depScroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-        }
-        dependentFilterRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        depScroll.addView(dependentFilterRow)
-        layout.addView(depScroll, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 20 })
-
-        // Scam Intelligence Cross-Dependent Map Card
-        scamIntelContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        layout.addView(scamIntelContainer, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 20 })
-
-        // Screened Calls Header
-        val callsHeader = TextView(this).apply {
-            text = "📞 Screened Calls, Replay & 1930 / Chakshu Dossiers"
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 12)
-        }
-        layout.addView(callsHeader)
-
-        callsListContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-        layout.addView(callsListContainer)
-
-        return layout
-    }
-
-    private fun refreshCaretakerDashboard() {
-        // 1. Render Caretaker selector pills
-        caretakerSelectRow.removeAllViews()
-        val caretakers = familyManager.listCaretakers()
-        for (ct in caretakers) {
-            val isSelected = ct.caretakerId == activeCaretakerId
-            val monitoredCount = familyManager.getDependentsForCaretaker(ct.caretakerId).size
-            val pill = Button(this).apply {
-                text = "${ct.name} · $monitoredCount protected"
-                textSize = 12f
-                isAllCaps = false
-                setTextColor(if (isSelected) Color.WHITE else Color.parseColor("#CBD5E1"))
-                background = roundedBg(
-                    if (isSelected) "#0284C7" else "#1E293B",
-                    18f,
-                    strokeColor = if (isSelected) "#38BDF8" else "#334155"
-                )
-                setPadding(28, 14, 28, 14)
-                setOnClickListener {
-                    activeCaretakerId = ct.caretakerId
-                    refreshCaretakerDashboard()
-                }
-            }
-            caretakerSelectRow.addView(pill, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 10 })
-        }
-
-        // 2. Render Dependent filter pills for active caretaker
-        dependentFilterRow.removeAllViews()
-        val monitoredDeps = if (activeCaretakerId != null) {
-            familyManager.getDependentsForCaretaker(activeCaretakerId!!)
-        } else {
-            familyManager.listDependents()
-        }
-
-        fun addDepFilterPill(label: String, isActive: Boolean, onClick: () -> Unit) {
-            val btn = Button(this).apply {
-                text = label
-                textSize = 12f
-                isAllCaps = false
-                setTextColor(if (isActive) Color.WHITE else Color.parseColor("#CBD5E1"))
-                background = roundedBg(
-                    if (isActive) "#059669" else "#1E293B",
-                    18f,
-                    strokeColor = if (isActive) "#34D399" else "#334155"
-                )
-                setPadding(24, 12, 24, 12)
-                setOnClickListener { onClick() }
-            }
-            dependentFilterRow.addView(btn, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 8 })
-        }
-
-        addDepFilterPill(
-            label = "All Monitored (${monitoredDeps.size})",
-            isActive = selectedDependentId == null && selectedRoleFilter == null
-        ) {
-            selectedDependentId = null
-            selectedRoleFilter = null
-            refreshCaretakerDashboard()
-        }
-
-        addDepFilterPill(
-            label = "👴 Grandparents",
-            isActive = selectedDependentId == null && selectedRoleFilter == DependentRole.GRANDPARENT
-        ) {
-            selectedDependentId = null
-            selectedRoleFilter = DependentRole.GRANDPARENT
-            refreshCaretakerDashboard()
-        }
-
-        addDepFilterPill(
-            label = "🧒 Kids",
-            isActive = selectedDependentId == null && selectedRoleFilter == DependentRole.CHILD
-        ) {
-            selectedDependentId = null
-            selectedRoleFilter = DependentRole.CHILD
-            refreshCaretakerDashboard()
-        }
-
-        for (dep in monitoredDeps) {
-            val icon = when (dep.role) {
-                DependentRole.GRANDPARENT -> "👴"
-                DependentRole.CHILD -> "🧒"
-                else -> "🛡️"
-            }
-            addDepFilterPill(
-                label = "$icon ${dep.name}",
-                isActive = selectedDependentId == dep.dependentId
-            ) {
-                selectedDependentId = dep.dependentId
-                selectedRoleFilter = null
-                refreshCaretakerDashboard()
-            }
-        }
-
-        // 3. Render Scam Intelligence Map Card (cross-dependent syndicate correlation)
-        scamIntelContainer.removeAllViews()
-        val clusters = familyManager.buildScamIntelligenceClusters()
-        val intelCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = roundedBg("#1E293B", 24f, strokeColor = "#38BDF8")
-            setPadding(28, 24, 28, 24)
-        }
-        val intelHeader = TextView(this).apply {
-            text = "🔗 Scam Intelligence Map · Linked Syndicates (${clusters.size})"
-            textSize = 15f
-            setTextColor(Color.parseColor("#38BDF8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        intelCard.addView(intelHeader)
-
-        if (clusters.isEmpty()) {
-            val emptyIntel = TextView(this).apply {
-                text = "Correlates repeat scam syndicates sharing UPI IDs or bank accounts across Grandparents and Kids."
-                textSize = 13f
-                setTextColor(Color.parseColor("#94A3B8"))
-            }
-            intelCard.addView(emptyIntel)
-        } else {
-            for (cl in clusters) {
-                val kindBadge = if (cl.kind == "upi") "UPI Handle" else "Bank A/C"
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    background = roundedBg("#0F172A", 14f)
-                    setPadding(20, 16, 20, 16)
-                }
-                val titleLine = TextView(this).apply {
-                    text = "⚠️ $kindBadge: ${cl.identifier} (Shared across ${cl.callCount} calls)"
-                    textSize = 13f
-                    setTextColor(Color.parseColor("#FCA5A5"))
-                    setTypeface(null, Typeface.BOLD)
-                }
-                val depLine = TextView(this).apply {
-                    val targeted = cl.targetedDependents.joinToString(", ").ifBlank { "Multiple family members" }
-                    text = "Targeted Dependents: $targeted"
-                    textSize = 12f
-                    setTextColor(Color.parseColor("#CBD5E1"))
-                    setPadding(0, 4, 0, 6)
-                }
-                val copyClusterBtn = Button(this).apply {
-                    text = "Copy Syndicate Identifier (${cl.identifier})"
-                    textSize = 11f
-                    isAllCaps = false
-                    setTextColor(Color.WHITE)
-                    background = roundedBg("#334155", 12f)
-                    setOnClickListener {
-                        copyToClipboard("Syndicate ${cl.kind}", cl.identifier)
-                    }
-                }
-                row.addView(titleLine)
-                row.addView(depLine)
-                row.addView(copyClusterBtn)
-                intelCard.addView(row, LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { topMargin = 10 })
-            }
-        }
-        scamIntelContainer.addView(intelCard)
-
-        // 4. Render Filtered Call Cards
-        callsListContainer.removeAllViews()
-        val calls = familyManager.getCalls(
-            caretakerId = activeCaretakerId,
-            dependentId = selectedDependentId,
-            roleFilter = selectedRoleFilter
-        )
-
-        if (calls.isEmpty()) {
-            val emptyView = TextView(this).apply {
-                text = "🛡️ No screened calls match this dependent filter yet."
-                textSize = 14f
-                setTextColor(Color.parseColor("#94A3B8"))
-                gravity = Gravity.CENTER
-                setPadding(32, 48, 32, 48)
-                background = roundedBg("#1E293B", 20f)
-            }
-            callsListContainer.addView(emptyView)
-        } else {
-            for (call in calls) {
-                callsListContainer.addView(buildCallCard(call), LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { bottomMargin = 20 })
-            }
-        }
-    }
-
-    private fun buildCallCard(call: ScreenedCallDossier): LinearLayout {
-        val isScam = call.verdict.lowercase() == "scam"
-        val strokeCol = if (isScam) "#EF4444" else "#22C55E"
-
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = roundedBg("#1E293B", 24f, strokeColor = strokeCol)
-            setPadding(28, 24, 28, 24)
-        }
-
-        // Top badge row: Verdict + Evidence Verification status + Duration
-        val topRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val verdictBadge = TextView(this).apply {
-            text = if (isScam) "🚨 SUSPECTED SCAM" else "✅ GENUINE"
-            textSize = 11f
-            setTypeface(null, Typeface.BOLD)
-            setTextColor(if (isScam) Color.parseColor("#FCA5A5") else Color.parseColor("#86EFAC"))
-            background = roundedBg(if (isScam) "#7F1D1D" else "#14532D", 10f)
-            setPadding(16, 6, 16, 6)
-        }
-        val evBadge = TextView(this).apply {
-            val isConfirmed = call.evidenceStatus == "confirmed_by_family"
-            text = if (isConfirmed) "✅ CONFIRMED BY FAMILY" else "⏳ DRAFT EVIDENCE"
-            textSize = 11f
-            setTypeface(null, Typeface.BOLD)
-            setTextColor(if (isConfirmed) Color.parseColor("#86EFAC") else Color.parseColor("#FDE047"))
-            background = roundedBg(if (isConfirmed) "#064E3B" else "#422006", 10f)
-            setPadding(16, 6, 16, 6)
-        }
-        val durText = TextView(this).apply {
-            text = "${call.durationSeconds}s"
-            textSize = 12f
-            setTextColor(Color.parseColor("#94A3B8"))
-            gravity = Gravity.END
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
-        topRow.addView(verdictBadge)
-        topRow.addView(evBadge, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { marginStart = 10 })
-        topRow.addView(durText)
-        card.addView(topRow)
-
-        // Protected Dependent & Monitored Caretakers tag
-        val depName = call.dependentName ?: "Protected Family Member"
-        val caretakersForDep = call.dependentId?.let { familyManager.getCaretakersForDependent(it) }.orEmpty()
-        val ctNamesShort = caretakersForDep.joinToString(", ") { it.name.substringBefore(" ") }
-        val depBadge = TextView(this).apply {
-            text = "🛡️ Protected: $depName (${call.dependentRole.displayLabel})" +
-                if (ctNamesShort.isNotBlank()) " · Guardians: $ctNamesShort" else ""
-            textSize = 12f
-            setTextColor(Color.parseColor("#38BDF8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 10, 0, 4)
-        }
-        card.addView(depBadge)
-
-        val callerTv = TextView(this).apply {
-            text = "Caller: ${call.callerNumber}"
-            textSize = 17f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 2, 0, 6)
-        }
-        card.addView(callerTv)
-
-        val summaryTv = TextView(this).apply {
-            text = call.summary
-            textSize = 14f
-            setTextColor(Color.parseColor("#CBD5E1"))
-            setPadding(0, 0, 0, 12)
-        }
-        card.addView(summaryTv)
-
-        // Extracted Intel tags (tap any chip to copy to clipboard)
-        val intel = call.extractedIntel
-        if (!intel.isEmpty()) {
-            val intelTitle = TextView(this).apply {
-                text = "Captured Scammer Intel (Tap to copy):"
-                textSize = 12f
-                setTextColor(Color.parseColor("#94A3B8"))
-                setPadding(0, 0, 0, 6)
-            }
-            card.addView(intelTitle)
-
-            val intelWrap = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-            }
-            for (upi in intel.upiIds) {
-                intelWrap.addView(buildCopyableIntelChip("UPI ID", upi, "#312E81", "#C7D2FE"))
-            }
-            for (acc in intel.bankAccounts) {
-                intelWrap.addView(buildCopyableIntelChip("Bank A/C", acc, "#064E3B", "#A7F3D0"))
-            }
-            for (ifsc in intel.ifscCodes) {
-                intelWrap.addView(buildCopyableIntelChip("IFSC", ifsc, "#14532D", "#BBF7D0"))
-            }
-            for (ph in intel.phoneNumbers) {
-                intelWrap.addView(buildCopyableIntelChip("Scammer Phone", ph, "#701A75", "#F5D0FE"))
-            }
-            for (lnk in intel.phishingLinks) {
-                intelWrap.addView(buildCopyableIntelChip("Phishing Link", lnk, "#831843", "#FBCFE8"))
-            }
-            card.addView(intelWrap, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 12 })
-        }
-
-        // Primary Actions: Replay & Full Dossier | Confirm Evidence | 1-Click Police & DoT Packets
-        val actionRow1 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        val btnInspectReplay = Button(this).apply {
-            text = "🎧 Replay, Transcript & Evidence Dossier"
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#2563EB", 16f)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            setOnClickListener { showCallDossierDialog(call.callId) }
-        }
-        actionRow1.addView(btnInspectReplay)
-        card.addView(actionRow1, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 8 })
-
-        val actionRow2 = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        val btnChakshu = Button(this).apply {
-            text = "📋 Copy Chakshu (DoT)"
-            textSize = 12f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#334155", 14f)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginEnd = 6
-            }
-            setOnClickListener {
-                val pkt = familyManager.formatChakshuPacket(call.callId)
-                copyToClipboard("Chakshu Packet", pkt)
-            }
-        }
-        val btn1930 = Button(this).apply {
-            text = "🚨 Copy 1930 Report"
-            textSize = 12f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#334155", 14f)
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                marginStart = 6
-            }
-            setOnClickListener {
-                val pkt = familyManager.format1930ReportPacket(call.callId)
-                copyToClipboard("1930 Cybercrime Packet", pkt)
-            }
-        }
-        actionRow2.addView(btnChakshu)
-        actionRow2.addView(btn1930)
-        card.addView(actionRow2)
-
-        return card
-    }
-
-    private fun buildCopyableIntelChip(label: String, value: String, bgHex: String, textHex: String): TextView {
-        return TextView(this).apply {
-            text = "📋 $label: $value"
-            textSize = 12f
-            setTextColor(Color.parseColor(textHex))
-            background = roundedBg(bgHex, 12f)
-            setPadding(20, 10, 20, 10)
-            setOnClickListener {
-                copyToClipboard(label, value)
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 6 }
-        }
-    }
-
-    private fun showCallDossierDialog(callId: String) {
-        val call = familyManager.getCall(callId) ?: return
-        val scroll = ScrollView(this)
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 32, 40, 32)
-            setBackgroundColor(Color.parseColor("#0F172A"))
-        }
-        scroll.addView(container)
-
-        val title = TextView(this).apply {
-            text = "🎧 Full Call Replay & Evidence Dossier"
-            textSize = 19f
-            setTextColor(Color.parseColor("#38BDF8"))
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        container.addView(title)
-
-        val meta = TextView(this).apply {
-            text = "Protected Member: ${call.dependentName ?: "Family"} (${call.dependentRole.displayLabel})\n" +
-                "Suspect Caller: ${call.callerNumber} · Duration: ${call.durationSeconds}s\n" +
-                "Evidence Status: ${call.evidenceStatus}" + (call.confirmedAt?.let { " ($it)" } ?: "")
-            textSize = 13f
-            setTextColor(Color.parseColor("#CBD5E1"))
-            setPadding(0, 0, 0, 16)
-        }
-        container.addView(meta)
-
-        // Audio Recording Playback / Open Link Button
-        if (!call.callRecordingUrl.isNullOrBlank()) {
-            val btnPlayAudio = Button(this).apply {
-                text = "▶️ Play / Open Call Audio Recording"
-                textSize = 13f
-                isAllCaps = false
-                setTextColor(Color.WHITE)
-                background = roundedBg("#0284C7", 16f)
-                setOnClickListener {
-                    openUrl(call.callRecordingUrl)
-                }
-            }
-            container.addView(btnPlayAudio, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { bottomMargin = 16 })
-        }
-
-        // Turn-by-turn Hinglish/Hindi Transcript
-        val transHeader = TextView(this).apply {
-            text = "💬 Turn-by-Turn Hinglish / Hindi Transcript:"
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        container.addView(transHeader)
-
-        if (call.transcript.isEmpty()) {
-            val noTrans = TextView(this).apply {
-                text = "No dialogue turns recorded."
-                textSize = 13f
-                setTextColor(Color.parseColor("#94A3B8"))
-            }
-            container.addView(noTrans)
-        } else {
-            for (turn in call.transcript) {
-                val isCaller = turn.role.lowercase() in listOf("caller", "user", "scammer")
-                val turnBox = TextView(this).apply {
-                    val speaker = if (isCaller) "🚨 Scammer" else "🤖 GuardianLine AI"
-                    text = "$speaker: ${turn.content}"
-                    textSize = 13f
-                    setTextColor(Color.parseColor(if (isCaller) "#FCA5A5" else "#A7F3D0"))
-                    background = roundedBg(if (isCaller) "#450A0A" else "#064E3B", 14f)
-                    setPadding(20, 14, 20, 14)
-                }
-                container.addView(turnBox, LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply { bottomMargin = 8 })
-            }
-        }
-
-        // Evidence Verification Button (draft -> confirmed_by_family)
-        val verifyHeader = TextView(this).apply {
-            text = "✅ Step 1: Family Evidence Verification"
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 16, 0, 8)
-        }
-        container.addView(verifyHeader)
-
-        val btnConfirmEvidence = Button(this).apply {
-            val isConfirmed = call.evidenceStatus == "confirmed_by_family"
-            text = if (isConfirmed) "✅ Evidence Confirmed by Family" else "Review and Confirm Evidence (draft → confirmed_by_family)"
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg(if (isConfirmed) "#059669" else "#D97706", 16f)
-            setOnClickListener {
-                val updated = familyManager.confirmEvidence(call.callId)
-                if (updated != null) {
-                    text = "✅ Evidence Confirmed by Family (${updated.confirmedAt})"
-                    background = roundedBg("#059669", 16f)
-                    meta.text = "Protected Member: ${updated.dependentName ?: "Family"} (${updated.dependentRole.displayLabel})\n" +
-                        "Suspect Caller: ${updated.callerNumber} · Duration: ${updated.durationSeconds}s\n" +
-                        "Evidence Status: ${updated.evidenceStatus} (${updated.confirmedAt})"
-                    refreshCaretakerDashboard()
-                    Toast.makeText(this@MainActivity, "Evidence confirmed! Ready for Chakshu & 1930 filing.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        container.addView(btnConfirmEvidence, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 16 })
-
-        // 1-Click Police & DoT Portals
-        val portalHeader = TextView(this).apply {
-            text = "🏛️ Step 2: 1-Click Police (1930) & DoT Chakshu Portals"
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 8, 0, 8)
-        }
-        container.addView(portalHeader)
-
-        val btnCopyAndOpenChakshu = Button(this).apply {
-            text = "📋 Copy Packet & Open Chakshu (sancharsaathi.gov.in)"
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#2563EB", 16f)
-            setOnClickListener {
-                copyToClipboard("Chakshu Packet", familyManager.formatChakshuPacket(call.callId))
-                openUrl("https://sancharsaathi.gov.in/sfc/")
-            }
-        }
-        container.addView(btnCopyAndOpenChakshu, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 10 })
-
-        val btnCopyAndOpen1930 = Button(this).apply {
-            text = "🚨 Copy Dossier & Open Cybercrime Portal (cybercrime.gov.in)"
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#DC2626", 16f)
-            setOnClickListener {
-                copyToClipboard("1930 Cybercrime Dossier", familyManager.format1930ReportPacket(call.callId))
-                openUrl("https://cybercrime.gov.in/")
-            }
-        }
-        container.addView(btnCopyAndOpen1930, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = 10 })
-
-        val btnDial1930 = Button(this).apply {
-            text = "📞 Dial 1930 National Cybercrime Helpline"
-            textSize = 13f
-            isAllCaps = false
-            setTextColor(Color.WHITE)
-            background = roundedBg("#334155", 16f)
-            setOnClickListener {
-                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930")))
-            }
-        }
-        container.addView(btnDial1930)
-
-        AlertDialog.Builder(this)
-            .setView(scroll)
-            .setPositiveButton("Close", null)
-            .show()
-    }
-
-    private fun showManageFamilyDialog() {
-        val scroll = ScrollView(this)
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 32, 40, 24)
-        }
-        scroll.addView(layout)
-
-        val title = TextView(this).apply {
-            text = "👨‍👩‍👧‍👦 Add & Link Family Members"
-            textSize = 18f
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 0, 0, 8)
-        }
-        layout.addView(title)
-
-        val desc = TextView(this).apply {
-            text = "Supports multiple Caretakers (e.g. Father & Mother) monitoring multiple Dependents (Grandparents & Kids)."
-            textSize = 13f
-            setPadding(0, 0, 0, 16)
-        }
-        layout.addView(desc)
-
-        val typeSpinner = Spinner(this)
-        val typeOptions = listOf(
-            "Protected Dependent (Grandparent)",
-            "Protected Dependent (Kid / Child)",
-            "Protected Dependent (Parent)",
-            "Caretaker / Guardian (Parent)"
-        )
-        typeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, typeOptions)
-        layout.addView(typeSpinner)
-
-        val inputName = EditText(this).apply {
-            hint = "Full Name (e.g. Dada Ji / Aarav / Priya)"
-        }
-        layout.addView(inputName)
-
-        val inputPhone = EditText(this).apply {
-            hint = "Phone Number (e.g. +919810020005)"
-        }
-        layout.addView(inputPhone)
-
-        val linkHeader = TextView(this).apply {
-            text = "Link with Family Members (Many-to-Many):"
-            textSize = 14f
-            setTypeface(null, Typeface.BOLD)
-            setPadding(0, 16, 0, 8)
-        }
-        layout.addView(linkHeader)
-
-        val checkCaretakers = mutableListOf<Pair<CaretakerProfile, CheckBox>>()
-        for (ct in familyManager.listCaretakers()) {
-            val cb = CheckBox(this).apply {
-                text = "Caretaker: ${ct.name} (${ct.phoneNumber})"
-                isChecked = true
-            }
-            checkCaretakers.add(ct to cb)
-            layout.addView(cb)
-        }
-
-        val checkDependents = mutableListOf<Pair<DependentProfile, CheckBox>>()
-        for (dep in familyManager.listDependents()) {
-            val cb = CheckBox(this).apply {
-                text = "Dependent: ${dep.name} (${dep.role.displayLabel})"
-                isChecked = true
-            }
-            checkDependents.add(dep to cb)
-            layout.addView(cb)
-        }
-
-        val enrollThisHandsetCb = CheckBox(this).apply {
-            text = "Set as this phone's active Dependent profile"
-            isChecked = false
-        }
-        layout.addView(enrollThisHandsetCb)
-
-        AlertDialog.Builder(this)
-            .setView(scroll)
-            .setPositiveButton("Save & Link") { _, _ ->
-                val name = inputName.text.toString().trim()
-                val phone = inputPhone.text.toString().trim()
-                if (name.isBlank() || phone.isBlank()) {
-                    Toast.makeText(this, "Name and phone number are required", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                val selIdx = typeSpinner.selectedItemPosition
-                if (selIdx == 3) {
-                    val newCt = familyManager.addCaretaker(name = name, phone = phone, role = CaretakerRole.PARENT)
-                    for ((dep, cb) in checkDependents) {
-                        if (cb.isChecked) {
-                            familyManager.linkCaretakerToDependent(newCt.caretakerId, dep.dependentId)
-                        }
-                    }
-                    activeCaretakerId = newCt.caretakerId
-                } else {
-                    val role = when (selIdx) {
-                        0 -> DependentRole.GRANDPARENT
-                        1 -> DependentRole.CHILD
-                        else -> DependentRole.PARENT
-                    }
-                    val newDep = familyManager.addDependent(name = name, phone = phone, role = role)
-                    for ((ct, cb) in checkCaretakers) {
-                        if (cb.isChecked) {
-                            familyManager.linkCaretakerToDependent(ct.caretakerId, newDep.dependentId)
-                        }
-                    }
-                    if (enrollThisHandsetCb.isChecked) {
-                        getSharedPreferences("guardian_family_prefs", Context.MODE_PRIVATE)
-                            .edit()
-                            .putString("this_device_dependent_id", newDep.dependentId)
-                            .apply()
-                    }
-                }
-                updateDependentEnrollmentSummary()
-                refreshCaretakerDashboard()
-                Toast.makeText(this, "Family Protection Circle updated!", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun showServerSyncDialog() {
-        val prefs = getSharedPreferences("guardian_family_prefs", Context.MODE_PRIVATE)
-        val savedUrl = prefs.getString("server_base_url", "http://127.0.0.1:8000") ?: "http://127.0.0.1:8000"
-        val savedToken = prefs.getString(
-            "dashboard_token",
-            "x5CwYTEzbGHJfSVnftTN9VHkgbpOvwXRLQvPV9rgzr4"
-        ) ?: ""
-
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(40, 32, 40, 16)
-        }
-        val urlInput = EditText(this).apply {
-            hint = "Backend URL (e.g. http://192.168.1.10:8000)"
-            setText(savedUrl)
-        }
-        val tokenInput = EditText(this).apply {
-            hint = "Dashboard Token (Bearer)"
-            setText(savedToken)
-        }
-        layout.addView(urlInput)
-        layout.addView(tokenInput)
-
-        AlertDialog.Builder(this)
-            .setTitle("Sync with GuardianLine Server")
-            .setView(layout)
-            .setPositiveButton("Sync Now") { _, _ ->
-                val baseUrl = urlInput.text.toString().trim().trimEnd('/')
-                val token = tokenInput.text.toString().trim()
-                prefs.edit()
-                    .putString("server_base_url", baseUrl)
-                    .putString("dashboard_token", token)
-                    .apply()
-                syncFromBackend(baseUrl, token)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun syncFromBackend(baseUrl: String, token: String) {
-        Toast.makeText(this, "Syncing family circle & calls from $baseUrl...", Toast.LENGTH_SHORT).show()
-        thread {
-            try {
-                // 1. Fetch family topology
-                val famConn = (URL("$baseUrl/dashboard/api/family").openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    setRequestProperty("Authorization", "Bearer $token")
-                    connectTimeout = 5000
-                    readTimeout = 5000
-                }
-                if (famConn.responseCode == 200) {
-                    val body = BufferedReader(InputStreamReader(famConn.inputStream)).use { it.readText() }
-                    val root = JSONObject(body)
-                    val depsArr = root.optJSONArray("dependents") ?: JSONArray()
-                    for (i in 0 until depsArr.length()) {
-                        val d = depsArr.getJSONObject(i)
-                        familyManager.addDependent(
-                            name = d.optString("name", "Dependent"),
-                            phone = d.optString("phone_number", ""),
-                            role = DependentRole.fromWire(d.optString("role", "grandparent")),
-                            dependentId = d.optString("dependent_id", null)
-                        )
-                    }
-                    val ctsArr = root.optJSONArray("caretakers") ?: JSONArray()
-                    for (i in 0 until ctsArr.length()) {
-                        val c = ctsArr.getJSONObject(i)
-                        val ct = familyManager.addCaretaker(
-                            name = c.optString("name", "Caretaker"),
-                            phone = c.optString("phone_number", ""),
-                            role = CaretakerRole.fromWire(c.optString("role", "parent")),
-                            caretakerId = c.optString("caretaker_id", null)
-                        )
-                        val depIds = c.optJSONArray("dependent_ids") ?: JSONArray()
-                        for (j in 0 until depIds.length()) {
-                            familyManager.linkCaretakerToDependent(ct.caretakerId, depIds.getString(j))
-                        }
-                    }
-                }
-
-                // 2. Fetch screened calls
-                val callsConn = (URL("$baseUrl/dashboard/api/calls?limit=50").openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    setRequestProperty("Authorization", "Bearer $token")
-                    connectTimeout = 5000
-                    readTimeout = 5000
-                }
-                if (callsConn.responseCode == 200) {
-                    val body = BufferedReader(InputStreamReader(callsConn.inputStream)).use { it.readText() }
-                    val root = JSONObject(body)
-                    val items = root.optJSONArray("items") ?: JSONArray()
-                    for (i in 0 until items.length()) {
-                        val item = items.getJSONObject(i)
-                        val intelObj = item.optJSONObject("extracted_intel") ?: JSONObject()
-                        val transArr = item.optJSONArray("transcript") ?: JSONArray()
-                        val turns = mutableListOf<TranscriptTurn>()
-                        for (t in 0 until transArr.length()) {
-                            val to = transArr.getJSONObject(t)
-                            turns.add(TranscriptTurn(to.optString("role", "caller"), to.optString("content", "")))
-                        }
-                        familyManager.upsertCall(
-                            ScreenedCallDossier(
-                                callId = item.optString("call_id", "call-$i"),
-                                callerNumber = item.optString("caller_number", "Unknown"),
-                                verdict = item.optString("verdict", "unsure"),
-                                durationSeconds = item.optDouble("duration", 0.0).toInt(),
-                                summary = item.optString("summary", ""),
-                                dependentId = item.optString("dependent_id", "").ifBlank { "dep-grandpa" },
-                                dependentName = item.optString("dependent_name", "").ifBlank { "Ramesh Sharma (Grandfather)" },
-                                dependentRole = DependentRole.fromWire(item.optString("dependent_role", "grandparent")),
-                                transcript = turns,
-                                extractedIntel = ExtractedIntel(
-                                    upiIds = jsonArrayToList(intelObj.optJSONArray("upi_ids")),
-                                    bankAccounts = jsonArrayToList(intelObj.optJSONArray("bank_accounts")),
-                                    ifscCodes = jsonArrayToList(intelObj.optJSONArray("ifsc_codes")),
-                                    phoneNumbers = jsonArrayToList(intelObj.optJSONArray("phone_numbers")),
-                                    phishingLinks = jsonArrayToList(intelObj.optJSONArray("links"))
-                                ),
-                                callRecordingUrl = item.optString("call_recording_url", null),
-                                evidenceStatus = item.optString("evidence_status", "draft"),
-                                confirmedAt = item.optString("confirmed_at", null)
-                            )
-                        )
-                    }
-                }
-                runOnUiThread {
-                    refreshCaretakerDashboard()
-                    updateDependentEnrollmentSummary()
-                    Toast.makeText(this, "Synced live calls & family circle from server!", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    Toast.makeText(this, "Offline / Local mode active (${e.message})", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun jsonArrayToList(arr: JSONArray?): List<String> {
-        if (arr == null) return emptyList()
-        val list = mutableListOf<String>()
-        for (i in 0 until arr.length()) {
-            val v = arr.optString(i, "").trim()
-            if (v.isNotEmpty()) list.add(v)
-        }
-        return list
-    }
-
-    private fun copyToClipboard(label: String, text: String) {
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
-        Toast.makeText(this, "Copied $label to clipboard", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun openUrl(url: String) {
-        try {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-        } catch (_: Exception) {
-            Toast.makeText(this, "Cannot open URL: $url", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun roundedBg(fillHex: String, radiusPx: Float, strokeColor: String? = null): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radiusPx
-            setColor(Color.parseColor(fillHex))
-            if (strokeColor != null) {
-                setStroke(3, Color.parseColor(strokeColor))
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
-        checkScreeningRoleStatus()
-        checkPermissionsStatus()
+        refreshShield()
     }
 
-    private fun checkScreeningRoleStatus() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
-            val isHeld = roleManager?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
-            if (isHeld) {
-                ProtectionStatusWorker.clearWarning(this)
-                statusText.text = getString(R.string.status_active)
-                statusText.setTextColor(Color.parseColor("#4ADE80"))
-            } else {
-                statusText.text = getString(R.string.status_warning_revoked)
-                statusText.setTextColor(Color.parseColor("#F87171"))
+    // ---------------------------------------------------------------- My phone
+
+    private fun buildPhoneScreen(): LinearLayout {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        shield = ShieldView(this)
+        col.addView(shield, lp(h = 220, top = 8))
+
+        shieldTitle = label("", 30f, Theme.inkHex, medium = true).apply { gravity = Gravity.CENTER }
+        col.addView(shieldTitle, lp(top = 4))
+        shieldSub = label("", 16f, Theme.mutedTextHex).apply { gravity = Gravity.CENTER }
+        col.addView(shieldSub, lp(top = 6, bottom = 28))
+
+        screeningSwitch = SwitchCompat(this).apply {
+            isClickable = false
+            isFocusable = false
+            thumbTintList = ColorStateList.valueOf(Color.WHITE)
+            trackTintList = ColorStateList.valueOf(c("#8DB08A"))
+        }
+        col.addView(
+            darkRow(getString(R.string.row_call_screening), screeningSwitch) { requestCallScreeningRole() },
+            lp(bottom = 12)
+        )
+        val familyAlertSwitch = SwitchCompat(this).apply {
+            isChecked = true
+            isClickable = false
+            isFocusable = false
+            thumbTintList = ColorStateList.valueOf(Color.WHITE)
+            trackTintList = ColorStateList.valueOf(c("#8DB08A"))
+        }
+        col.addView(
+            darkRow(getString(R.string.row_forwarding), familyAlertSwitch) { startForwardingDialer() },
+            lp(bottom = 12)
+        )
+
+        contactsLine = label(getString(R.string.perm_contacts_missing), 13f, Theme.alertRedHex).apply {
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+            setOnClickListener { requestContactsLauncher.launch(Manifest.permission.READ_CONTACTS) }
+        }
+        col.addView(contactsLine, lp(bottom = 8))
+
+        val callGuardianBtn = pillButton(
+            getString(R.string.btn_family_circle),
+            "#00000000",
+            Theme.primaryForestHex,
+            Theme.primaryForestHex
+        ) {
+            showScreen(family = true)
+        }.apply {
+            setPadding(dp(36), dp(12), dp(36), dp(12))
+        }
+        col.addView(
+            callGuardianBtn,
+            LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = dp(12)
             }
-        } else {
-            statusText.text = getString(R.string.status_unsupported)
-            statusText.setTextColor(Color.parseColor("#FB923C"))
+        )
+        return col
+    }
+
+    private fun darkRow(title: String, trailing: View, onClick: () -> Unit): LinearLayout {
+        return LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(Theme.primaryForestHex, 28)
+            setPadding(dp(24), dp(20), dp(24), dp(20))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+            addView(label(title, 18f, "#FFFFFF", medium = true), LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            addView(trailing)
         }
     }
 
-    private fun checkPermissionsStatus() {
-        val hasContacts = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.READ_CONTACTS
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (hasContacts) {
-            permText.text = getString(R.string.perm_contacts_granted)
-            permText.setTextColor(Color.parseColor("#4ADE80"))
-        } else {
-            permText.text = getString(R.string.perm_contacts_missing)
-            permText.setTextColor(Color.parseColor("#F87171"))
-            permText.setOnClickListener {
-                requestPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+    private fun refreshShield() {
+        val supported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val held = supported && (getSystemService(Context.ROLE_SERVICE) as? RoleManager)
+            ?.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) == true
+        if (held) ProtectionStatusWorker.clearWarning(this)
+        shield.isProtected = held
+        shieldTitle.text = getString(if (held) R.string.shield_on_title else R.string.shield_off_title)
+        shieldSub.text = getString(
+            when {
+                !supported -> R.string.shield_unsupported_sub
+                held -> R.string.shield_on_sub
+                else -> R.string.shield_off_sub
             }
-        }
+        )
+        screeningSwitch.isChecked = held
+        val hasContacts = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) ==
+            PackageManager.PERMISSION_GRANTED
+        contactsLine.visibility = if (hasContacts) View.GONE else View.VISIBLE
     }
 
     private fun requestCallScreeningRole() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
-            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
-                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                requestRoleLauncher.launch(intent)
-            } else {
-                Toast.makeText(this, getString(R.string.toast_role_unavailable), Toast.LENGTH_LONG).show()
-            }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Toast.makeText(this, getString(R.string.toast_role_unavailable), Toast.LENGTH_LONG).show()
+            return
+        }
+        val roleManager = getSystemService(Context.ROLE_SERVICE) as? RoleManager
+        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING)) {
+            requestRoleLauncher.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING))
+        } else {
+            Toast.makeText(this, getString(R.string.toast_role_unavailable), Toast.LENGTH_LONG).show()
         }
     }
 
-    /** Shares the last 200 soak-log lines (masked numbers only) for the T-AND 24-hour soak. */
+    private fun startForwardingDialer() {
+        val gateway = BuildConfig.BOLNA_GATEWAY_NUMBER.trim()
+        if (gateway.isBlank()) {
+            Toast.makeText(this, getString(R.string.gateway_not_configured), Toast.LENGTH_LONG).show()
+            return
+        }
+        val ussd = Uri.encode("**67*${gateway}#")
+        startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$ussd")))
+    }
+
+    /** Shares the last 200 soak-log lines (masked numbers only) for the 24-hour soak test. */
     private fun shareSoakLog() {
         val lines = LocalCallLogger.readLogContent(this).lines().filter { it.isNotBlank() }
         if (lines.isEmpty()) {
@@ -1372,15 +278,585 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent.createChooser(send, getString(R.string.btn_share_log)))
     }
 
-    private fun triggerCarrierForwardingDialer() {
-        val gatewayNumber = BuildConfig.BOLNA_GATEWAY_NUMBER.trim()
-        if (gatewayNumber.isBlank()) {
-            Toast.makeText(this, getString(R.string.gateway_not_configured), Toast.LENGTH_LONG).show()
-            return
+    // ------------------------------------------------------------------ Family
+
+    private fun buildFamilyScreen(): LinearLayout {
+        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(label(getString(R.string.family_title), 28f, Theme.inkHex, medium = true), lp(top = 8))
+
+        viewingAs = label("", 14f, Theme.primaryForestHex, medium = true).apply {
+            setPadding(0, dp(8), 0, dp(8))
+            setOnClickListener { pickCaretaker() }
         }
-        val ussdCode = "**67*${gatewayNumber}#"
-        val encodedUssd = Uri.encode(ussdCode)
-        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$encodedUssd"))
-        startActivity(intent)
+        col.addView(viewingAs, lp(bottom = 8))
+
+        avatarRow = LinearLayout(this)
+        col.addView(
+            HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(avatarRow)
+            },
+            lp(bottom = 20)
+        )
+
+        noteHolder = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(noteHolder)
+        callsHolder = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        col.addView(callsHolder)
+        return col
+    }
+
+    private fun refreshFamily() {
+        val active = family.listCaretakers().firstOrNull { it.caretakerId == activeCaretakerId }
+        viewingAs.visibility = if (active == null) View.GONE else View.VISIBLE
+        if (active != null) {
+            viewingAs.text = getString(R.string.viewing_as, Theme.shortLabel(active.name)) + "  ▾"
+        }
+
+        val monitored = if (active != null) family.getDependentsForCaretaker(active.caretakerId) else family.listDependents()
+        if (selectedDependentId != null && monitored.none { it.dependentId == selectedDependentId }) {
+            selectedDependentId = null
+        }
+
+        avatarRow.removeAllViews()
+        avatarRow.addView(avatar("All", "All", "#CFE5CF", selectedDependentId == null) {
+            selectedDependentId = null
+            refreshFamily()
+        })
+        for (dep in monitored) {
+            avatarRow.addView(
+                avatar(
+                    Theme.shortLabel(dep.name), Theme.initialsFor(dep.name), Theme.avatarColorFor(dep.role),
+                    selectedDependentId == dep.dependentId
+                ) {
+                    selectedDependentId = dep.dependentId
+                    refreshFamily()
+                }
+            )
+        }
+
+        noteHolder.removeAllViews()
+        for (cluster in family.buildScamIntelligenceClusters().take(2)) {
+            val who = cluster.targetedDependents.joinToString(" and ") { Theme.shortLabel(it) }
+            if (who.isBlank()) continue
+            val note = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = rounded(Theme.caretakerLavenderHex, 24)
+                setPadding(dp(18), dp(14), dp(18), dp(14))
+            }
+            note.addView(label("Same scammer reached $who", 14f, Theme.caretakerLavenderInkHex, medium = true))
+            note.addView(chip(cluster.identifier, Theme.caretakerLavenderInkHex, "#FFFFFF"), lp(w = WRAP_CONTENT, top = 8))
+            noteHolder.addView(note, lp(bottom = 16))
+        }
+
+        callsHolder.removeAllViews()
+        val calls = family.getCalls(caretakerId = activeCaretakerId, dependentId = selectedDependentId)
+        if (calls.isEmpty()) {
+            callsHolder.addView(
+                label("No screened calls yet.", 15f, Theme.mutedTextHex).apply {
+                    gravity = Gravity.CENTER
+                    setPadding(dp(16), dp(36), dp(16), dp(36))
+                    background = rounded(Theme.cardSurfaceHex, 28)
+                }
+            )
+        } else {
+            calls.forEach { callsHolder.addView(callCard(it), lp(bottom = 16)) }
+        }
+    }
+
+    private fun avatar(name: String, initials: String, fillHex: String, selected: Boolean, onClick: () -> Unit): LinearLayout {
+        val circle = label(initials, 18f, "#23332A", medium = true).apply {
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(c(fillHex))
+                if (selected) setStroke(dp(3), c(Theme.primaryForestHex))
+            }
+        }
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            isClickable = true
+            isFocusable = true
+            contentDescription = name
+            setOnClickListener { onClick() }
+            addView(circle, LinearLayout.LayoutParams(dp(60), dp(60)))
+            addView(
+                label(name, 13f, if (selected) Theme.primaryForestHex else Theme.inkHex, medium = selected).apply {
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                },
+                lp(top = 6)
+            )
+        }.also { it.layoutParams = LinearLayout.LayoutParams(dp(76), WRAP_CONTENT) }
+    }
+
+    private fun callCard(call: ScreenedCallDossier): LinearLayout {
+        val palette = Theme.callCardPalette(call.verdict)
+        val isScam = call.verdict.equals("scam", ignoreCase = true)
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = rounded(palette.cardSurfaceHex, 28)
+            setPadding(dp(22), dp(20), dp(22), dp(20))
+        }
+
+        val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        top.addView(
+            label(if (isScam) "⚠  Suspected scam" else "✓  Genuine", 13f, if (isScam) Theme.alertRedHex else palette.inkHex, medium = true),
+            LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+        )
+        top.addView(label("${call.durationSeconds}s", 13f, palette.inkHex))
+        card.addView(top)
+
+        card.addView(label(call.summary, 18f, palette.inkHex, medium = true), lp(top = 10))
+
+        val who = call.dependentName?.let { "For ${Theme.shortLabel(it)}" }
+        val meta = listOfNotNull(
+            "Caller ID: ${call.callerNumber}", who,
+            if (call.evidenceStatus == "confirmed_by_family") "Confirmed" else null
+        ).joinToString("  ·  ")
+        card.addView(label(meta, 14f, palette.inkHex), lp(top = 6, bottom = 12))
+
+        val intel = call.extractedIntel
+        val chips = intel.upiIds.map { "UPI: $it" to it } + intel.bankAccounts.map { "Account: $it" to it } +
+            intel.ifscCodes.map { "IFSC: $it" to it } + intel.phoneNumbers.map { "Phone: $it" to it } +
+            intel.phishingLinks.map { "Link: $it" to it }
+        chips.forEach { (text, value) ->
+            card.addView(
+                chip(text, palette.inkHex, "#B3FFFFFF").apply { setOnClickListener { copyToClipboard(text.substringBefore(":"), value) } },
+                lp(w = WRAP_CONTENT, bottom = 8)
+            )
+        }
+
+        val player = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded("#8CFFFFFF", 24)
+            setPadding(dp(12), dp(10), dp(16), dp(10))
+            isClickable = true
+            isFocusable = true
+            contentDescription = "Replay call"
+            setOnClickListener { showDossier(call.callId) }
+        }
+        player.addView(
+            label("▶", 14f, "#FFFFFF", medium = true).apply {
+                gravity = Gravity.CENTER
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(c(Theme.primaryForestHex)) }
+            },
+            LinearLayout.LayoutParams(dp(42), dp(42))
+        )
+        player.addView(
+            WaveformView(this, c(Theme.primaryForestHex)).apply { bars = Theme.waveformBars(call.callId, 36) },
+            LinearLayout.LayoutParams(0, dp(34), 1f).apply { marginStart = dp(12); marginEnd = dp(12) }
+        )
+        player.addView(label("${call.durationSeconds}s", 12f, palette.inkHex))
+        card.addView(player, lp(top = 4))
+
+        val shell = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = rounded(Theme.cardSurfaceHex, 32)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+        }
+        shell.addView(card, lp(bottom = 12))
+        shell.addView(pillButton(getString(R.string.btn_file_report), Theme.primaryForestHex, "#FFFFFF") { showDossier(call.callId) })
+        return shell
+    }
+
+    private fun showDossier(callId: String) {
+        val call = family.getCall(callId) ?: return
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(c(Theme.surfaceBackgroundHex))
+            setPadding(dp(22), dp(22), dp(22), dp(18))
+        }
+        col.addView(label(call.summary, 19f, Theme.inkHex, medium = true))
+        val status = label("", 13f, Theme.mutedTextHex)
+        fun renderStatus() {
+            val confirmed = family.getCall(callId)?.evidenceStatus == "confirmed_by_family"
+            status.text = "Caller ID: ${call.callerNumber}  ·  ${if (confirmed) "Confirmed by family" else "Draft, not yet confirmed"}"
+        }
+        renderStatus()
+        col.addView(status, lp(top = 6, bottom = 14))
+
+        val recording = call.callRecordingUrl
+        if (!recording.isNullOrBlank() && (recording.startsWith("https://") || recording.startsWith("http://"))) {
+            col.addView(pillButton("Open recording", "#00000000", Theme.primaryForestHex, Theme.primaryForestHex) { openUrl(recording) }, lp(bottom = 14))
+        }
+
+        if (call.transcript.isEmpty()) {
+            col.addView(label("No dialogue recorded.", 13f, Theme.mutedTextHex), lp(bottom = 12))
+        }
+        for (turn in call.transcript) {
+            val caller = turn.role.lowercase() in listOf("caller", "user", "scammer")
+            col.addView(
+                label((if (caller) "Caller: " else "GuardianLine: ") + turn.content, 14f, if (caller) "#3E1A12" else "#14301A").apply {
+                    background = rounded(if (caller) "#FDE3DB" else "#E1EFDF", 20)
+                    setPadding(dp(16), dp(12), dp(16), dp(12))
+                },
+                lp(bottom = 8)
+            )
+        }
+
+        val confirm = pillButton("", Theme.primaryForestHex, "#FFFFFF") { }
+        fun renderConfirm() {
+            val done = family.getCall(callId)?.evidenceStatus == "confirmed_by_family"
+            confirm.text = if (done) "Evidence confirmed" else "Review and confirm evidence"
+            confirm.alpha = if (done) 0.6f else 1f
+        }
+        renderConfirm()
+        confirm.setOnClickListener {
+            val updated = family.confirmEvidence(callId) ?: return@setOnClickListener
+            renderConfirm()
+            renderStatus()
+            refreshFamily()
+            postConfirmToServer(updated.callId)
+        }
+        col.addView(confirm, lp(top = 10, bottom = 10))
+
+        col.addView(
+            pillButton("Copy Chakshu packet and open portal", "#E1D5F5", Theme.caretakerLavenderInkHex) {
+                copyToClipboard("Chakshu packet", family.formatChakshuPacket(callId))
+                openUrl("https://sancharsaathi.gov.in/sfc/")
+            },
+            lp(bottom = 10)
+        )
+        col.addView(
+            pillButton("Copy 1930 report and open portal", "#E1D5F5", Theme.caretakerLavenderInkHex) {
+                copyToClipboard("1930 report", family.format1930ReportPacket(callId))
+                openUrl("https://cybercrime.gov.in/")
+            },
+            lp(bottom = 10)
+        )
+        col.addView(
+            pillButton("Call 1930", "#00000000", Theme.primaryForestHex, Theme.primaryForestHex) {
+                startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930")))
+            }
+        )
+
+        AlertDialog.Builder(this)
+            .setView(ScrollView(this).apply { addView(col) })
+            .setPositiveButton("Close", null)
+            .show()
+    }
+
+    private fun pickCaretaker() {
+        val caretakers = family.listCaretakers()
+        if (caretakers.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setItems(caretakers.map { it.name }.toTypedArray()) { _, which ->
+                activeCaretakerId = caretakers[which].caretakerId
+                refreshFamily()
+            }
+            .show()
+    }
+
+    // ---------------------------------------------------------- Menu and dialogs
+
+    private fun showMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, getString(R.string.menu_add_member))
+            menu.add(0, 2, 1, getString(R.string.menu_sync))
+            menu.add(0, 3, 2, getString(R.string.btn_share_log))
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    1 -> showAddMemberDialog()
+                    2 -> showSyncDialog()
+                    3 -> shareSoakLog()
+                }
+                true
+            }
+        }.show()
+    }
+
+    private fun showAddMemberDialog() {
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(16), dp(24), dp(8))
+        }
+        val kind = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("Grandparent", "Child", "Parent (protected)", "Caretaker")
+            )
+        }
+        val name = EditText(this).apply { hint = "Name, for example Rajesh Sharma (Dad)" }
+        val phone = EditText(this).apply { hint = "Phone number" }
+        col.addView(kind)
+        col.addView(name)
+        col.addView(phone)
+
+        val caretakerChecks = family.listCaretakers().map { ct ->
+            ct to CheckBox(this).apply { text = "Watched by ${ct.name}"; isChecked = true }
+        }
+        val dependentChecks = family.listDependents().map { dep ->
+            dep to CheckBox(this).apply { text = "Watches ${dep.name}"; isChecked = true }
+        }
+        (caretakerChecks.map { it.second } + dependentChecks.map { it.second }).forEach { col.addView(it) }
+        val thisPhone = CheckBox(this).apply { text = "This is the phone I'm using"; isChecked = false }
+        col.addView(thisPhone)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_add_member)
+            .setView(ScrollView(this).apply { addView(col) })
+            .setPositiveButton("Save") { _, _ ->
+                val nameText = name.text.toString().trim()
+                val phoneText = phone.text.toString().trim()
+                if (nameText.isBlank() || phoneText.isBlank()) {
+                    Toast.makeText(this, "Name and phone number are required", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                if (kind.selectedItemPosition == 3) {
+                    val ct = family.addCaretaker(nameText, phoneText, CaretakerRole.PARENT)
+                    dependentChecks.filter { it.second.isChecked }.forEach { family.linkCaretakerToDependent(ct.caretakerId, it.first.dependentId) }
+                    activeCaretakerId = ct.caretakerId
+                } else {
+                    val role = when (kind.selectedItemPosition) {
+                        0 -> DependentRole.GRANDPARENT
+                        1 -> DependentRole.CHILD
+                        else -> DependentRole.PARENT
+                    }
+                    val dep = family.addDependent(nameText, phoneText, role)
+                    caretakerChecks.filter { it.second.isChecked }.forEach { family.linkCaretakerToDependent(it.first.caretakerId, dep.dependentId) }
+                    if (thisPhone.isChecked) prefs().edit().putString("this_device_dependent_id", dep.dependentId).apply()
+                }
+                refreshFamily()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showSyncDialog() {
+        val prefs = prefs()
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(16), dp(24), dp(8))
+        }
+        val url = EditText(this).apply {
+            hint = "Server address, for example http://192.168.1.10:8000"
+            setText(prefs.getString("server_base_url", ""))
+        }
+        val token = EditText(this).apply {
+            hint = "Dashboard token"
+            setText(prefs.getString("dashboard_token", ""))
+        }
+        col.addView(url)
+        col.addView(token)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_sync)
+            .setView(col)
+            .setPositiveButton("Sync") { _, _ ->
+                val base = url.text.toString().trim().trimEnd('/')
+                val key = token.text.toString().trim()
+                if (base.isBlank() || key.isBlank()) {
+                    Toast.makeText(this, "Enter the server address and token", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                prefs.edit().putString("server_base_url", base).putString("dashboard_token", key).apply()
+                syncFromServer(base, key)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // --------------------------------------------------------------- Networking
+
+    private data class SyncPayload(
+        val dependents: List<DependentProfile>,
+        val caretakers: List<CaretakerProfile>,
+        val links: List<Pair<String, String>>,
+        val calls: List<ScreenedCallDossier>
+    )
+
+    private fun syncFromServer(base: String, token: String) {
+        Toast.makeText(this, "Syncing…", Toast.LENGTH_SHORT).show()
+        thread {
+            try {
+                val familyJson = JSONObject(httpGet("$base/dashboard/api/family", token))
+                val dependents = familyJson.optJSONArray("dependents").objects().map {
+                    DependentProfile(
+                        dependentId = it.optString("dependent_id"),
+                        name = it.optString("name"),
+                        phoneNumber = it.optString("phone_number"),
+                        role = DependentRole.fromWire(it.optString("role"))
+                    )
+                }
+                val caretakers = familyJson.optJSONArray("caretakers").objects().map {
+                    CaretakerProfile(
+                        caretakerId = it.optString("caretaker_id"),
+                        name = it.optString("name"),
+                        phoneNumber = it.optString("phone_number"),
+                        role = CaretakerRole.fromWire(it.optString("role"))
+                    )
+                }
+                val links = familyJson.optJSONArray("links").objects().map {
+                    it.optString("caretaker_id") to it.optString("dependent_id")
+                }
+                val calls = JSONArray(httpGet("$base/dashboard/api/calls?limit=100", token)).objects().mapIndexed { i, item ->
+                    val intel = item.optJSONObject("extracted_intel") ?: JSONObject()
+                    ScreenedCallDossier(
+                        callId = item.optString("call_id", "call-$i"),
+                        callerNumber = item.optString("caller_number", "Unknown"),
+                        verdict = item.optString("verdict", "unsure"),
+                        durationSeconds = item.optDouble("duration", 0.0).toInt(),
+                        summary = item.optString("summary", ""),
+                        dependentId = item.optString("dependent_id").takeIf { it.isNotBlank() },
+                        dependentName = item.optString("dependent_name").takeIf { it.isNotBlank() },
+                        dependentRole = DependentRole.fromWire(item.optString("dependent_role")),
+                        transcript = item.optJSONArray("transcript").objects().map {
+                            TranscriptTurn(it.optString("role", "caller"), it.optString("content", ""))
+                        },
+                        extractedIntel = ExtractedIntel(
+                            upiIds = intel.optJSONArray("upi_ids").strings(),
+                            bankAccounts = intel.optJSONArray("bank_accounts").strings(),
+                            ifscCodes = intel.optJSONArray("ifsc_codes").strings(),
+                            phoneNumbers = intel.optJSONArray("phone_numbers").strings(),
+                            phishingLinks = intel.optJSONArray("links").strings()
+                        ),
+                        callRecordingUrl = item.optString("call_recording_url").takeIf { it.isNotBlank() },
+                        evidenceStatus = item.optString("evidence_status", "draft"),
+                        confirmedAt = item.optString("confirmed_at").takeIf { it.isNotBlank() }
+                    )
+                }
+                val payload = SyncPayload(dependents, caretakers, links, calls)
+                runOnUiThread { applySync(payload) }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this, "Could not reach the server: ${e.message}", Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
+    /** Replaces the on-device demo household with what the server knows. */
+    private fun applySync(payload: SyncPayload) {
+        family.clear()
+        payload.dependents.forEach { family.addDependent(it.name, it.phoneNumber, it.role, it.dependentId) }
+        payload.caretakers.forEach { family.addCaretaker(it.name, it.phoneNumber, it.role, it.caretakerId) }
+        payload.links.forEach { (ct, dep) -> family.linkCaretakerToDependent(ct, dep) }
+        payload.calls.forEach { family.upsertCall(it) }
+        activeCaretakerId = family.listCaretakers().firstOrNull()?.caretakerId
+        selectedDependentId = null
+        refreshFamily()
+        Toast.makeText(this, "Synced ${payload.calls.size} calls", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun postConfirmToServer(callId: String) {
+        val prefs = prefs()
+        val base = prefs.getString("server_base_url", "").orEmpty()
+        val token = prefs.getString("dashboard_token", "").orEmpty()
+        if (base.isBlank() || token.isBlank()) return
+        thread {
+            val saved = try {
+                val conn = (URL("$base/dashboard/calls/${Uri.encode(callId)}/confirm").openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Authorization", "Bearer $token")
+                    setRequestProperty("Accept", "application/json")
+                    connectTimeout = 5000
+                    readTimeout = 5000
+                }
+                conn.responseCode in 200..299
+            } catch (_: Exception) {
+                false
+            }
+            if (!saved) runOnUiThread {
+                Toast.makeText(this, "Confirmed on this phone. Server not updated.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun httpGet(address: String, token: String): String {
+        val conn = (URL(address).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            setRequestProperty("Authorization", "Bearer $token")
+            connectTimeout = 5000
+            readTimeout = 8000
+        }
+        if (conn.responseCode != 200) throw IllegalStateException("HTTP ${conn.responseCode}")
+        return BufferedReader(InputStreamReader(conn.inputStream)).use { it.readText() }
+    }
+
+    private fun JSONArray?.objects(): List<JSONObject> =
+        if (this == null) emptyList() else List(length()) { getJSONObject(it) }
+
+    private fun JSONArray?.strings(): List<String> =
+        if (this == null) emptyList() else List(length()) { optString(it, "").trim() }.filter { it.isNotEmpty() }
+
+    // ------------------------------------------------------------------ Helpers
+
+    private fun showScreen(family: Boolean) {
+        phoneScreen.visibility = if (family) View.GONE else View.VISIBLE
+        familyScreen.visibility = if (family) View.VISIBLE else View.GONE
+        styleTab(tabPhone, !family)
+        styleTab(tabFamily, family)
+        if (family) refreshFamily() else refreshShield()
+    }
+
+    private fun pillTab(title: String, onClick: () -> Unit): TextView = label(title, 14f, Theme.primaryForestHex, medium = true).apply {
+        setPadding(dp(18), dp(9), dp(18), dp(9))
+        isClickable = true
+        isFocusable = true
+        setOnClickListener { onClick() }
+    }
+
+    private fun styleTab(tab: TextView, selected: Boolean) {
+        tab.background = rounded(if (selected) Theme.primaryForestHex else "#00000000", 999)
+        tab.setTextColor(c(if (selected) "#FFFFFF" else Theme.primaryForestHex))
+    }
+
+    private fun pillButton(title: String, fillHex: String, inkHex: String, strokeHex: String? = null, onClick: () -> Unit): TextView =
+        label(title, 15f, inkHex, medium = true).apply {
+            gravity = Gravity.CENTER
+            minHeight = dp(52)
+            setPadding(dp(20), dp(12), dp(20), dp(12))
+            background = rounded(fillHex, 999, strokeHex)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
+
+    private fun chip(title: String, inkHex: String, fillHex: String): TextView =
+        label(title, 12f, inkHex, medium = true).apply {
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            background = rounded(fillHex, 999, "#33000000")
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+        }
+
+    private fun label(value: CharSequence, sp: Float, hex: String, medium: Boolean = false): TextView =
+        TextView(this).apply {
+            text = value
+            textSize = sp
+            setTextColor(c(hex))
+            typeface = if (medium) Typeface.create("sans-serif-medium", Typeface.NORMAL) else Typeface.DEFAULT
+        }
+
+    private fun rounded(fillHex: String, radiusDp: Int, strokeHex: String? = null): GradientDrawable =
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(radiusDp).toFloat()
+            setColor(c(fillHex))
+            if (strokeHex != null) setStroke(dp(2), c(strokeHex))
+        }
+
+    private fun lp(w: Int = MATCH_PARENT, h: Int = WRAP_CONTENT, top: Int = 0, bottom: Int = 0): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(w, if (h > 0) dp(h) else h).apply {
+            topMargin = dp(top)
+            bottomMargin = dp(bottom)
+        }
+
+    private fun c(hex: String): Int = Color.parseColor(hex)
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    private fun prefs() = getSharedPreferences("guardian_family_prefs", Context.MODE_PRIVATE)
+
+    private fun copyToClipboard(label: String, text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+        Toast.makeText(this, "Copied $label", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            Toast.makeText(this, "Cannot open $url", Toast.LENGTH_SHORT).show()
+        }
     }
 }

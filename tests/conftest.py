@@ -20,3 +20,6 @@ def clean_test_env(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "")
     monkeypatch.setenv("GEMINI_API_KEY", "")
     monkeypatch.setenv("GUARDIANLINE_API_TOKEN", TEST_API_TOKEN)
+    monkeypatch.setenv("FAMILY_DB_PATH", ":memory:")
+    from app.core.family import set_family_registry
+    set_family_registry(None)

@@ -517,6 +517,20 @@ class TestMultiCaretakerMultiDependentDashboard:
             dash_html = client.get(f"/dashboard?dependent_id={gp_id}", headers=headers)
             assert dash_html.status_code == 200
             assert "Ramesh (Grandpa)" in dash_html.text
+
+            # 9. Material You 3 Expressive design system elements across all web views
+            assert "m3-nav-rail" in dash_html.text
+            assert "m3-family-bubble" in dash_html.text
+            assert "m3-bento-grid" in dash_html.text
+
+            detail_html = client.get("/dashboard/calls/call_gp_1", headers=headers)
+            assert detail_html.status_code == 200
+            assert "m3-waveform-player" in detail_html.text
+            assert "m3-tonal-chip" in detail_html.text
+
+            intel_html = client.get("/dashboard/intelligence", headers=headers)
+            assert intel_html.status_code == 200
+            assert "m3-syndicate-card" in intel_html.text
         finally:
             set_family_registry(None)
 

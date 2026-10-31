@@ -501,7 +501,8 @@ _GLOBAL_FAMILY_REGISTRY: Optional[FamilyRegistry] = None
 def get_family_registry() -> FamilyRegistry:
     global _GLOBAL_FAMILY_REGISTRY
     if _GLOBAL_FAMILY_REGISTRY is None:
-        _GLOBAL_FAMILY_REGISTRY = FamilyRegistry()
+        default_path = os.environ.get("FAMILY_DB_PATH") or os.environ.get("GUARDIANLINE_DB_PATH") or "guardianline_calls.db"
+        _GLOBAL_FAMILY_REGISTRY = FamilyRegistry(db_path=default_path)
     return _GLOBAL_FAMILY_REGISTRY
 
 

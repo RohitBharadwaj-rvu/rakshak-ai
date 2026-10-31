@@ -196,4 +196,59 @@ class FamilyCircleCaretakerTest {
         assertEquals(2, cluster.callIds.size)
         assertEquals(setOf("Ramesh (Grandfather)", "Aarav (Kid)"), cluster.targetedDependents.toSet())
     }
+
+    @Test
+    fun `test Material You 3 reference palette and avatar helpers`() {
+        val theme = MaterialYouFamilyTheme
+        assertEquals("#E4EFE3", theme.surfaceBackgroundHex)
+        assertEquals("#2B4A32", theme.primaryForestHex)
+        assertEquals("#E1D5F5", theme.caretakerLavenderHex)
+        assertEquals("#FBCBBD", theme.scamSalmonHex)
+        assertEquals(28f, theme.squircleCornerRadiusDp)
+
+        val grandpa = manager.addDependent("Ramesh Sharma (Grandpa)", "+919810020001", DependentRole.GRANDPARENT)
+        val kid = manager.addDependent("Aarav Sharma (Kid)", "+919810020003", DependentRole.CHILD)
+
+        assertEquals("RS", theme.initialsFor(grandpa.name))
+        assertEquals("Grandpa", theme.shortLabel(grandpa.name))
+        assertEquals("Priya", theme.shortLabel("Priya"))
+        assertEquals("Rajesh", theme.shortLabel("Rajesh Sharma"))
+        assertEquals("#C8E6C9", theme.avatarColorFor(grandpa.role))
+        assertEquals("#FFD9C2", theme.avatarColorFor(kid.role))
+
+        val scam = theme.callCardPalette("scam")
+        assertEquals("#FBCBBD", scam.cardSurfaceHex)
+        assertEquals("#3E1A12", scam.inkHex)
+
+        val genuine = theme.callCardPalette("safe_delivery")
+        assertEquals("#D8EBD6", genuine.cardSurfaceHex)
+        assertEquals("#14301A", genuine.inkHex)
+
+        val unsure = theme.callCardPalette("unsure")
+        assertEquals("#E9ECE8", unsure.cardSurfaceHex)
+    }
+
+    @Test
+    fun `test clear removes the whole household so a server sync can replace it`() {
+        manager.seedDefaultMultiGenerationHousehold()
+        assertTrue(manager.listCaretakers().isNotEmpty())
+        assertTrue(manager.getCalls().isNotEmpty())
+
+        manager.clear()
+
+        assertTrue(manager.listCaretakers().isEmpty())
+        assertTrue(manager.listDependents().isEmpty())
+        assertTrue(manager.getCalls().isEmpty())
+    }
+
+    @Test
+    fun `test waveform bars are deterministic per call and within height bounds`() {
+        val a = MaterialYouFamilyTheme.waveformBars("call-1", 30)
+        val b = MaterialYouFamilyTheme.waveformBars("call-1", 30)
+        val c = MaterialYouFamilyTheme.waveformBars("call-2", 30)
+        assertEquals(30, a.size)
+        assertEquals(a, b)
+        assertNotEquals(a, c)
+        assertTrue(a.all { it in 0.15f..1.0f })
+    }
 }

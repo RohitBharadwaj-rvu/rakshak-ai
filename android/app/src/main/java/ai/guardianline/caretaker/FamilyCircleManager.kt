@@ -87,6 +87,72 @@ data class ScamIntelCluster(
     val callCount: Int get() = callIds.size
 }
 
+data class MaterialCallCardPalette(
+    val cardSurfaceHex: String,
+    val inkHex: String
+)
+
+/**
+ * Material You 3 Expressive palette shared by the Android screens and mirrored by the web dashboard
+ * (app/core/gui_theme.py). Quiet by design: sage surfaces, one salmon alert card, a dark forest primary.
+ */
+object MaterialYouFamilyTheme {
+    const val surfaceBackgroundHex = "#E4EFE3"
+    const val cardSurfaceHex = "#F6FAF5"
+    const val primaryForestHex = "#2B4A32"
+    const val mutedTextHex = "#5B6B5E"
+    const val inkHex = "#1C1B1F"
+    const val caretakerLavenderHex = "#E1D5F5"
+    const val caretakerLavenderInkHex = "#2E1F66"
+    const val scamSalmonHex = "#FBCBBD"
+    const val alertRedHex = "#B3261E"
+    const val squircleCornerRadiusDp = 28f
+
+    fun initialsFor(name: String): String {
+        val clean = name.substringBefore("(").trim()
+        val parts = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (parts.isEmpty()) return "G"
+        if (parts.size == 1) return parts[0].take(2).uppercase()
+        return "${parts[0].first()}${parts[1].first()}".uppercase()
+    }
+
+    /** `Rajesh Sharma (Dad)` -> `Dad`; `Priya` -> `Priya`. */
+    fun shortLabel(name: String): String {
+        val open = name.indexOf('(')
+        val close = name.lastIndexOf(')')
+        if (open >= 0 && close > open) {
+            val inner = name.substring(open + 1, close).trim()
+            if (inner.isNotEmpty()) return inner
+        }
+        return name.trim().split(Regex("\\s+")).firstOrNull().orEmpty().ifEmpty { "Family" }
+    }
+
+    fun avatarColorFor(role: DependentRole): String = when (role) {
+        DependentRole.GRANDPARENT -> "#C8E6C9"
+        DependentRole.CHILD -> "#FFD9C2"
+        DependentRole.PARENT, DependentRole.OTHER -> "#CFE3F5"
+    }
+
+    fun callCardPalette(verdict: String): MaterialCallCardPalette {
+        return when (verdict.trim().lowercase()) {
+            "scam" -> MaterialCallCardPalette(cardSurfaceHex = "#FBCBBD", inkHex = "#3E1A12")
+            "genuine", "safe_delivery", "legitimate_verified" ->
+                MaterialCallCardPalette(cardSurfaceHex = "#D8EBD6", inkHex = "#14301A")
+            else -> MaterialCallCardPalette(cardSurfaceHex = "#E9ECE8", inkHex = "#26302A")
+        }
+    }
+
+    /** Stable pseudo-waveform (0.15..1.0) so a call always draws the same bars. */
+    fun waveformBars(seed: String, count: Int): List<Float> {
+        var h = seed.fold(1125899906842597L) { acc, c -> 31 * acc + c.code }
+        return List(count) {
+            h = h * 6364136223846793005L + 1442695040888963407L
+            val unit = ((h ushr 33) % 1000).toFloat() / 1000f
+            0.15f + unit * 0.85f
+        }
+    }
+}
+
 /**
  * Pure Kotlin domain manager for the Multi-Caretaker <-> Multi-Dependent Family Protection Circle
  * and Caretaker Evidence Dossier. Supports a household with Grandparents, Parents, and Kids where
@@ -161,6 +227,13 @@ class FamilyCircleManager {
     }
 
     fun listCaretakers(): List<CaretakerProfile> = caretakers.values.toList()
+
+    fun clear() {
+        caretakers.clear()
+        dependents.clear()
+        caretakerToDependents.clear()
+        calls.clear()
+    }
 
     fun listDependents(): List<DependentProfile> = dependents.values.toList()
 
@@ -318,38 +391,38 @@ class FamilyCircleManager {
         if (caretakers.isNotEmpty() || dependents.isNotEmpty()) return
 
         val dad = addCaretaker(
-            name = "Rajesh Sharma (Father)",
+            name = "Rajesh Sharma (Dad)",
             phone = "+919820010001",
             role = CaretakerRole.PARENT,
             caretakerId = "ct-dad"
         )
         val mom = addCaretaker(
-            name = "Priya Sharma (Mother)",
+            name = "Priya Sharma (Mom)",
             phone = "+919820010002",
             role = CaretakerRole.PARENT,
             caretakerId = "ct-mom"
         )
 
         val grandpa = addDependent(
-            name = "Ramesh Sharma (Grandfather)",
+            name = "Ramesh Sharma (Grandpa)",
             phone = "+919810020001",
             role = DependentRole.GRANDPARENT,
             dependentId = "dep-grandpa"
         )
         val grandma = addDependent(
-            name = "Kamla Sharma (Grandmother)",
+            name = "Kamla Sharma (Grandma)",
             phone = "+919810020002",
             role = DependentRole.GRANDPARENT,
             dependentId = "dep-grandma"
         )
         val kidAarav = addDependent(
-            name = "Aarav Sharma (Kid)",
+            name = "Aarav Sharma",
             phone = "+919810020003",
             role = DependentRole.CHILD,
             dependentId = "dep-kid-aarav"
         )
         val kidAnanya = addDependent(
-            name = "Ananya Sharma (Kid)",
+            name = "Ananya Sharma",
             phone = "+919810020004",
             role = DependentRole.CHILD,
             dependentId = "dep-kid-ananya"
@@ -437,3 +510,4 @@ class FamilyCircleManager {
         )
     }
 }
+
