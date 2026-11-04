@@ -129,6 +129,15 @@ async def api_classify_caller(req: ClassifyCallerRequest):
             full_text=full_text,
         )
         result: CallerClassificationResult = future.result(timeout=HARD_TIMEOUT_SECONDS)
+        # Feature: Automatic Telecom Circle & Claimed Location Registration
+        try:
+            from app.voice.location import update_caller_number_location, set_claimed_location
+            if req.caller_number:
+                update_caller_number_location(effective_id, req.caller_number)
+            if req.caller_summary:
+                set_claimed_location(effective_id, req.caller_summary)
+        except Exception as l_exc:
+            logger.warning('Could not register initial location layer: %s', l_exc)
 
         # Feature 1: Autonomous Kidnap / Extortion Verification Loop
         try:

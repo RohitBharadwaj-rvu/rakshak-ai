@@ -736,6 +736,58 @@ def render_call_detail(
             )
 
     hero_class = "m3-card salmon" if cls == "scam" else "m3-card"
+    # Feature 4: Live Location Triangulation & Canary Trap Card
+    location_card_html = ""
+    try:
+        from app.voice.location import get_call_location_profile
+        loc_prof = get_call_location_profile(call_id)
+        if loc_prof.get("telecom_circle") or loc_prof.get("ifsc_location") or loc_prof.get("canary_ip") or loc_prof.get("canary_gps"):
+            sim_info = loc_prof.get("telecom_circle") or {}
+            ifsc_info = loc_prof.get("ifsc_location") or {}
+            ip_info = loc_prof.get("canary_ip") or {}
+            gps_info = loc_prof.get("canary_gps") or {}
+            
+            sim_txt = f"{sim_info.get('circle_name', 'Unknown Circle')} ({sim_info.get('carrier', 'Cellular')})" if sim_info else "Awaiting analysis"
+            ifsc_txt = f"{ifsc_info.get('branch', '')}, {ifsc_info.get('city', '')} ({ifsc_info.get('ifsc', '')})" if ifsc_info else "Not elicited yet"
+            claimed_txt = loc_prof.get("claimed_location") or "Not claimed verbally"
+            
+            canary_status = "Pending delivery"
+            if loc_prof.get("canary_gps"):
+                lat = gps_info.get("lat")
+                lng = gps_info.get("lng")
+                acc = gps_info.get("accuracy_meters", 15)
+                maps_url = gps_info.get("google_maps_url", "#")
+                canary_status = f"PINPOINT GPS: {lat:.4f}, {lng:.4f} (&plusmn;{acc:.0f}m) <a class='live-link' href='{maps_url}' target='_blank'>[Open Google Maps]</a>"
+            elif loc_prof.get("canary_ip"):
+                c_city = ip_info.get("city", "India")
+                c_reg = ip_info.get("region", "")
+                c_isp = ip_info.get("isp", "Cellular")
+                canary_status = f"Zero-Click IP: {c_city}, {c_reg} (ISP: {c_isp})"
+            
+            mismatch_badge = "<span class='badge-scam' style='background:#b91c1c;color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:700'>&9888; TRIANGULATION MISMATCH</span>" if loc_prof.get("triangulation_mismatch") else "<span class='badge-clean' style='background:#065f46;color:#fff;padding:4px 8px;border-radius:6px;font-size:12px;font-weight:700'>&10003; Telemetry Aligned</span>"
+            
+            canary_url = f"/receipt/{html.escape(quote(call_id, safe=''))}"
+            
+            location_card_html = (
+                "<section class='m3-card' id='scammer-location-card' style='border-left: 4px solid #38bdf8;'>"
+                "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;'>"
+                "<h2 style='margin:0;'>&#128205; Scammer Location Triangulation &amp; Canary Trap</h2>"
+                f"{mismatch_badge}"
+                "</div>"
+                "<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;margin-bottom:14px;'>"
+                f"<div><strong>1. Inbound SIM Circle:</strong><br><span style='color:#38bdf8'>{html.escape(sim_txt)}</span></div>"
+                f"<div><strong>2. Mule Bank Branch:</strong><br><span style='color:#38bdf8'>{html.escape(ifsc_txt)}</span></div>"
+                f"<div><strong>3. Scammer Stated Origin:</strong><br><span style='color:#f59e0b'>{html.escape(claimed_txt)}</span></div>"
+                f"<div><strong>4. Live Canary Trap:</strong><br><span style='color:#10b981'>{canary_status}</span></div>"
+                "</div>"
+                f"<div style='background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center;'>"
+                f"<span>Canary Receipt URL: <code>{canary_url}</code></span>"
+                f"<a class='btn-copy' href='{canary_url}' target='_blank'>Test Canary Link &rarr;</a>"
+                "</div>"
+                "</section>"
+            )
+    except Exception as _e:
+        logger.warning("Could not render location card: %s", _e)
     body_html = (
         '<div style="max-width:760px">'
         f"{back_link}"
@@ -745,6 +797,7 @@ def render_call_detail(
         f'<h1 style="font-size:24px;margin:10px 0 6px">{summary}</h1>'
         f'<div class="card-meta" style="margin-bottom:10px">{meta_html}</div>'
         f"{intel_block}"
+        f"{location_card_html}"
         '<div class="m3-waveform-player" style="margin:14px 0">'
         f'<span class="play">&#9654;</span>{T.bars_html(call_id)}'
         f'<span class="player-time">{duration:.0f}s</span>{rec_link_html}</div>'

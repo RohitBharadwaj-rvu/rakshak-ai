@@ -334,6 +334,11 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
                 bank_city = ifsc_res.get("city")
                 bank_state = ifsc_res.get("state")
                 spoken_hint = generate_ifsc_spoken_hint(ifsc_res)
+                try:
+                    from app.voice.location import update_ifsc_location
+                    await update_ifsc_location(effective_id, norm_val_final)
+                except Exception as l_exc:
+                    logger.warning('Could not update IFSC location: %s', l_exc)
         except Exception as exc:
             logger.warning("IFSC resolution error: %s", exc)
 

@@ -29,6 +29,7 @@ from app.voice.store import init_db
 from app.voice.tools import router as tools_router
 from app.voice.webhook import router as webhook_router
 from app.api.upgrades_router import router as upgrades_router
+from app.api.location_router import router as location_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +64,7 @@ app.include_router(classifier_router)
 app.include_router(tools_router)
 app.include_router(webhook_router)
 app.include_router(upgrades_router)
+app.include_router(location_router)
 install_lane_c(app)
 
 
