@@ -845,3 +845,33 @@ LINK_PATTERN: Pattern = re.compile(
     r"(https?://[^\s<>\"'।,]+|www\.[^\s<>\"'।,]+|\b[a-zA-Z0-9-]+\.(?:apk|xyz|top|click|link|in|com|org|net)/[^\s<>\"'।,]+)",
     re.IGNORECASE,
 )
+
+
+def verify_aba_routing(routing_str: str) -> bool:
+    """Return True if 9 digits and satisfies the Federal Reserve ABA checksum."""
+    if not routing_str or not routing_str.isdigit() or len(routing_str) != 9:
+        return False
+    d = [int(c) for c in routing_str]
+    checksum = (3 * (d[0] + d[3] + d[6]) + 7 * (d[1] + d[4] + d[7]) + 1 * (d[2] + d[5] + d[8])) % 10
+    return checksum == 0
+
+
+# US CashApp Cashtags: $username (1 to 20 alphanumeric characters, starts with a letter)
+CASHTAG_PATTERN: Pattern = re.compile(
+    r"(?<![A-Za-z0-9_])\$([a-zA-Z][a-zA-Z0-9_]{1,19})(?![A-Za-z0-9_])"
+)
+
+# UK Sort Code: 6 digits formatted as XX-XX-XX or XX XX XX
+UK_SORT_CODE_PATTERN: Pattern = re.compile(
+    r"\b(\d{2}[-\s]\d{2}[-\s]\d{2})\b"
+)
+
+# Cryptocurrency Wallets: Bitcoin (1..., 3..., bc1...) and Ethereum / ERC-20 USDT (0x...)
+CRYPTO_WALLET_PATTERN: Pattern = re.compile(
+    r"\b(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-zA-HJ-NP-Z0-9]{25,65}|0x[a-fA-F0-9]{40})\b"
+)
+
+# US 9-digit ABA Routing Transit Numbers
+US_ROUTING_PATTERN: Pattern = re.compile(
+    r"\b(\d{9})\b"
+)

@@ -56,10 +56,15 @@ data class ExtractedIntel(
     val bankAccounts: List<String> = emptyList(),
     val ifscCodes: List<String> = emptyList(),
     val phoneNumbers: List<String> = emptyList(),
-    val phishingLinks: List<String> = emptyList()
+    val phishingLinks: List<String> = emptyList(),
+    val cashtags: List<String> = emptyList(),
+    val sortCodes: List<String> = emptyList(),
+    val cryptoWallets: List<String> = emptyList(),
+    val routingNumbers: List<String> = emptyList()
 ) {
     fun isEmpty(): Boolean =
-        upiIds.isEmpty() && bankAccounts.isEmpty() && ifscCodes.isEmpty() && phoneNumbers.isEmpty() && phishingLinks.isEmpty()
+        upiIds.isEmpty() && bankAccounts.isEmpty() && ifscCodes.isEmpty() && phoneNumbers.isEmpty() &&
+        phishingLinks.isEmpty() && cashtags.isEmpty() && sortCodes.isEmpty() && cryptoWallets.isEmpty() && routingNumbers.isEmpty()
 }
 
 data class ScreenedCallDossier(

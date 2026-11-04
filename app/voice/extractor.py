@@ -21,6 +21,11 @@ from app.core.rules import (
     PAN_PATTERN,
     PHONE_PATTERN,
     UPI_PATTERN,
+    CASHTAG_PATTERN,
+    UK_SORT_CODE_PATTERN,
+    CRYPTO_WALLET_PATTERN,
+    US_ROUTING_PATTERN,
+    verify_aba_routing,
 )
 from app.voice.normalizer import normalize_spoken_text
 
@@ -117,6 +122,39 @@ def extract_entities_from_text(
         if not _is_bait(pan, bait_set):
             pans.append(pan)
 
+    cashtags: List[str] = []
+    sort_codes: List[str] = []
+    crypto_wallets: List[str] = []
+    routing_numbers: List[str] = []
+
+    # 7. US CashApp Cashtags ($username or 'cash app username')
+    for m in CASHTAG_PATTERN.findall(raw_text):
+        tag = f"${m}".strip()
+        if not _is_bait(tag, bait_set) and tag not in cashtags:
+            cashtags.append(tag)
+    for m in re.findall(r"(?:cash\s*app|cashtag)\s*(?:to\s*)?\$?([a-zA-Z][a-zA-Z0-9_]{1,19})\b", raw_text, re.IGNORECASE):
+        tag = f"${m}".strip()
+        if not _is_bait(tag, bait_set) and tag not in cashtags:
+            cashtags.append(tag)
+
+    # 8. UK Sort Codes (XX-XX-XX)
+    for m in UK_SORT_CODE_PATTERN.findall(norm_text):
+        clean_code = re.sub(r"\s+", "-", m.strip())
+        if not _is_bait(clean_code, bait_set):
+            sort_codes.append(clean_code)
+
+    # 9. Cryptocurrency Wallets (BTC, ETH / USDT)
+    for m in CRYPTO_WALLET_PATTERN.findall(norm_text):
+        wallet = m.strip()
+        if not _is_bait(wallet, bait_set):
+            crypto_wallets.append(wallet)
+
+    # 10. US ABA Routing Numbers (9 digits with Fed checksum)
+    for m in US_ROUTING_PATTERN.findall(norm_text):
+        rt = m.strip()
+        if verify_aba_routing(rt) and not _is_bait(rt, bait_set):
+            routing_numbers.append(rt)
+
     return {
         "upi_ids": upis,
         "phone_numbers": phones,
@@ -124,6 +162,10 @@ def extract_entities_from_text(
         "ifsc_codes": ifscs,
         "pan_numbers": pans,
         "links": links,
+        "cashtags": cashtags,
+        "sort_codes": sort_codes,
+        "crypto_wallets": crypto_wallets,
+        "routing_numbers": routing_numbers,
     }
 
 
@@ -145,6 +187,10 @@ def extract_from_transcript(
     ifsc_list: List[str] = []
     pan_list: List[str] = []
     link_list: List[str] = []
+    cashtag_list: List[str] = []
+    sort_code_list: List[str] = []
+    crypto_list: List[str] = []
+    routing_list: List[str] = []
     entity_counts: Dict[str, int] = {}
 
     def _record(target_list: List[str], val: str, count_inc: int = 1) -> None:
@@ -177,6 +223,14 @@ def extract_from_transcript(
             _record(pan_list, pan, 1)
         for lnk in turn_entities["links"]:
             _record(link_list, lnk, 1)
+        for ctag in turn_entities.get("cashtags", []):
+            _record(cashtag_list, ctag, 1)
+        for sc in turn_entities.get("sort_codes", []):
+            _record(sort_code_list, sc, 1)
+        for cw in turn_entities.get("crypto_wallets", []):
+            _record(crypto_list, cw, 1)
+        for rt in turn_entities.get("routing_numbers", []):
+            _record(routing_list, rt, 1)
 
     # Check adjacent caller turns for split UPI (<user_part> on turn k, <provider> on turn k+1)
     known_providers = {"ybl", "okaxis", "oksbi", "okhdfcbank", "okicici", "paytm", "ibl", "axl", "upi", "apl"}
@@ -228,6 +282,14 @@ def extract_from_transcript(
                 _record(pan_list, norm_val, 1)
             elif itype == "link" and norm_val not in link_list:
                 _record(link_list, norm_val, 1)
+            elif itype in ("cashtag", "cashapp") and norm_val not in cashtag_list:
+                _record(cashtag_list, norm_val, 1)
+            elif itype in ("sort_code", "sortcode") and norm_val not in sort_code_list:
+                _record(sort_code_list, norm_val, 1)
+            elif itype in ("crypto", "wallet", "btc", "usdt") and norm_val not in crypto_list:
+                _record(crypto_list, norm_val, 1)
+            elif itype in ("routing", "aba") and norm_val not in routing_list:
+                _record(routing_list, norm_val, 1)
 
     return {
         "upi_ids": upi_list,
@@ -236,6 +298,10 @@ def extract_from_transcript(
         "ifsc_codes": ifsc_list,
         "pan_numbers": pan_list,
         "links": link_list,
+        "cashtags": cashtag_list,
+        "sort_codes": sort_code_list,
+        "crypto_wallets": crypto_list,
+        "routing_numbers": routing_list,
         "entity_counts": entity_counts,
         "mid_call_logs": cleaned_mid_logs,
     }

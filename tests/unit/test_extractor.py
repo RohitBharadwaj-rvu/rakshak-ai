@@ -485,3 +485,36 @@ def test_precision_recall_and_zero_bait_leaks_across_60_plus_transcripts():
         recall = tp[k] / (tp[k] + fn[k]) if (tp[k] + fn[k]) > 0 else 1.0
         assert precision >= 0.95, f"{k} precision {precision:.3f} < 0.95 (TP={tp[k]}, FP={fp[k]})"
         assert recall >= 0.90, f"{k} recall {recall:.3f} < 0.90 (TP={tp[k]}, FN={fn[k]})"
+
+
+
+def test_global_mule_rails_extraction():
+    """Verify extraction of US Cashtags, UK Sort Codes, Crypto Wallets, and US ABA Routing numbers."""
+    from app.voice.extractor import extract_entities_from_text, extract_from_transcript
+
+    # 1. US CashApp Cashtags & ABA Routing
+    text_us = "Please wire verification fee to routing 021000021 account 987654321 or CashApp to $RefundDesk99"
+    res_us = extract_entities_from_text(text_us)
+    assert "$RefundDesk99" in res_us["cashtags"]
+    assert "021000021" in res_us["routing_numbers"]
+
+    # 2. UK Sort Code (XX-XX-XX)
+    text_uk = "Transfer to our safe legal account: sort code 20-45-89, account number 12345678"
+    res_uk = extract_entities_from_text(text_uk)
+    assert "20-45-89" in res_uk["sort_codes"]
+
+    # 3. Cryptocurrency Wallets (BTC & ETH / USDT ERC-20)
+    text_crypto = "Deposit bail to BTC 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa or USDT 0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
+    res_crypto = extract_entities_from_text(text_crypto)
+    assert "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" in res_crypto["crypto_wallets"]
+    assert "0x71C7656EC7ab88b098defB751B7401B5f6d8976F" in res_crypto["crypto_wallets"]
+
+    # 4. Multi-turn transcript extraction
+    transcript = [
+        {"role": "user", "content": "You must send funds via CashApp to $BailOfficer now."},
+        {"role": "assistant", "content": "Let me see if I have that app installed."},
+        {"role": "user", "content": "Or send to UK bank sort code 04-00-04 account 87654321."},
+    ]
+    t_res = extract_from_transcript(transcript)
+    assert "$BailOfficer" in t_res["cashtags"]
+    assert "04-00-04" in t_res["sort_codes"]
