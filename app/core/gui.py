@@ -175,7 +175,12 @@ SESSION_COOKIE = "gl_dash"
 
 
 def _master_token() -> str:
-    expected = os.environ.get("GUARDIAN_DASHBOARD_TOKEN") or "demo123"
+    expected = os.environ.get("GUARDIAN_DASHBOARD_TOKEN")
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Dashboard authentication is not configured in server environment",
+        )
     return expected
 
 
@@ -190,15 +195,21 @@ def _candidate_token(request: Request, token: Optional[str], authorization: Opti
 def _session_redirect(request: Request, token: str) -> RedirectResponse:
     """Swap a ?token= login for an HttpOnly cookie so the token leaves the URL bar and history."""
     params = [(k, v) for k, v in request.query_params.multi_items() if k != "token"]
-    target = request.url.path + (f"?{urlencode(params)}" if params else "")
-    resp = RedirectResponse(target, status_code=status.HTTP_303_SEE_OTHER)
+    target = str(request.url.replace(query=urlencode(params) if params else None))
+    html_fallback = f"""<!DOCTYPE html><html><head>
+    <meta http-equiv="refresh" content="0;url={html.escape(target)}">
+    <script>window.location.replace({json.dumps(target)});</script>
+    </head><body><p>Redirecting to <a href="{html.escape(target)}">Dashboard</a>...</p></body></html>"""
+    resp = HTMLResponse(content=html_fallback, status_code=status.HTTP_303_SEE_OTHER)
+    resp.headers["location"] = target
     resp.set_cookie(
         SESSION_COOKIE,
         token,
         httponly=True,
-        samesite="strict",
+        samesite="lax",
         secure=request.url.scheme == "https",
         max_age=7 * 86400,
+        path="/",
     )
     return resp
 
@@ -211,8 +222,6 @@ def verify_overview_auth(
     """Verifies the master GUARDIAN_DASHBOARD_TOKEN (header, ?token= or session cookie)."""
     expected = _master_token()
     candidate = _candidate_token(request, token, authorization)
-    if not candidate and expected == "demo123":
-        candidate = expected
     if not candidate or not secrets.compare_digest(candidate, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -241,8 +250,6 @@ def verify_call_access(
 
     expected = _master_token()
     candidate = _candidate_token(request, token, authorization)
-    if not candidate and expected == "demo123":
-        candidate = expected
     if candidate and secrets.compare_digest(candidate, expected):
         return ""
 
