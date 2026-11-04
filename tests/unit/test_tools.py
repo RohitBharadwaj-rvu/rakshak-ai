@@ -266,3 +266,43 @@ def test_rotating_bait_20_personas_luhn_and_determinism():
     assert b1_first == b1_second
     assert b1_first["upi_id"] != b2["upi_id"]
     assert b1_first["account_number"] != b2["account_number"]
+
+
+def test_verify_family_heartbeat_tool(client):
+    res = client.post(
+        "/tools/verify_family_heartbeat",
+        json={
+            "call_id": "test_clone_001",
+            "member_name": "Amit",
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "safe_at_desk"
+    assert data["member_name"] == "Amit"
+    assert "Google_Corp_Secure" in data["wifi_ssid"]
+    assert "HIGH RISK" in data["telemetric_discrepancy"]
+    assert "bilkul surakshit hai" in data["spoken_instruction"]
+
+
+def test_zero_touch_auto_freeze_dispatch():
+    from app.voice.auto_freeze import dispatch_zero_touch_mule_freeze
+    record = {
+        "call_id": "test_auto_freeze_call_001",
+        "verdict": "scam",
+        "caller_number": "+14155552671",
+        "extracted_intel": {
+            "cashtags": ["$RefundDesk99"],
+            "sort_codes": ["20-04-15"],
+            "crypto_wallets": ["0x71C8364420A96B35f90494A03E7966d405E6e6D0"],
+            "upi_ids": ["scammer@okaxis"],
+        },
+    }
+    result = dispatch_zero_touch_mule_freeze(record)
+    assert result["status"] == "auto_frozen"
+    assert result["receipts_count"] >= 4
+    receipt_ids = [r["receipt_id"] for r in result["receipts"]]
+    assert any("EWS" in rid for rid in receipt_ids)
+    assert any("CIFAS" in rid for rid in receipt_ids)
+    assert any("TRM" in rid for rid in receipt_ids)
+    assert any("NPCI" in rid for rid in receipt_ids)

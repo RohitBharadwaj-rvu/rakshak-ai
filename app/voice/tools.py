@@ -425,3 +425,52 @@ async def api_log_intel(req: LogIntelRequest) -> LogIntelResponse:
         linked_call_ids=linked_call_ids,
         system_intel=family_intel,
     )
+
+
+class VerifyFamilyHeartbeatRequest(BaseModel):
+    call_id: str = Field(..., min_length=1, description="Unique identifier for the active call")
+    execution_id: Optional[str] = Field(default=None, description="Optional Bolna execution ID")
+    member_name: Optional[str] = Field(default="Amit", description="Name of family member claimed in distress")
+
+
+class VerifyFamilyHeartbeatResponse(BaseModel):
+    call_id: str
+    status: str
+    member_name: str
+    device_status: str
+    wifi_ssid: str
+    battery_level: str
+    telemetric_discrepancy: str
+    synthetic_voice_clone_probability: str
+    spoken_instruction: str
+
+
+@router.post("/verify_family_heartbeat", response_model=VerifyFamilyHeartbeatResponse)
+async def api_verify_family_heartbeat(req: VerifyFamilyHeartbeatRequest) -> VerifyFamilyHeartbeatResponse:
+    """
+    Zero-Click Passive Heartbeat Verification Tool (AI Voice Clone / Grandparent Defense).
+    Checks real device telemetry of the child/dependent to debunk deepfake distress calls.
+    """
+    from app.core.family import get_telemetric_heartbeat
+    effective_id = resolve_effective_tool_call_id(req.call_id, req.execution_id)
+    heartbeat = get_telemetric_heartbeat(req.member_name)
+
+    broadcast_sse({
+        "event": "passive_heartbeat_verified",
+        "call_id": effective_id,
+        "member_name": req.member_name or "Amit",
+        "discrepancy": heartbeat["telemetric_discrepancy"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+
+    return VerifyFamilyHeartbeatResponse(
+        call_id=effective_id,
+        status=heartbeat["status"],
+        member_name=heartbeat["member_name"],
+        device_status=heartbeat["device_status"],
+        wifi_ssid=heartbeat["wifi_ssid"],
+        battery_level=heartbeat["battery_level"],
+        telemetric_discrepancy=heartbeat["telemetric_discrepancy"],
+        synthetic_voice_clone_probability=heartbeat["synthetic_voice_clone_probability"],
+        spoken_instruction=heartbeat["spoken_guidance"],
+    )
