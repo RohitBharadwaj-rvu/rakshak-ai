@@ -41,3 +41,7 @@ data/
 
 # Audio / local test recordings
 Testing v0 agents calls/
+
+# Cloudflare Tunnel
+cloudflared.exe
+cloudflared.log
