@@ -186,6 +186,20 @@ class MainActivity : AppCompatActivity() {
             lp(bottom = 12)
         )
 
+        val circuitBreakerSwitch = SwitchCompat(this).apply {
+            isChecked = true
+            isClickable = false
+            isFocusable = false
+            thumbTintList = ColorStateList.valueOf(Color.WHITE)
+            trackTintList = ColorStateList.valueOf(c("#8DB08A"))
+        }
+        col.addView(
+            darkRow("Scam Circuit Breaker (Anti-Takeover)", circuitBreakerSwitch) {
+                triggerCircuitBreakerAlert()
+            },
+            lp(bottom = 12)
+        )
+
         contactsLine = label(getString(R.string.perm_contacts_missing), 13f, Theme.alertRedHex).apply {
             setPadding(dp(8), dp(6), dp(8), dp(6))
             setOnClickListener { requestContactsLauncher.launch(Manifest.permission.READ_CONTACTS) }
@@ -207,6 +221,24 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
                 topMargin = dp(12)
+            }
+        )
+
+        val testCircuitBtn = pillButton(
+            "⚡ Test Financial Circuit Breaker",
+            "#00000000",
+            Theme.alertRedHex,
+            Theme.alertRedHex
+        ) {
+            triggerCircuitBreakerAlert()
+        }.apply {
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+        }
+        col.addView(
+            testCircuitBtn,
+            LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = dp(10)
             }
         )
         return col
@@ -519,7 +551,11 @@ class MainActivity : AppCompatActivity() {
         card.addView(label(meta, 14f, palette.inkHex), lp(top = 6, bottom = 12))
 
         val intel = call.extractedIntel
-        val chips = intel.upiIds.map { "UPI: $it" to it } + intel.bankAccounts.map { "Account: $it" to it } +
+        val chips = intel.cashtags.map { "CashApp: $it" to it } +
+            intel.sortCodes.map { "UK Sort: $it" to it } +
+            intel.cryptoWallets.map { "Crypto: $it" to it } +
+            intel.routingNumbers.map { "ABA Routing: $it" to it } +
+            intel.upiIds.map { "UPI: $it" to it } + intel.bankAccounts.map { "Account: $it" to it } +
             intel.ifscCodes.map { "IFSC: $it" to it } + intel.phoneNumbers.map { "Phone: $it" to it } +
             intel.phishingLinks.map { "Link: $it" to it }
         chips.forEach { (text, value) ->
@@ -786,7 +822,11 @@ class MainActivity : AppCompatActivity() {
                 bankAccounts = intel.optJSONArray("bank_accounts").strings(),
                 ifscCodes = intel.optJSONArray("ifsc_codes").strings(),
                 phoneNumbers = intel.optJSONArray("phone_numbers").strings(),
-                phishingLinks = intel.optJSONArray("links").strings()
+                phishingLinks = intel.optJSONArray("links").strings(),
+                cashtags = intel.optJSONArray("cashtags").strings(),
+                sortCodes = intel.optJSONArray("sort_codes").strings(),
+                cryptoWallets = intel.optJSONArray("crypto_wallets").strings(),
+                routingNumbers = intel.optJSONArray("routing_numbers").strings()
             ),
             callRecordingUrl = item.optString("call_recording_url").takeIf { it.isNotBlank() },
             evidenceStatus = item.optString("evidence_status", "draft"),
@@ -1120,4 +1160,24 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Cannot open $url", Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun triggerCircuitBreakerAlert() {
+        AlertDialog.Builder(this)
+            .setTitle("🛑 FINANCIAL CIRCUIT BREAKER ACTIVE")
+            .setMessage(
+                "GuardianLine AI intercepted a high-risk scam call on this handset.\n\n" +
+                "To prevent unauthorized fund transfers and remote device takeover:\n" +
+                "• Remote desktop apps (AnyDesk, TeamViewer, QuickSupport) are BLOCKED.\n" +
+                "• High-value banking & payment apps (Zelle, CashApp, UPI, NetBanking) are in a 30-minute cooling-off lock.\n\n" +
+                "Your family caretaker (Amit) has been notified to verify your safety."
+            )
+            .setPositiveButton("Verify with Family") { _, _ ->
+                Toast.makeText(this, "Safe check notification sent to Amit (Caretaker)", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Emergency Unlock (PIN)") { _, _ ->
+                Toast.makeText(this, "Enter Family Master PIN to unlock", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
 }

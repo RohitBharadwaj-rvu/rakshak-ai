@@ -346,8 +346,12 @@ def intel_chips_html(intel: Dict[str, Any], mid_logs: Optional[Iterable[Any]] = 
     chips: List[str] = []
     for key, label, cls in (
         ("upi_ids", "UPI", "upi"),
+        ("cashtags", "CashApp", "upi"),
+        ("sort_codes", "UK Sort", "ifsc"),
         ("bank_accounts", "A/C", "acc"),
         ("ifsc_codes", "IFSC", "ifsc"),
+        ("routing_numbers", "ABA Routing", "acc"),
+        ("crypto_wallets", "Crypto Mule", "upi"),
         ("phone_numbers", "Ph", "ph"),
         ("links", "Link", "lnk"),
     ):
