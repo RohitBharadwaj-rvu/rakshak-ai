@@ -241,6 +241,24 @@ class MainActivity : AppCompatActivity() {
                 topMargin = dp(10)
             }
         )
+
+        val testOtpCloakBtn = pillButton(
+            "🔒 Test Dynamic OTP Cloak",
+            "#00000000",
+            "#6366F1",
+            "#6366F1"
+        ) {
+            triggerOtpCloakAlert()
+        }.apply {
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+        }
+        col.addView(
+            testOtpCloakBtn,
+            LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = dp(8)
+            }
+        )
         return col
     }
 
@@ -1177,6 +1195,27 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("Emergency Unlock (PIN)") { _, _ ->
                 Toast.makeText(this, "Enter Family Master PIN to unlock", Toast.LENGTH_SHORT).show()
             }
+            .show()
+    }
+
+
+    private fun triggerOtpCloakAlert() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("🔒 DYNAMIC OTP CLOAK ACTIVE")
+            .setMessage(
+                "GuardianLine detected an active call and incoming banking SMS.\n\n" +
+                "Simulated Incoming SMS: [HDFC Bank / Chase]\n" +
+                "\"Your OTP is 849201 for payment transfer of $2,500.00 to GlobalTech...\"\n\n" +
+                "🛡️ DEFENSE ACTIONS APPLIED:\n" +
+                "• Notification banner hidden from screen while caller is on the line.\n" +
+                "• Device clipboard wiped to prevent remote desktop extraction.\n" +
+                "• Code is locked until you hang up the call.\n\n" +
+                "Scammers cannot coerce you into reading what you cannot see."
+            )
+            .setPositiveButton("Simulate Call Ended (Unhide)") { _, _ ->
+                android.widget.Toast.makeText(this, "Call terminated safely. OTP unmasked: 849201", android.widget.Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Keep Cloaked") { d, _ -> d.dismiss() }
             .show()
     }
 

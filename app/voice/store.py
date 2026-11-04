@@ -188,6 +188,8 @@ _ADDED_COLUMNS = [
     ("dependent_name", "TEXT DEFAULT ''"),
     ("dependent_phone", "TEXT DEFAULT ''"),
     ("dependent_role", "TEXT DEFAULT ''"),
+    ("auto_freeze_dispatched", "INTEGER DEFAULT 0"),
+    ("auto_freeze_receipts_json", "TEXT DEFAULT '[]'"),
 ]
 
 
@@ -303,6 +305,8 @@ def _row_to_record(row: sqlite3.Row) -> Dict[str, Any]:
         "dependent_name": (row["dependent_name"] or "") if "dependent_name" in row_keys else "",
         "dependent_phone": (row["dependent_phone"] or "") if "dependent_phone" in row_keys else "",
         "dependent_role": (row["dependent_role"] or "") if "dependent_role" in row_keys else "",
+        "auto_freeze_dispatched": bool(row["auto_freeze_dispatched"]) if "auto_freeze_dispatched" in row_keys and row["auto_freeze_dispatched"] else False,
+        "auto_freeze_receipts": json.loads(row["auto_freeze_receipts_json"]) if "auto_freeze_receipts_json" in row_keys and row["auto_freeze_receipts_json"] else [],
     }
 
 
@@ -1164,6 +1168,50 @@ def confirm_call_evidence(call_id: str) -> Optional[Dict[str, Any]]:
         finally:
             conn.close()
 
+
+
+
+def update_call_evidence_status_and_receipts(
+    call_id: str,
+    evidence_status: str,
+    receipts: List[Dict[str, Any]],
+    db_path: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Update evidence_status and store network freeze receipts for a call record.
+    """
+    init_db(db_path)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    receipts_json = json.dumps(receipts, ensure_ascii=False)
+    with _DB_LOCK:
+        conn = _get_conn(db_path)
+        try:
+            row = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            if not row:
+                return None
+            conn.execute(
+                """
+                UPDATE call_records
+                SET evidence_status = ?,
+                    auto_freeze_dispatched = 1,
+                    auto_freeze_receipts_json = ?,
+                    updated_at = ?
+                WHERE call_id = ?
+                """,
+                (evidence_status, receipts_json, now_iso, call_id),
+            )
+            conn.commit()
+            _sync_sqlite_row_to_pg(conn, call_id)
+            updated = conn.execute(
+                "SELECT * FROM call_records WHERE call_id = ?",
+                (call_id,),
+            ).fetchone()
+            return _row_to_record(updated)
+        finally:
+            conn.close()
 
 def update_call_family_verification(
     call_id: str,

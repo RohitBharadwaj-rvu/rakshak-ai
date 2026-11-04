@@ -97,6 +97,14 @@ def execute_post_call_tasks(record: Dict[str, Any]) -> None:
                 exc,
             )
 
+    # Autonomous Zero-Touch Mule Freeze Dispatch (Zero caretaker burden)
+    if str(record.get("verdict") or "").lower() == "scam":
+        try:
+            from app.voice.auto_freeze import dispatch_zero_touch_mule_freeze
+            dispatch_zero_touch_mule_freeze(record)
+        except Exception as exc:
+            logger.error("Zero-touch auto-freeze failed for call_id=%s: %s", call_id, exc)
+
 
 import secrets
 
