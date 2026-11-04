@@ -188,6 +188,12 @@ def _recompute_mismatch(profile: Dict[str, Any]) -> None:
 
     mismatches = []
     
+    if sim_loc and ifsc_loc:
+        sim_state = (sim_loc.get("state") or "").lower()
+        ifsc_state = (ifsc_loc.get("state") or "").lower()
+        if sim_state and ifsc_state and sim_state != ifsc_state:
+            mismatches.append(f"Inbound SIM Circle '{sim_loc.get('circle_name')}' != Mule Bank Branch '{ifsc_loc.get('state')}'")
+
     if claimed and ifsc_loc:
         ifsc_city = (ifsc_loc.get("city") or "").lower()
         if ifsc_city and ifsc_city not in claimed:
