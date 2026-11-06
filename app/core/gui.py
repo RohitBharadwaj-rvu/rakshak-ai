@@ -175,7 +175,12 @@ SESSION_COOKIE = "gl_dash"
 
 
 def _master_token() -> str:
-    expected = os.environ.get("GUARDIAN_DASHBOARD_TOKEN") or "demo123"
+    expected = (os.environ.get("GUARDIAN_DASHBOARD_TOKEN") or "").strip()
+    if not expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Dashboard authentication token is not configured",
+        )
     return expected
 
 
@@ -500,7 +505,20 @@ def render_dashboard(
     week_buckets, week_total = T.weekly_scam_buckets(
         all_calls, datetime.now(IST).date(), IST, _parse_timestamp
     )
-    top_bento_html = (
+    scam_calls_all = [c for c in all_calls if str(c.get("verdict") or "").lower() == "scam"]
+    total_stalled_sec = sum(_safe_duration(c.get("duration")) for c in scam_calls_all)
+    stalled_display = f"{total_stalled_sec / 60.0:.1f}m" if total_stalled_sec >= 60 else f"{int(total_stalled_sec)}s"
+    safe_handled_count = sum(1 for c in all_calls if str(c.get("verdict") or "").lower() in ("genuine", "safe_delivery"))
+    kpi_strip_html = (
+        '<section class="m3-card" id="impact-kpi-strip" style="margin-bottom:18px;padding:16px 22px;">'
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:center;">'
+        f'<div><span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Scammer Time Wasted</span><div style="font-size:24px;font-weight:700;color:#B3261E;">{stalled_display} <span style="font-size:13px;font-weight:500;color:#5F6B61;">({len(scam_calls_all)} calls stalled)</span></div></div>'
+        f'<div><span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Pre-Victim Mule Rails Extracted</span><div style="font-size:24px;font-weight:700;color:#2B4A32;">{scam_intel["total_identifiers"]} <span style="font-size:13px;font-weight:500;color:#5F6B61;">UPI / Bank / Global</span></div></div>'
+        f'<div><span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Syndicate Clusters Linked</span><div style="font-size:24px;font-weight:700;color:#261952;">{scam_intel["linked_cluster_count"]} <span style="font-size:13px;font-weight:500;color:#5F6B61;">cross-call matches</span></div></div>'
+        f'<div><span class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Legitimate Calls &amp; Deliveries</span><div style="font-size:24px;font-weight:700;color:#2E7D32;">{safe_handled_count} <span style="font-size:13px;font-weight:500;color:#5F6B61;">screened &amp; approved</span></div></div>'
+        '</div></section>'
+    )
+    top_bento_html = kpi_strip_html + (
         '<div class="bento-2x2">'
         f'<section class="m3-card"><h2>Family Network Topology</h2>{T.topology_svg(caretakers_topo, dependents_topo)}</section>'
         '<section class="m3-card"><h2>Live Scam Detection Activity</h2>'
@@ -689,8 +707,8 @@ def render_call_detail(
         )
         status_badge_html = (
             '<div class="ev-status confirmed" style="background:#064e3b;border:1px solid #059669;color:#ecfdf5;padding:12px 16px;border-radius:8px;">'
-            '<strong>🛡️ ZERO-BURDEN AUTONOMOUS FREEZE DISPATCHED</strong><br>'
-            '<span style="font-size:13px;">GuardianLine eliminated all manual paperwork for the family. The moment the scammer\'s payment drop was baited and extracted, an instant freeze command was routed to national interbank fraud switches (EWS, CIFAS, NPCI). Mule accounts locked.</span>'
+            '<strong>🛡️ PRE-VICTIM MULE DOSSIER GENERATED (SIMULATED INTERBANK FREEZE PAYLOAD)</strong><br>'
+            '<span style="font-size:13px;">Zero manual paperwork for the family. The scammer\'s payment drop was baited and extracted mid-call, generating a cryptographically signed freeze payload formatted for national interbank fraud switches (I4C 1930, NPCI, EWS, CIFAS).</span>'
             f'<div style="margin-top:8px;">{receipt_pills}</div>'
             '</div>'
         )
@@ -819,7 +837,7 @@ def render_call_detail(
             "<span style='background:#10b981;color:#000;font-weight:700;padding:4px 8px;border-radius:4px;font-size:11px;'>READY TO BURN</span>"
             "</div>"
             "<div style='margin-top:12px;background:#1e1b4b;border:1px solid #4338ca;padding:10px 14px;border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center;'>"
-            "<span>❤️ <strong>Zero-Click Passive Telemetry Heartbeat:</strong> Verified child (Amit) device online at Google_Corp_Secure Wi-Fi · Battery 87% · Stationary · No 911 dispatch. AI Voice Clone probability 99.4%.</span>"
+            "<span>❤️ <strong>Passive Family Telemetry Check (Prototype Spec):</strong> Child (Amit) device status: Online · Stationary · No emergency dispatch active. AI Voice Clone risk flagged.</span>"
             "<span style='background:#6366f1;color:#fff;font-weight:700;padding:4px 8px;border-radius:4px;font-size:11px;'>CHILD VERIFIED SAFE</span>"
             "</div>"
             "</section>"

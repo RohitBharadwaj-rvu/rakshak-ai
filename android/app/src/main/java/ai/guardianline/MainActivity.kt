@@ -950,6 +950,16 @@ class MainActivity : AppCompatActivity() {
                 val mergedCalls = mutableListOf<ScreenedCallDossier>()
 
                 // 1. Direct live fetch from Bolna Cloud API (instant 0-delay access to all gateway calls)
+                // 1. Fetch live Bolna executions via backend proxy (zero client API key exposure), with optional local fallback
+                try {
+                    val proxyRaw = httpGet("$base/api/bolna/executions", token)
+                    val proxyRoot = JSONObject(proxyRaw)
+                    val proxyArr = proxyRoot.optJSONArray("data") ?: JSONArray()
+                    val proxyCalls = proxyArr.objects().take(15).mapIndexedNotNull { idx, item ->
+                        parseBolnaExecutionDossier(idx, item)
+                    }
+                    mergedCalls.addAll(proxyCalls)
+                } catch (_: Exception) {}
                 val bolnaKey = BuildConfig.BOLNA_API_KEY.trim()
                 val bolnaAgentId = BuildConfig.BOLNA_AGENT_ID.trim()
                 if (bolnaKey.isNotBlank() && bolnaAgentId.isNotBlank()) {

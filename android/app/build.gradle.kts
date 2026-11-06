@@ -43,9 +43,9 @@ android {
             ?: "a6998177-c352-47b5-8867-4757b29416a9"
         buildConfigField("String", "BOLNA_AGENT_ID", "\"$bolnaAgentId\"")
 
-        val bolnaApiKey = System.getenv("BOLNA_API_KEY")?.takeIf { it.isNotBlank() }
-            ?: envMap["BOLNA_API_KEY"]?.takeIf { it.isNotBlank() }
-            ?: ""
+        val bolnaApiKey = if (project.findProperty("includeBolnaKey") == "true") (envMap["BOLNA_API_KEY"] ?: "") else ""
+
+
         buildConfigField("String", "BOLNA_API_KEY", "\"$bolnaApiKey\"")
 
     }

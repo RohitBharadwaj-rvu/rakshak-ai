@@ -112,6 +112,28 @@ async def api_mobile_calls(limit: int = 50):
     return list_call_records(limit=capped)
 
 
+@router.get("/api/bolna/executions")
+async def api_bolna_executions():
+    """Server-side proxy for Bolna agent executions so mobile clients never need BOLNA_API_KEY."""
+    import os
+    import httpx
+    api_key = os.getenv("BOLNA_API_KEY", "").strip()
+    agent_id = os.getenv("BOLNA_AGENT_ID", "a6998177-c352-47b5-8867-4757b29416a9").strip()
+    if not api_key:
+        return {"data": [], "status": "unconfigured"}
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                f"https://api.bolna.ai/v2/agent/{agent_id}/executions",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception as exc:
+        logger.warning("Bolna executions proxy error: %s", exc)
+    return {"data": []}
+
+
 @router.get("/dashboard/sse")
 @router.get("/api/events")
 async def sse_event_stream(request: Request):

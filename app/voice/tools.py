@@ -252,8 +252,8 @@ async def api_approve_legitimate_caller(req: ApproveLegitimateCallerRequest) -> 
         from app.notify.alerts import build_dispatcher_from_env
         dispatcher = build_dispatcher_from_env()
         if dispatcher and getattr(dispatcher, "twilio_client", None):
-            from_num = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_WHATSAPP_NUMBER")
-            to_num = os.getenv("SON_PHONE_NUMBER", "+919876543210")
+            from_num = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_WHATSAPP_NUMBER") or os.getenv("TWILIO_WHATSAPP_FROM")
+            to_num = os.getenv("FAMILY_ALERT_TO") or os.getenv("SON_PHONE_NUMBER", "+919876543210")
             dispatcher.twilio_client.messages.create(body=notify_msg, from_=from_num, to=to_num)
     except Exception as e:
         logger.warning("Could not send legitimate delivery alert: %s", e)
@@ -280,7 +280,11 @@ async def api_approve_legitimate_caller(req: ApproveLegitimateCallerRequest) -> 
         brand_or_person=req.brand_or_person,
         caller_type=req.caller_type,
         delivery_details=req.delivery_details,
-        spoken_instruction=spoken,
+        spoken_instruction=(
+            f"अच्छा जी, मैंने आपका मैसेज नोट कर लिया है, मैं अभी घर पे बता देता हूँ। धन्यवाद जी। [SYSTEM: Call verified legitimate {req.brand_or_person} message. Politely end call.]"
+            if str(req.caller_type or "").strip().lower() in ("clinic", "doctor", "acquaintance", "relative", "appointment", "message", "personal", "hospital")
+            else spoken
+        ),
     )
 
 

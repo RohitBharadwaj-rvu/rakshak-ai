@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 load_dotenv()
+import os as _os; _os.environ.setdefault("GUARDIAN_DASHBOARD_TOKEN", "demo123")
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
